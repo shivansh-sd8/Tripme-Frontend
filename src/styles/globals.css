@@ -1,0 +1,415 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-playfair);
+  --font-heading: var(--font-poppins);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), Inter, system-ui, sans-serif;
+}
+
+/* Animation for background blobs */
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+@keyframes slideDown {
+  0% { opacity: 0; transform: translateY(-20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-slideDown {
+  animation: slideDown 0.3s ease-out;
+}
+
+/* Custom animations for modern forms */
+@keyframes fadeIn {
+  0% { 
+    opacity: 0; 
+    transform: translateY(20px); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+/* New animations for dashboard */
+@keyframes fadeIn {
+  0% { 
+    opacity: 0; 
+    transform: translateY(30px); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s ease-out;
+}
+
+@keyframes slideUp {
+  0% { 
+    opacity: 0; 
+    transform: translateY(40px); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.8s ease-out;
+}
+
+@keyframes fadeInDelay {
+  0% { 
+    opacity: 0; 
+    transform: translateY(20px); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+.animate-fade-in-delay {
+  animation: fadeInDelay 0.8s ease-out 0.3s both;
+}
+
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -30px, 0);
+  }
+  70% {
+    transform: translate3d(0, -15px, 0);
+  }
+  90% {
+    transform: translate3d(0, -4px, 0);
+  }
+}
+
+.animate-bounce {
+  animation: bounce 1s;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Smooth transitions for form elements */
+.form-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Gradient text animation */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.gradient-text {
+  background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #f5576c);
+  background-size: 400% 400%;
+  animation: gradientShift 3s ease infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Button shine effect */
+@keyframes shine {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.shine-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.shine-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  animation: shine 2s infinite;
+}
+
+/* Hover animations */
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Card entrance animations */
+@keyframes cardEntrance {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-card-entrance {
+  animation: cardEntrance 0.6s ease-out;
+}
+
+/* Icon pulse animation */
+@keyframes iconPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.animate-icon-pulse {
+  animation: iconPulse 2s ease-in-out infinite;
+}
+
+/* --- Custom react-date-range calendar styles --- */
+.rdrCalendarWrapper {
+  background: #fff !important;
+  border-radius: 1.25rem !important;
+  box-shadow: 0 8px 32px rgba(80, 80, 120, 0.10) !important;
+  border: none !important;
+  padding: 1rem 1.25rem 1.25rem 1.25rem !important;
+  font-size: 16px !important;
+}
+.rdrMonths, .rdrMonthsHorizontal {
+  width: 100% !important;
+}
+.rdrMonth {
+  background: #fff !important;
+  border-radius: 1.25rem !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0.5rem !important;
+  width: 100% !important;
+}
+.rdrMonthAndYearWrapper {
+  background: #fff !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600;
+  color: #7c3aed !important;
+  margin-bottom: 0.5rem !important;
+}
+.rdrWeekDays {
+  background: #fff !important;
+  color: #a1a1aa !important;
+  font-weight: 500;
+  border-radius: 0.5rem !important;
+}
+.rdrWeekDay {
+  color: #a1a1aa !important;
+  font-weight: 500;
+  font-size: 1rem !important;
+}
+.rdrDay {
+  background: #fff !important;
+  border-radius: 0.75rem !important;
+  transition: background 0.2s;
+  width: 72px !important;
+  height: 72px !important; /* increase height */
+  margin: 6px !important;
+}
+.rdrDayNumber span {
+  color: #22223b !important;
+  font-size: 1.1rem !important;
+  font-weight: 600;
+  padding: 0.35rem 0.5rem !important;
+  border-radius: 0.65rem !important;
+  line-height: 1.2 !important;
+}
+.rdrDays {
+  padding: 0 6px !important;
+}
+.rdrDayToday .rdrDayNumber span {
+  border-bottom: 2px solid #7c3aed !important;
+  color: #7c3aed !important;
+}
+/* Selected range (after click) */
+.rdrDaySelected, .rdrDayInRange {
+  background: #ede9fe !important; /* soft purple for confirmed selection */
+  border-radius: 0.75rem !important;
+}
+/* Hover/preview state while dragging a range - switch to soft green */
+.rdrDayStartPreview, .rdrDayEndPreview, .rdrDayInPreview, .rdrDayPreview {
+  background: rgba(16, 185, 129, 0.15) !important; /* emerald-400 @ 15% */
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.35) !important; /* subtle outline */
+  border-radius: 0.75rem !important;
+}
+.rdrDaySelected .rdrDayNumber span {
+  background: #7c3aed !important;
+  color: #fff !important;
+  border-radius: 0.75rem !important;
+  padding: 0.25rem 0.6rem !important;
+}
+.rdrDayInRange .rdrDayNumber span {
+  background: #ede9fe !important;
+  color: #7c3aed !important;
+  border-radius: 0.75rem !important;
+  padding: 0.25rem 0.6rem !important;
+}
+/* Day hover color -> soft green to match available styling */
+.rdrDay:not(.rdrDayPassive):hover .rdrDayNumber span {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #065f46 !important;
+}
+.rdrNextPrevButton {
+  background: #ede9fe !important;
+  color: #7c3aed !important;
+  border-radius: 0.75rem !important;
+  width: 2.75rem !important;
+  height: 2.75rem !important;
+  margin: 0 0.5rem !important;
+  box-shadow: none !important;
+}
+.rdrDateDisplayWrapper {
+  display: none !important;
+}
+/* --- End custom calendar styles --- */
+
+/* Compact calendar styles for property pages */
+.calendar-container .rdrCalendarWrapper {
+  font-size: 14px !important;
+}
+
+.calendar-container .rdrMonth {
+  width: 100% !important;
+  max-width: 320px !important;
+}
+
+.calendar-container .rdrDays {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  gap: 2px !important;
+}
+
+.calendar-container .rdrDay {
+  width: 36px !important;
+  height: 36px !important;
+  margin: 1px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+}
+
+.calendar-container .rdrDayNumber {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+.calendar-container .rdrWeekDays {
+  margin-bottom: 8px !important;
+}
+
+.calendar-container .rdrWeekDay {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #6b7280 !important;
+  padding: 4px 0 !important;
+}
+
+.calendar-container .rdrMonthAndYearWrapper {
+  padding: 8px 0 !important;
+  margin-bottom: 8px !important;
+}
+
+.calendar-container .rdrMonthAndYearPickers {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+/* Ensure react-select dropdown (Mapbox suggestions) is always on top */
+.react-select__menu, .Select__menu {
+  z-index: 9999 !important;
+}
