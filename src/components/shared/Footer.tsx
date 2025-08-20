@@ -28,7 +28,7 @@ export default function Footer() {
           <Home size={26} />
           <span className="text-xs mt-1 font-semibold">Home</span>
         </Link>
-        <Link href="/rooms" className="flex flex-col items-center flex-1 py-2 text-gray-700 hover:text-indigo-600 transition-all">
+        <Link href="/search" className="flex flex-col items-center flex-1 py-2 text-gray-700 hover:text-indigo-600 transition-all">
           <Home size={26} />
           <span className="text-xs mt-1 font-semibold">Rooms</span>
         </Link>
