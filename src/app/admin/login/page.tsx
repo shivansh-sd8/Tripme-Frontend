@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { config } from '@/config/env';
+
 import { authService } from '@/core/services/auth.service';
 import { Shield, Eye, EyeOff, Lock, User, ArrowRight } from 'lucide-react';
 

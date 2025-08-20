@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { config } from '@/config/env';
+
 import { Shield, Eye, EyeOff, Lock, User, ArrowRight, Key, Phone, Crown } from 'lucide-react';
 
 interface AdminSignupForm {
@@ -77,7 +77,9 @@ export default function AdminSignupPage() {
     setMessage(null);
 
     try {
-      const response = await fetch(`${config.api.url}/admin/signup`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+      console.log('🔍 Admin signup API URL:', apiUrl);
+      const response = await fetch(`${apiUrl}/admin/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
