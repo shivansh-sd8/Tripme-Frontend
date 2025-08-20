@@ -97,7 +97,7 @@ const StoriesPage = () => {
         params.append('search', searchTerm);
       }
 
-      const response = await fetch(`http://localhost:5001/api/stories?${params}`);
+              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stories?${params}`);
       const data = await response.json();
 
       if (data.success) {
@@ -113,7 +113,7 @@ const StoriesPage = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/stories/categories');
+              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stories/categories`);
       const data = await response.json();
 
       if (data.success) {

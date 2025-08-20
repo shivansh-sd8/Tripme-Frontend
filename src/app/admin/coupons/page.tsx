@@ -86,7 +86,7 @@ export default function AdminCouponsPage() {
         ...(searchTerm && { search: searchTerm })
       });
 
-      const response = await fetch(`http://localhost:5001/api/coupons?${queryParams}`, {
+              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/coupons?${queryParams}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -129,7 +129,7 @@ export default function AdminCouponsPage() {
     }
     
     try {
-      const response = await fetch('http://localhost:5001/api/coupons', {
+              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/coupons`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -190,7 +190,7 @@ export default function AdminCouponsPage() {
         return;
       }
       
-      const response = await fetch(`http://localhost:5001/api/coupons/${couponId}/toggle-status`, {
+              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/coupons/${couponId}/toggle-status`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -219,7 +219,7 @@ export default function AdminCouponsPage() {
           return;
         }
         
-        const response = await fetch(`http://localhost:5001/api/coupons/${couponId}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/coupons/${couponId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`

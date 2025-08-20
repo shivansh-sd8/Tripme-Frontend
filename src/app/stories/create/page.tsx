@@ -84,7 +84,7 @@ const CreateStoryPage = () => {
         throw new Error('No authentication token found. Please sign in again.');
       }
 
-      const response = await fetch('http://localhost:5001/api/upload/image', {
+              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload/image`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -171,7 +171,7 @@ const CreateStoryPage = () => {
         isPublished
       };
 
-      const response = await fetch('http://localhost:5001/api/stories', {
+              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stories`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

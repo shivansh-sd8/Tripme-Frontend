@@ -168,7 +168,7 @@ const ProfileContent: React.FC = () => {
         throw new Error('No authentication token found. Please sign in again.');
       }
 
-      const response = await fetch('http://localhost:5001/api/upload/image', {
+              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload/image`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

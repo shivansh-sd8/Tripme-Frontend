@@ -84,7 +84,7 @@ const StoryPage = () => {
   const fetchStory = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5001/api/stories/story/${storyId}`);
+              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stories/story/${storyId}`);
       const data = await response.json();
 
       if (data.success) {
@@ -109,7 +109,7 @@ const StoryPage = () => {
 
     try {
       const token = localStorage.getItem('tripme_token');
-      const response = await fetch(`http://localhost:5001/api/stories/${storyId}/like`, {
+              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stories/${storyId}/like`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -142,7 +142,7 @@ const StoryPage = () => {
     try {
       setSubmittingComment(true);
       const token = localStorage.getItem('tripme_token');
-      const response = await fetch(`http://localhost:5001/api/stories/${storyId}/comments`, {
+              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stories/${storyId}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

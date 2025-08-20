@@ -91,7 +91,7 @@ export default function Home() {
       setLoading(true);
       
       // Fetch featured stays (properties with isFeatured: true)
-      const featuredResponse = await fetch('http://localhost:5001/api/listings/featured?limit=6');
+              const featuredResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/listings/featured?limit=6`);
       if (featuredResponse.ok) {
         const featuredData = await featuredResponse.json();
         const fetchedStays = featuredData.data?.listings || [];
@@ -154,7 +154,7 @@ export default function Home() {
   const fetchActiveCoupons = async () => {
     try {
       setCouponLoading(true);
-      const response = await fetch('http://localhost:5001/api/coupons/public?isActive=true&limit=6');
+              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/coupons/public?isActive=true&limit=6`);
       if (response.ok) {
         const data = await response.json();
         setActiveCoupons(data.data?.coupons || []);
