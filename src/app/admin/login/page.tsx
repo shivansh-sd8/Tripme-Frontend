@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/core/store/auth-context';
 
 import { authService } from '@/core/services/auth.service';
 import { Shield, Eye, EyeOff, Lock, User, ArrowRight } from 'lucide-react';
@@ -14,6 +15,7 @@ interface AdminLoginForm {
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [formData, setFormData] = useState<AdminLoginForm>({
     email: '',
     password: ''
@@ -51,16 +53,27 @@ export default function AdminLoginPage() {
     setMessage(null);
 
     try {
+      console.log('🔐 Attempting admin login...');
       const data = await authService.adminLogin(formData.email, formData.password);
+      console.log('🔐 Admin login response:', data);
 
       if (data.success) {
+        // Update auth context with admin user data
+        if (data.data?.admin && data.data?.token) {
+          login(data.data.admin, data.data.token);
+          console.log('🔐 Admin user logged in via auth context');
+        }
+        
         setMessage({
           type: 'success',
           text: 'Login successful! Redirecting to dashboard...'
         });
         
-        // Redirect to admin dashboard immediately
-        router.push('/admin/dashboard');
+        // Add a small delay to ensure state is properly set
+        setTimeout(() => {
+          console.log('🔄 Redirecting to admin dashboard...');
+          router.push('/admin/dashboard');
+        }, 1000);
       } else {
         setMessage({
           type: 'error',

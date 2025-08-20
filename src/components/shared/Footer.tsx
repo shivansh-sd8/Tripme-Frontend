@@ -28,12 +28,12 @@ export default function Footer() {
           <Home size={26} />
           <span className="text-xs mt-1 font-semibold">Home</span>
         </Link>
-        <Link href="/stays" className="flex flex-col items-center flex-1 py-2 text-gray-700 hover:text-indigo-600 transition-all">
-          <Briefcase size={26} />
-          <span className="text-xs mt-1 font-semibold">Stays</span>
+        <Link href="/rooms" className="flex flex-col items-center flex-1 py-2 text-gray-700 hover:text-indigo-600 transition-all">
+          <Home size={26} />
+          <span className="text-xs mt-1 font-semibold">Rooms</span>
         </Link>
         <Link href="/services" className="flex flex-col items-center flex-1 py-2 text-gray-700 hover:text-indigo-600 transition-all">
-          <Briefcase size={26} />
+          <Settings size={26} />
           <span className="text-xs mt-1 font-semibold">Services</span>
         </Link>
 

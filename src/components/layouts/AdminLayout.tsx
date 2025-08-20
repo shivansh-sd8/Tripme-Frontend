@@ -37,8 +37,14 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   // Check if user is admin (including super-admin) - use useEffect to avoid setState during render
   useEffect(() => {
+    console.log('🔐 AdminLayout - User:', user);
+    console.log('🔐 AdminLayout - User role:', user?.role);
+    
     if (!user || (user.role !== 'admin' && user.role !== 'super-admin')) {
-      router.push('/auth/login');
+      console.log('🔐 AdminLayout - Redirecting to admin login');
+      router.push('/admin/login');
+    } else {
+      console.log('🔐 AdminLayout - User is admin, rendering dashboard');
     }
   }, [user, router]);
 

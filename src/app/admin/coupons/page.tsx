@@ -103,7 +103,7 @@ export default function AdminCouponsPage() {
         if (response.status === 401) {
           if (errorData.message === 'Invalid token.') {
             alert('Your session has expired. Please log in again.');
-            window.location.href = '/admin/login';
+            router.push('/admin/login');
           } else {
             console.error('Authentication error:', errorData.message);
           }
@@ -168,7 +168,7 @@ export default function AdminCouponsPage() {
           if (errorData.message === 'Invalid token.') {
             alert('Your session has expired. Please log in again.');
             // Redirect to login
-            window.location.href = '/admin/login';
+            router.push('/admin/login');
           } else {
             alert(`Authentication error: ${errorData.message}`);
           }
