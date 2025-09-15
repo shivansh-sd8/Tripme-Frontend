@@ -81,7 +81,7 @@ export function formatCurrency(amount: number, currency: string = PRICING_CONSTA
 }
 
 /**
- * Validate pricing parameters
+ * Validate pricing parameters   
  * @param pricing - Pricing object to validate
  * @returns Validation result
  */
