@@ -5,8 +5,8 @@ import Footer from "@/components/shared/Footer";
 import KYCSubmissionContent from "@/components/user/KYCSubmissionContent";
 
 export const metadata: Metadata = {
-  title: "Become a Host - Identity Verification",
-  description: "Complete your identity verification to become a host and start earning",
+  title: "Identity Verification - KYC",
+  description: "Complete your identity verification to access all platform features",
 };
 
 export default function KYCPage() {

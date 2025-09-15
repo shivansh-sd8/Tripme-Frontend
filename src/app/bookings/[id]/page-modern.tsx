@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { apiClient } from '@/infrastructure/api/clients/api-client';
 import { useAuth } from '@/core/store/auth-context';
 import { 
@@ -149,9 +149,9 @@ interface BookingDetails {
   checkedOut?: boolean;
   pricingBreakdown?: {
     customerBreakdown: {
-    baseAmount: number;
+      baseAmount: number;
       cleaningFee: number;
-    serviceFee: number;
+      serviceFee: number;
       securityDeposit: number;
       hourlyExtension: number;
       discountAmount: number;
@@ -163,14 +163,14 @@ interface BookingDetails {
     };
     hostBreakdown: {
       baseAmount: number;
-    cleaningFee: number;
+      cleaningFee: number;
       serviceFee: number;
-    securityDeposit: number;
+      securityDeposit: number;
       hourlyExtension: number;
       discountAmount: number;
       subtotal: number;
-    platformFee: number;
-    hostEarning: number;
+      platformFee: number;
+      hostEarning: number;
     };
     platformBreakdown: {
       platformFee: number;
@@ -193,122 +193,35 @@ interface CancellationPolicy {
 export default function BookingDetailsPage() {
   const router = useRouter();
   const { id } = useParams();
-  const searchParams = useSearchParams();
   const { user, isAuthenticated } = useAuth();
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [error, setError] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancellationReason, setCancellationReason] = useState('');
-  const [refundInfo, setRefundInfo] = useState<{
-    amount: number;
-    percentage: number;
-    policy: string;
-  } | null>(null);
-
-  // Check for success parameter
-  useEffect(() => {
-    if (searchParams.get('success') === 'true') {
-      setShowSuccessMessage(true);
-      // Auto-hide success message after 5 seconds
-      const timer = setTimeout(() => {
-        setShowSuccessMessage(false);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     if (id) {
       fetchBookingDetails();
     }
   }, [id]);
-    
-    const fetchBookingDetails = async () => {
-      try {
-        setLoading(true);
-      const response = await apiClient.getBooking(id as string);
+
+  const fetchBookingDetails = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.getBookingById(id as string);
       
       if (response.success) {
-          setBooking(response.data.booking);
-        } else {
+        setBooking(response.data.booking);
+      } else {
         setError(response.message || 'Failed to fetch booking details');
       }
     } catch (error: any) {
       setError('Failed to fetch booking details');
-      } finally {
-          setLoading(false);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const calculateRefundInfo = (booking: BookingDetails) => {
-    if (!booking) return null;
-
-    // If booking is pending, always full refund
-    if (booking.status === 'pending') {
-      return {
-        amount: booking.totalAmount,
-        percentage: 100,
-        policy: 'Full refund for cancellations before host approval'
-      };
-    }
-
-    // For confirmed bookings, calculate based on cancellation policy
-    const policy = booking.listing?.cancellationPolicy || 'moderate';
-    const checkInDate = new Date(booking.checkIn);
-    const now = new Date();
-    const hoursUntilCheckIn = (checkInDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-
-    let refundPercentage = 0;
-    let policyDescription = '';
-
-    switch (policy) {
-      case 'flexible':
-        if (hoursUntilCheckIn > 24) {
-          refundPercentage = 100;
-          policyDescription = 'Full refund if cancelled more than 24 hours before check-in';
-        } else {
-          refundPercentage = 0;
-          policyDescription = 'No refund if cancelled within 24 hours of check-in';
-        }
-        break;
-      case 'moderate':
-        if (hoursUntilCheckIn > 120) { // 5 days
-          refundPercentage = 100;
-          policyDescription = 'Full refund if cancelled more than 5 days before check-in';
-        } else if (hoursUntilCheckIn > 24) {
-          refundPercentage = 50;
-          policyDescription = '50% refund if cancelled between 1-5 days before check-in';
-        } else {
-          refundPercentage = 0;
-          policyDescription = 'No refund if cancelled within 24 hours of check-in';
-        }
-        break;
-      case 'strict':
-        if (hoursUntilCheckIn > 168) { // 7 days
-          refundPercentage = 50;
-          policyDescription = '50% refund if cancelled more than 7 days before check-in';
-        } else {
-          refundPercentage = 0;
-          policyDescription = 'No refund if cancelled within 7 days of check-in';
-        }
-        break;
-      case 'super_strict':
-        refundPercentage = 0;
-        policyDescription = 'No refunds under any circumstances';
-        break;
-      default:
-        refundPercentage = 0;
-        policyDescription = 'Standard cancellation policy applies';
-    }
-
-    return {
-      amount: (booking.totalAmount * refundPercentage) / 100,
-      percentage: refundPercentage,
-      policy: policyDescription
-    };
   };
 
   const handleCancelBooking = async () => {
@@ -316,58 +229,22 @@ export default function BookingDetailsPage() {
     
     try {
       setCancelling(true);
-      setError(''); // Clear any previous errors
-      
-      console.log('🔄 Attempting to cancel booking:', booking._id);
-      console.log('📝 Cancellation reason:', cancellationReason);
-      
       const response = await apiClient.cancelBooking(booking._id, cancellationReason);
       
-      console.log('📨 Cancellation response:', response);
-      
       if (response.success) {
-        console.log('✅ Booking cancelled successfully');
         setBooking(prev => prev ? {
           ...prev,
           status: 'cancelled',
           cancellationReason,
-          refundAmount: response.data.refundAmount || refundInfo?.amount || 0,
-          refundStatus: 'pending',
-          refunded: (response.data.refundAmount || refundInfo?.amount || 0) > 0
+          refundAmount: response.data.refundAmount
         } : null);
         setShowCancelModal(false);
         setCancellationReason('');
-        setRefundInfo(null);
-      } else {
-        console.error('❌ Cancellation failed:', response.message);
-        setError(response.message || 'Failed to cancel booking');
       }
-    } catch (error: any) {
-      console.error('❌ Error cancelling booking:', error);
-      
-      // Extract meaningful error message
-      let errorMessage = 'Failed to cancel booking';
-      
-      if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      }
-      
-      console.error('📝 Error message:', errorMessage);
-      setError(errorMessage);
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
     } finally {
       setCancelling(false);
-    }
-  };
-
-  const openCancelModal = () => {
-    if (booking) {
-      const refund = calculateRefundInfo(booking);
-      setRefundInfo(refund);
-      setShowCancelModal(true);
     }
   };
 
@@ -502,43 +379,12 @@ export default function BookingDetailsPage() {
     );
   }
 
-  if (!booking) {
+  if (error || !booking) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="text-center py-12">
           <h2 className="text-xl font-semibold text-gray-900">Booking not found</h2>
           <p className="text-gray-500 mt-2">The booking you're looking for doesn't exist.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-xl shadow-sm border border-red-200 p-6">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-4">
-                <XCircle className="w-5 h-5 text-red-600" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-red-900">Error</h2>
-                <p className="text-red-700 mt-1">{error}</p>
-              </div>
-            </div>
-            <div className="mt-4">
-              <button
-                onClick={() => {
-                  setError('');
-                  fetchBookingDetails();
-                }}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -574,27 +420,6 @@ export default function BookingDetailsPage() {
           </div>
         </div>
 
-        {/* Success Message */}
-        {showSuccessMessage && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center">
-              <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-              <div>
-                <h3 className="text-sm font-medium text-green-800">Booking Confirmed!</h3>
-                <p className="text-sm text-green-700 mt-1">
-                  Your booking has been successfully created and payment processed.
-                </p>
-                </div>
-                <button
-                onClick={() => setShowSuccessMessage(false)}
-                className="ml-auto text-green-600 hover:text-green-800"
-              >
-                <X className="w-4 h-4" />
-                </button>
-          </div>
-        </div>
-        )}
-
         {/* Modern Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Property & Details */}
@@ -611,35 +436,35 @@ export default function BookingDetailsPage() {
                 ) : (
                   <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
                     <Home className="w-12 h-12 text-gray-400" />
-                      </div>
-        )}
-                    </div>
-
+                  </div>
+                )}
+              </div>
+              
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <h2 className="text-xl font-semibold text-gray-900 mb-2">
                       {booking.listing?.title || 'Property Title'}
-                        </h2>
+                    </h2>
                     <div className="flex items-center text-gray-500 text-sm mb-1">
                       <MapPin className="w-4 h-4 mr-2" />
                       <span>{booking.listing?.location?.address || 'Location not specified'}</span>
-                      </div>
+                    </div>
                     <div className="flex items-center text-gray-500 text-sm">
                       <User className="w-4 h-4 mr-2" />
                       <span>Hosted by {booking.host?.name || 'Unknown Host'}</span>
                     </div>
                   </div>
                 </div>
-
+                
                 <div className="border-t pt-4">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">Description</h3>
                   <p className="text-gray-600 text-sm leading-relaxed">
                     {booking.listing?.description || 'No description available.'}
-                          </p>
-                      </div>
-                    </div>
-                            </div>
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* Stay Details Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -654,7 +479,7 @@ export default function BookingDetailsPage() {
                     <div className="flex items-center">
                       <Calendar className="w-4 h-4 text-blue-600 mr-2" />
                       <span className="text-sm font-medium text-blue-800">Check-in</span>
-                          </div>
+                    </div>
                     <div className="text-right">
                       <div className="text-sm font-semibold text-gray-900">{formatDate(booking.checkIn)}</div>
                       <div className="text-xs text-blue-600">After {booking.listing?.checkInTime || '3:00 PM'}</div>
@@ -668,17 +493,10 @@ export default function BookingDetailsPage() {
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-semibold text-gray-900">{formatDate(booking.checkOut)}</div>
-                      <div className="text-xs text-green-600">
-                        {booking.checkOutTime ? `Before ${booking.checkOutTime}` : `Before ${booking.listing?.checkOutTime || '11:00 AM'}`}
-                        {booking.hourlyExtension?.hours && (
-                          <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                            +{booking.hourlyExtension.hours}h extension
-                          </span>
-                        )}
+                      <div className="text-xs text-green-600">Before {booking.listing?.checkOutTime || '11:00 AM'}</div>
+                    </div>
                   </div>
-                        </div>
-                        </div>
-                      </div>
+                </div>
                 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
@@ -690,19 +508,19 @@ export default function BookingDetailsPage() {
                       {booking.guests.adults} adults
                       {booking.guests.children > 0 && `, ${booking.guests.children} children`}
                       {booking.guests.infants > 0 && `, ${booking.guests.infants} infants`}
-                        </div>
-                        </div>
+                    </div>
+                  </div>
                   
                   <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                     <div className="flex items-center">
                       <Clock className="w-4 h-4 text-orange-600 mr-2" />
                       <span className="text-sm font-medium text-orange-800">Duration</span>
-                      </div>
-                    <div className="text-sm font-semibold text-gray-900">{nights} night{nights !== 1 ? 's' : ''}</div>
                     </div>
-                        </div>
-                        </div>
-                      </div>
+                    <div className="text-sm font-semibold text-gray-900">{nights} night{nights !== 1 ? 's' : ''}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Amenities Card */}
             {booking.listing?.amenities && booking.listing.amenities.length > 0 && (
@@ -717,9 +535,9 @@ export default function BookingDetailsPage() {
                       {getAmenityIcon(amenity)}
                       <span className="text-sm text-gray-700">{amenity}</span>
                     </div>
-                      ))}
-                        </div>
-                        </div>
+                  ))}
+                </div>
+              </div>
             )}
 
             {/* Host Information Card */}
@@ -728,11 +546,11 @@ export default function BookingDetailsPage() {
                 <User className="w-5 h-5 mr-2 text-gray-600" />
                 Host Information
               </h3>
-                  <div className="flex items-start space-x-4">
+              <div className="flex items-start space-x-4">
                 <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
                   <User className="w-6 h-6 text-gray-500" />
-              </div>
-                    <div className="flex-1">
+                </div>
+                <div className="flex-1">
                   <h4 className="font-medium text-gray-900">{booking.host?.name || 'Unknown Host'}</h4>
                   <p className="text-sm text-gray-500 mb-2">Response time: {booking.host?.responseTime || 'Within 24 hours'}</p>
                   <div className="flex space-x-2">
@@ -744,138 +562,10 @@ export default function BookingDetailsPage() {
                       <Phone className="w-4 h-4" />
                       <span>Call</span>
                     </button>
-                        </div>
-                      </div>
-                        </div>
-                      </div>
-
-            {/* Enhanced Refund Information Card */}
-            {(booking.status === 'cancelled' && booking.refundAmount !== undefined) && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mr-3">
-                    <XCircle className="w-4 h-4 text-red-600" />
-                        </div>
-                  Cancellation & Refund Details
-                </h3>
-                
-                  <div className="space-y-4">
-                  {/* Refund Amount */}
-                  <div className={`p-4 rounded-xl border-2 ${
-                    booking.refundAmount > 0 
-                      ? 'bg-green-50 border-green-200' 
-                      : 'bg-red-50 border-red-200'
-                  }`}>
-                    <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          booking.refundAmount > 0 ? 'bg-green-100' : 'bg-red-100'
-                        }`}>
-                          {booking.refundAmount > 0 ? (
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <XCircle className="w-4 h-4 text-red-600" />
-                          )}
-                        </div>
-                      <div>
-                          <h4 className={`font-semibold ${
-                            booking.refundAmount > 0 ? 'text-green-800' : 'text-red-800'
-                          }`}>
-                            Refund Amount
-                          </h4>
-                          <p className={`text-sm ${
-                            booking.refundAmount > 0 ? 'text-green-700' : 'text-red-700'
-                          }`}>
-                            {booking.refundAmount > 0 ? (
-                              <>
-                                {formatCurrency(booking.refundAmount)} 
-                                {booking.refundAmount === booking.totalAmount ? ' (Full refund)' : ' (Partial refund)'}
-                              </>
-                            ) : (
-                              'No refund provided'
-                            )}
-                          </p>
-                      </div>
-                    </div>
-                      <div className="text-right">
-                        <div className={`text-2xl font-bold ${
-                          booking.refundAmount > 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {formatCurrency(booking.refundAmount)}
-                      </div>
-                        <div className="text-xs text-gray-500">
-                          {booking.refundAmount > 0 ? 'Will be processed' : 'Policy applied'}
-                    </div>
-                        </div>
-                      </div>
                   </div>
-
-                  {/* Refund Status */}
-                  <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                    <span className="text-sm text-gray-600">Refund Status</span>
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                      booking.refundStatus === 'completed' ? 'bg-green-100 text-green-800' : 
-                      booking.refundStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                      booking.refundStatus === 'failed' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {booking.refundStatus === 'completed' && <CheckCircle className="w-3 h-3 mr-1" />}
-                      {booking.refundStatus === 'pending' && <Clock className="w-3 h-3 mr-1" />}
-                      {booking.refundStatus === 'failed' && <XCircle className="w-3 h-3 mr-1" />}
-                      {booking.refundStatus ? booking.refundStatus.charAt(0).toUpperCase() + booking.refundStatus.slice(1) : 'N/A'}
-                    </span>
+                </div>
               </div>
-                  
-                  {/* Cancellation Details */}
-                  <div className="space-y-2">
-                    {booking.cancelledAt && (
-                      <div className="flex justify-between items-center py-2">
-                        <span className="text-sm text-gray-600">Cancelled On</span>
-                        <span className="text-sm font-medium text-gray-900">
-                          {new Date(booking.cancelledAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                      </div>
-            )}
-
-                    {booking.cancellationReason && (
-                      <div className="py-2">
-                        <span className="text-sm text-gray-600 block mb-1">Cancellation Reason</span>
-                        <p className="text-sm text-gray-900 bg-gray-50 rounded-lg p-3">
-                          {booking.cancellationReason}
-                        </p>
-                          </div>
-                        )}
-                      </div>
-
-                  {/* Refund Timeline */}
-                  {booking.refundAmount > 0 && (
-                    <div className="bg-blue-50 rounded-lg p-4">
-                      <h5 className="text-sm font-semibold text-blue-800 mb-2">Refund Timeline</h5>
-                      <div className="space-y-2 text-xs text-blue-700">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                          <span>Refund initiated: {new Date().toLocaleDateString()}</span>
-                      </div>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                          <span>Processing time: 3-5 business days</span>
-                    </div>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                          <span>Refund will appear in your original payment method</span>
-                      </div>
-                    </div>
-                        </div>
-                      )}
-                    </div>
-              </div>
-            )}
+            </div>
 
             {/* Cancellation Policy Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -883,24 +573,24 @@ export default function BookingDetailsPage() {
                 <Shield className="w-5 h-5 mr-2 text-gray-600" />
                 Cancellation Policy
               </h3>
-                  <div className="flex items-start space-x-3">
+              <div className="flex items-start space-x-3">
                 <policy.icon className={`w-5 h-5 mt-0.5 ${policy.color.replace('bg-', 'text-').replace(' text-', '')}`} />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 capitalize">{policy.type.replace('_', ' ')} Policy</p>
-                      <p className="text-sm text-gray-600 mt-1">{policy.description}</p>
-                      {canCancel && (
-                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                          <p className="text-sm text-gray-600">
-                            If you cancel now, you'll receive a refund of{' '}
-                            <span className="font-medium text-gray-900">{formatCurrency(refund.amount)}</span>
-                            {' '}({refund.percentage}% of total)
-                          </p>
-                        </div>
-                      )}
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900 capitalize">{policy.type.replace('_', ' ')} Policy</p>
+                  <p className="text-sm text-gray-600 mt-1">{policy.description}</p>
+                  {canCancel && (
+                    <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-600">
+                        If you cancel now, you'll receive a refund of{' '}
+                        <span className="font-medium text-gray-900">{formatCurrency(refund.amount)}</span>
+                        {' '}({refund.percentage}% of total)
+                      </p>
                     </div>
-                  </div>
-                    </div>
-                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Right Column - Pricing & Actions */}
           <div className="space-y-6">
@@ -915,7 +605,7 @@ export default function BookingDetailsPage() {
                   <span className="text-sm font-medium text-gray-900">
                     {formatCurrency(booking.pricingBreakdown?.customerBreakdown?.baseAmount || booking.listing?.pricing?.basePrice || 0)}
                   </span>
-                  </div>
+                </div>
                 
                 {/* Cleaning Fee */}
                 <div className="flex justify-between items-center py-2">
@@ -923,7 +613,7 @@ export default function BookingDetailsPage() {
                   <span className="text-sm font-medium text-gray-900">
                     {formatCurrency(booking.pricingBreakdown?.customerBreakdown?.cleaningFee || booking.listing?.pricing?.cleaningFee || 0)}
                   </span>
-                      </div>
+                </div>
                 
                 {/* Service Fee */}
                 <div className="flex justify-between items-center py-2">
@@ -931,7 +621,7 @@ export default function BookingDetailsPage() {
                   <span className="text-sm font-medium text-gray-900">
                     {formatCurrency(booking.pricingBreakdown?.customerBreakdown?.serviceFee || booking.listing?.pricing?.serviceFee || 0)}
                   </span>
-                        </div>
+                </div>
                 
                 {/* Security Deposit */}
                 <div className="flex justify-between items-center py-2">
@@ -939,7 +629,7 @@ export default function BookingDetailsPage() {
                   <span className="text-sm font-medium text-gray-900">
                     {formatCurrency(booking.pricingBreakdown?.customerBreakdown?.securityDeposit || booking.listing?.pricing?.securityDeposit || 0)}
                   </span>
-                    </div>
+                </div>
                 
                 {/* Discount */}
                 {booking.discountAmount > 0 && (
@@ -948,8 +638,8 @@ export default function BookingDetailsPage() {
                     <span className="text-sm font-medium text-green-600">
                       -{formatCurrency(booking.discountAmount)}
                     </span>
-              </div>
-            )}
+                  </div>
+                )}
                 
                 {/* Subtotal */}
                 <div className="border-t border-gray-200 pt-3">
@@ -958,7 +648,7 @@ export default function BookingDetailsPage() {
                     <span className="text-sm font-semibold text-gray-900">
                       {formatCurrency(booking.pricingBreakdown?.customerBreakdown?.subtotal || booking.subtotal || 0)}
                     </span>
-                </div>
+                  </div>
                 </div>
                 
                 {/* Platform Fee */}
@@ -975,7 +665,7 @@ export default function BookingDetailsPage() {
                   <span className="text-sm font-medium text-gray-900">
                     {formatCurrency(booking.pricingBreakdown?.customerBreakdown?.processingFee || booking.processingFee || 0)}
                   </span>
-                  </div>
+                </div>
                 
                 {/* GST */}
                 <div className="flex justify-between items-center py-2">
@@ -983,7 +673,7 @@ export default function BookingDetailsPage() {
                   <span className="text-sm font-medium text-gray-900">
                     {formatCurrency(booking.pricingBreakdown?.customerBreakdown?.gst || booking.gst || 0)}
                   </span>
-                  </div>
+                </div>
                 
                 {/* Total */}
                 <div className="border-t border-gray-200 pt-3">
@@ -993,9 +683,9 @@ export default function BookingDetailsPage() {
                       {formatCurrency(booking.pricingBreakdown?.customerBreakdown?.totalAmount || booking.totalAmount)}
                     </span>
                   </div>
-                  </div>
-                    </div>
-                    </div>
+                </div>
+              </div>
+            </div>
 
             {/* Actions Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -1012,16 +702,9 @@ export default function BookingDetailsPage() {
                   <span>Copy Booking ID</span>
                 </button>
                 
-                {(booking.refundAmount && booking.refundAmount > 0) && (
-                  <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
-                    <CheckCircle className="w-4 h-4" />
-                    <span>View Refund Status</span>
-                  </button>
-                )}
-                
                 {canCancel && (
                   <button
-                    onClick={openCancelModal}
+                    onClick={() => setShowCancelModal(true)}
                     className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
                   >
                     <XCircle className="w-4 h-4" />
@@ -1029,7 +712,7 @@ export default function BookingDetailsPage() {
                   </button>
                 )}
               </div>
-                </div>
+            </div>
 
             {/* Booking Information Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -1040,7 +723,7 @@ export default function BookingDetailsPage() {
                   <span className="text-sm text-gray-600">Booking ID</span>
                   <span className="text-sm font-mono text-gray-900">{booking._id}</span>
                 </div>
-
+                
                 <div className="flex justify-between items-center py-2">
                   <span className="text-sm text-gray-600">Payment Status</span>
                   <span className={`text-sm font-medium ${
@@ -1049,158 +732,60 @@ export default function BookingDetailsPage() {
                     'text-red-600'
                   }`}>
                     {booking.paymentStatus?.charAt(0).toUpperCase() + booking.paymentStatus?.slice(1)}
-                    </span>
+                  </span>
                 </div>
-
+                
                 <div className="flex justify-between items-center py-2">
                   <span className="text-sm text-gray-600">Created</span>
                   <span className="text-sm text-gray-900">
                     {new Date(booking._id).toLocaleDateString()}
-                    </span>
-                  </div>
+                  </span>
                 </div>
               </div>
-                  </div>
-                  </div>
-
-      {/* Cancel Booking Modal */}
-      {showCancelModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 transform transition-all duration-300 scale-100">
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                    <XCircle className="w-5 h-5 text-red-600" />
-                </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900">Cancel Booking</h3>
-                    <p className="text-sm text-gray-500">This action cannot be undone</p>
+            </div>
           </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowCancelModal(false);
-                    setError('');
-                  }}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <XCircle className="w-6 h-6" />
-                </button>
         </div>
-      </div>
 
-            {/* Content */}
-            <div className="px-6 py-6">
-              {/* Error Display */}
-              {error && (
-                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-center">
-                    <XCircle className="w-5 h-5 text-red-600 mr-2" />
-                    <p className="text-red-700 text-sm">{error}</p>
-                  </div>
-                </div>
-              )}
-              
-              <div className="mb-6">
-                <p className="text-gray-700 mb-4">
-                  Are you sure you want to cancel this booking? This will release your reserved dates and process a refund according to the cancellation policy.
+        {/* Cancel Booking Modal */}
+        {showCancelModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Cancel Booking</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Are you sure you want to cancel this booking?
+              </p>
+              <div className="p-3 bg-yellow-50 rounded-lg mb-4">
+                <p className="text-sm text-yellow-800">
+                  <Info className="h-4 w-4 inline mr-1" />
+                  You'll receive a refund of {formatCurrency(refund.amount)} ({refund.percentage}% of total)
                 </p>
-                
-                {/* Refund Information */}
-                {refundInfo && (
-                  <div className={`p-4 rounded-xl border-2 ${
-                    refundInfo.percentage > 0 
-                      ? 'bg-green-50 border-green-200' 
-                      : 'bg-red-50 border-red-200'
-                  }`}>
-                    <div className="flex items-start space-x-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        refundInfo.percentage > 0 
-                          ? 'bg-green-100' 
-                          : 'bg-red-100'
-                      }`}>
-                        {refundInfo.percentage > 0 ? (
-                          <CheckCircle className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-red-600" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className={`font-semibold ${
-                          refundInfo.percentage > 0 ? 'text-green-800' : 'text-red-800'
-                        }`}>
-                          Refund Information
-                        </h4>
-                        <p className={`text-sm mt-1 ${
-                          refundInfo.percentage > 0 ? 'text-green-700' : 'text-red-700'
-                        }`}>
-                          {refundInfo.percentage > 0 ? (
-                            <>
-                              You'll receive a refund of <span className="font-bold">{formatCurrency(refundInfo.amount)}</span> ({refundInfo.percentage}% of total)
-                            </>
-                          ) : (
-                            'No refund will be provided for this cancellation'
-                          )}
-                        </p>
-                        <p className="text-xs text-gray-600 mt-2">
-                          {refundInfo.policy}
-                  </p>
-                </div>
               </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Cancellation Reason */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Reason for cancellation (optional)
-                </label>
               <textarea
                 value={cancellationReason}
                 onChange={(e) => setCancellationReason(e.target.value)}
-                  placeholder="Please let us know why you're cancelling this booking..."
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none transition-colors"
+                placeholder="Reason for cancellation (optional)"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 mb-4"
                 rows={3}
               />
-              </div>
-
-              {/* Action Buttons */}
               <div className="flex space-x-3">
                 <button
-                  onClick={() => {
-                    setShowCancelModal(false);
-                    setError('');
-                  }}
-                  className="flex-1 px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all duration-200 hover:shadow-md"
+                  onClick={() => setShowCancelModal(false)}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                 >
                   Keep Booking
                 </button>
                 <button
                   onClick={handleCancelBooking}
                   disabled={cancelling}
-                  className="flex-1 px-6 py-3 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all duration-200 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
                 >
-                  {cancelling ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Cancelling...</span>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="w-4 h-4" />
-                      <span>Cancel Booking</span>
-                    </>
-                  )}
+                  {cancelling ? 'Cancelling...' : 'Cancel Booking'}
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );
-} 
+}

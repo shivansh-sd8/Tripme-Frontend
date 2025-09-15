@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@/utils/utils';
+import { cn } from '@/shared/utils/pricingUtils';
 
 interface FormProps extends React.FormHTMLAttributes<HTMLFormElement> {
   children: React.ReactNode;

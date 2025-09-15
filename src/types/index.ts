@@ -101,6 +101,7 @@ export interface Location {
   type: 'Point';
   coordinates: [number, number];
   address?: string;
+  userAddress?: string; // User's own address description
   city: string;
   state: string;
   country: string;
@@ -121,6 +122,7 @@ export interface Property {
   // For backward compatibility with StayCard component
   imageUrls?: string[];
   pricing: PropertyPricing;
+  hourlyBooking?: HourlyBookingSettings;
   houseRules: string[];
   checkInTime: string;
   checkOutTime: string;
@@ -172,6 +174,48 @@ export interface PropertyPricing {
   weeklyDiscount?: number;
   monthlyDiscount?: number;
   currency: 'INR' | 'USD' | 'EUR' | 'GBP' | 'JPY' | 'CAD' | 'AUD';
+}
+
+export interface HourlyBookingSettings {
+  enabled: boolean;
+  minStayDays: number;
+  hourlyRates: {
+    sixHours: number;
+    twelveHours: number;
+    eighteenHours: number;
+  };
+}
+
+export interface HourlyExtension {
+  hours: 6 | 12 | 18;
+  rate: number;
+  totalHours: number;
+}
+
+export interface HourlyPricingBreakdown {
+  daily: {
+    nights: number;
+    basePrice: number;
+    extraGuests: number;
+    total: number;
+  };
+  hourly?: {
+    hours: number;
+    rate: number;
+    description: string;
+    total: number;
+  };
+  fees: {
+    cleaningFee: number;
+    serviceFee: number;
+    securityDeposit: number;
+    platformFee: number;
+    hostEarning: number;
+  };
+  totals: {
+    subtotal: number;
+    total: number;
+  };
 }
 
 export interface PropertyRating {
@@ -246,9 +290,11 @@ export interface Booking {
   listing?: string | Property;
   service?: string | Service;
   bookingType: 'property' | 'service';
+  bookingDuration?: 'daily' | 'hourly';
   checkIn?: Date;
   checkOut?: Date;
   timeSlot?: TimeSlot;
+  hourlyExtension?: HourlyExtension;
   guests: {
     adults: number;
     children?: number;

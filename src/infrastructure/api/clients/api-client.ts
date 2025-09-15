@@ -1,6 +1,9 @@
 import { ApiResponse, PaginatedResponse, PaginationParams } from '@/shared/types';
 import { authService } from '@/core/services/auth.service';
 
+// For generating idempotency keys
+const crypto = typeof window !== 'undefined' ? window.crypto : require('crypto');
+
 class ApiClient {
   private baseURL: string;
   private defaultHeaders: Record<string, string>;
@@ -373,10 +376,73 @@ class ApiClient {
   }
 
   // Booking endpoints
+  async processPaymentAndCreateBooking(bookingData: any): Promise<ApiResponse<any>> {
+    // Add security data
+    const enhancedBookingData = {
+      ...bookingData,
+      idempotencyKey: this.generateIdempotencyKey(),
+      paymentData: bookingData.paymentData ? {
+        ...bookingData.paymentData,
+        timestamp: new Date().toISOString(),
+        clientVersion: '1.0.0'
+      } : undefined,
+      securityMetadata: {
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString(),
+        clientVersion: '1.0.0'
+      }
+    };
+
+    return this.request('/bookings/process-payment', {
+      method: 'POST',
+      body: JSON.stringify(enhancedBookingData),
+    });
+  }
+
   async createBooking(bookingData: any): Promise<ApiResponse<any>> {
+    // Add security data
+    const enhancedBookingData = {
+      ...bookingData,
+      idempotencyKey: this.generateIdempotencyKey(),
+      securityMetadata: {
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString(),
+        clientVersion: '1.0.0'
+      }
+    };
+
     return this.request('/bookings', {
       method: 'POST',
-      body: JSON.stringify(bookingData),
+      body: JSON.stringify(enhancedBookingData),
+    });
+  }
+
+  async processPayment(paymentData: any): Promise<ApiResponse<any>> {
+    // Add security data
+    const enhancedPaymentData = {
+      ...paymentData,
+      idempotencyKey: this.generateIdempotencyKey(),
+      securityMetadata: {
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString(),
+        clientVersion: '1.0.0'
+      }
+    };
+
+    return this.request('/payments/process', {
+      method: 'POST',
+      body: JSON.stringify(enhancedPaymentData),
+    });
+  }
+
+  // Generate idempotency key for payment security
+  private generateIdempotencyKey(): string {
+    return crypto.randomUUID();
+  }
+
+  async confirmPayment(paymentId: string): Promise<ApiResponse<any>> {
+    return this.request(`/payments/confirm/${paymentId}`, {
+      method: 'POST',
     });
   }
 
@@ -393,6 +459,20 @@ class ApiClient {
     return this.request(`/bookings/${id}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
+    });
+  }
+
+  async acceptBooking(id: string, message?: string): Promise<ApiResponse<any>> {
+    return this.request(`/bookings/${id}/accept`, {
+      method: 'PUT',
+      body: JSON.stringify({ message }),
+    });
+  }
+
+  async rejectBooking(id: string, reason: string, message?: string): Promise<ApiResponse<any>> {
+    return this.request(`/bookings/${id}/reject`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason, message }),
     });
   }
 
@@ -709,6 +789,20 @@ class ApiClient {
 
   async getCurrentUser(): Promise<ApiResponse<any>> {
     return this.request('/auth/me');
+  }
+
+  // Coupon endpoints
+  async validateCoupon(code: string, bookingAmount: number, listingId?: string, serviceId?: string): Promise<ApiResponse<any>> {
+    return this.request('/coupons/validate', {
+      method: 'POST',
+      body: JSON.stringify({
+        code,
+        bookingAmount,
+        listingId,
+        serviceId,
+        userId: this.getAuthToken() ? 'authenticated' : undefined
+      }),
+    });
   }
 }
 

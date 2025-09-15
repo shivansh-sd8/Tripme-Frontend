@@ -145,10 +145,31 @@ export class AuthService {
     return this.currentUser?.role === 'admin' || this.currentUser?.role === 'super-admin';
   }
 
-  public adminLogout(): void {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminData');
-    this.clearAuth();
+  public async adminLogout(): Promise<void> {
+    try {
+      // Call backend logout endpoint to invalidate session
+      const token = this.getToken();
+      if (token) {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'}/admin/logout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          console.warn('Admin logout API call failed, but continuing with local logout');
+        }
+      }
+    } catch (error) {
+      console.warn('Admin logout API call failed, but continuing with local logout:', error);
+    } finally {
+      // Always clear local storage regardless of API call result
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminData');
+      this.clearAuth();
+    }
   }
 
   public isHost(): boolean {

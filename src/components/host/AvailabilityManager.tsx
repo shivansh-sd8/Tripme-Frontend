@@ -142,7 +142,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
           const endDate = new Date();
           endDate.setMonth(endDate.getMonth() + 3); // Show next 3 months
           
-          let currentDate = new Date(today);
+          const currentDate = new Date(today);
           while (currentDate <= endDate) {
             const dateStr = format(currentDate, 'yyyy-MM-dd');
             if (!map[dateStr]) {
@@ -192,7 +192,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
           const endDate = new Date();
           endDate.setMonth(endDate.getMonth() + 3);
           
-          let currentDate = new Date(today);
+          const currentDate = new Date(today);
           while (currentDate <= endDate) {
             const dateStr = format(currentDate, 'yyyy-MM-dd');
             if (!map[dateStr]) {
@@ -208,14 +208,14 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
       }
     };
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [targetType, targetId]);
 
   const addSelectionFromRange = () => {
     const start = new Date(range.startDate);
     const end = new Date(range.endDate);
     const days: Date[] = [];
-    let current = new Date(start);
+    const current = new Date(start);
     while (current <= end) {
       days.push(new Date(current));
       current.setDate(current.getDate() + 1);

@@ -32,6 +32,18 @@ import { apiClient } from '@/lib/api';
 const ProfileContent: React.FC = () => {
   const { user, logout, updateUser, refreshUser } = useAuth();
   const router = useRouter();
+  
+  // Debug logging to check user KYC status
+  React.useEffect(() => {
+    if (user) {
+      console.log('🔍 User KYC Debug:', {
+        user: user,
+        kyc: user.kyc,
+        kycStatus: user.kyc?.status,
+        isVerified: user.isVerified
+      });
+    }
+  }, [user]);
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
   const [isLoading, setIsLoading] = useState(false);
@@ -232,76 +244,128 @@ const ProfileContent: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-2 py-4 sm:px-4 sm:py-8">
-      {/* Mobile Profile Layout */}
-      <div className="block sm:hidden w-full min-h-screen pb-24 overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="max-w-7xl mx-auto px-2 py-2 sm:px-4 sm:py-4">
+        {/* Mobile Profile Layout */}
+        <div className="block sm:hidden w-full min-h-screen pb-24 overflow-x-hidden">
         {/* Profile Card */}
-        <div className="bg-white rounded-3xl shadow-xl p-6 flex flex-col items-center mb-6 animate-fade-in">
-          <div className="relative">
-            <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center text-4xl font-bold text-gray-700 mb-2 overflow-hidden">
-              {profileImage ? (
-                <img 
-                  src={profileImage} 
-                  alt={user.name} 
-                  className="w-full h-full object-cover"
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-8 flex flex-col items-center mb-8 animate-fade-in relative overflow-hidden">
+          {/* Decorative background elements */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full -translate-y-16 translate-x-16"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-400/20 to-cyan-400/20 rounded-full translate-y-12 -translate-x-12"></div>
+          
+          <div className="relative z-10">
+            <div className="relative">
+              <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center text-3xl font-bold text-white mb-4 overflow-hidden shadow-xl ring-4 ring-white/50">
+                {profileImage ? (
+                  <img 
+                    src={profileImage} 
+                    alt={user.name} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  user.name?.[0]?.toUpperCase() || <User size={32} />
+                )}
+              </div>
+              <label className="absolute -bottom-2 -right-2 bg-white text-purple-600 p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 cursor-pointer ring-2 ring-purple-100">
+                {isUploadingImage ? (
+                  <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Camera size={18} />
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
                 />
-              ) : (
-                user.name?.[0]?.toUpperCase() || <User size={40} />
-              )}
+              </label>
             </div>
-            <label className="absolute -bottom-1 -right-1 bg-white text-purple-600 p-2 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:scale-110 cursor-pointer">
-              {isUploadingImage ? (
-                <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Camera size={16} />
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageSelect}
-                className="hidden"
-              />
-            </label>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900">{user.name}</div>
-            <div className="text-gray-500 text-base mt-1 capitalize">{user.role || 'Guest'}</div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-gray-900 mb-1">{user.name}</div>
+              <div className="text-gray-600 text-lg mb-3 capitalize flex items-center justify-center gap-2">
+                <div className="w-2 h-2 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full"></div>
+                {user.role || 'Guest'}
+              </div>
+              {/* Badges Row */}
+              <div className="flex flex-wrap items-center justify-center gap-3 mt-3">
+                {/* Host Role Badge */}
+                {user.role === 'host' && (
+                  <span className="inline-flex items-center bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
+                    Host
+                  </span>
+                )}
+                
+                {/* Identity Verification Status */}
+                {user.isVerified || user.kyc?.status === 'verified' ? (
+                  <span className="inline-flex items-center gap-2 bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 text-sm font-semibold px-4 py-2 rounded-full border border-green-200 shadow-sm">
+                    <Shield size={14} />
+                    Identity Verified
+                  </span>
+                ) : user.kyc?.status === 'pending' ? (
+                  <span className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 text-sm font-semibold px-4 py-2 rounded-full border border-yellow-200 shadow-sm">
+                    <Shield size={14} />
+                    Verification Pending
+                  </span>
+                ) : user.kyc?.status === 'rejected' ? (
+                  <span className="inline-flex items-center gap-2 bg-gradient-to-r from-red-100 to-rose-100 text-red-800 text-sm font-semibold px-4 py-2 rounded-full border border-red-200 shadow-sm">
+                    <Shield size={14} />
+                    Verification Rejected
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2 bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 text-sm font-semibold px-4 py-2 rounded-full border border-gray-200 shadow-sm">
+                    <Shield size={14} />
+                    Not Verified
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
         {/* Quick Links */}
-        <div className="flex gap-3 mb-4">
-          <div className="flex-1 bg-white rounded-2xl shadow-md p-4 flex flex-col items-center relative">
-            <span className="absolute top-2 right-2 bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">NEW</span>
-            <span className="text-4xl mb-2">🧳</span>
-            <span className="font-semibold text-gray-900">Past trips</span>
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 flex flex-col items-center relative group hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <span className="absolute top-3 right-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm">NEW</span>
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
+              <span className="text-2xl">🧳</span>
+            </div>
+            <span className="font-semibold text-gray-900 text-center">Past Trips</span>
+            <span className="text-xs text-gray-500 mt-1">View your travel history</span>
           </div>
-          <div className="flex-1 bg-white rounded-2xl shadow-md p-4 flex flex-col items-center relative">
-            <span className="absolute top-2 right-2 bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">NEW</span>
-            <span className="text-4xl mb-2">🧑‍🤝‍🧑</span>
-            <span className="font-semibold text-gray-900">Connections</span>
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 flex flex-col items-center relative group hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <span className="absolute top-3 right-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm">NEW</span>
+            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
+              <span className="text-2xl">🧑‍🤝‍🧑</span>
+            </div>
+            <span className="font-semibold text-gray-900 text-center">Connections</span>
+            <span className="text-xs text-gray-500 mt-1">Manage your network</span>
           </div>
         </div>
         {/* Become a Host Card */}
         {user?.role === 'host' ? (
           <button 
             onClick={() => router.push('/host/dashboard')}
-            className="bg-white rounded-2xl shadow-md p-4 flex items-center gap-4 mb-6 w-full text-left hover:shadow-lg transition-all"
+            className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl shadow-xl p-6 flex items-center gap-4 mb-6 w-full text-left hover:shadow-2xl transition-all duration-300 hover:scale-105 group"
           >
-            <span className="text-3xl">🏡</span>
+            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <span className="text-2xl">🏡</span>
+            </div>
             <div>
-              <div className="font-semibold text-gray-900">Host Dashboard</div>
-              <div className="text-gray-500 text-sm">Manage your properties and bookings.</div>
+              <div className="font-bold text-lg">Host Dashboard</div>
+              <div className="text-green-100 text-sm">Manage your properties and bookings</div>
             </div>
           </button>
         ) : (
           <button 
             onClick={() => router.push('/user/kyc')}
-            className="bg-white rounded-2xl shadow-md p-4 flex items-center gap-4 mb-6 w-full text-left hover:shadow-lg transition-all"
+            className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-2xl shadow-xl p-6 flex items-center gap-4 mb-6 w-full text-left hover:shadow-2xl transition-all duration-300 hover:scale-105 group"
           >
-            <span className="text-3xl">🏡</span>
+            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <span className="text-2xl">🏡</span>
+            </div>
             <div>
-              <div className="font-semibold text-gray-900">Become a host</div>
-              <div className="text-gray-500 text-sm">It's easy to start hosting and earn extra income.</div>
+              <div className="font-bold text-lg">Become a Host</div>
+              <div className="text-purple-100 text-sm">Start earning by hosting your space</div>
             </div>
           </button>
         )}
@@ -331,25 +395,23 @@ const ProfileContent: React.FC = () => {
             Switch to hosting
           </button>
         )}
+        </div>
       </div>
       {/* Desktop view (unchanged) */}
       <div className="hidden sm:block">
-      {/* Header */}
-      <div className="mb-8">
-                      <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2 font-display">
-              My Profile
-            </h1>
-            <p className="text-gray-600 text-lg font-body">Manage your account and preferences</p>
-      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
         <div className="lg:col-span-1">
-            <Card className="p-6">
+            <Card className="p-6 bg-white/80 backdrop-blur-sm border border-white/20 shadow-2xl relative overflow-hidden">
+              {/* Decorative background elements */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/10 to-pink-400/10 rounded-full -translate-y-16 translate-x-16"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-400/10 to-cyan-400/10 rounded-full translate-y-12 -translate-x-12"></div>
+              
               {/* Profile Summary */}
-              <div className="text-center mb-6">
-            <div className="relative inline-block mb-4">
-                  <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-lg overflow-hidden">
+              <div className="text-center mb-8 relative z-10">
+            <div className="relative inline-block mb-6">
+                  <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-2xl overflow-hidden ring-4 ring-white/50">
                     {profileImage ? (
                       <img 
                         src={profileImage} 
@@ -357,14 +419,14 @@ const ProfileContent: React.FC = () => {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <User size={32} className="text-white" />
+                      <User size={36} className="text-white" />
                     )}
               </div>
-                  <label className="absolute -bottom-1 -right-1 bg-white text-purple-600 p-2 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:scale-110 cursor-pointer">
+                  <label className="absolute -bottom-2 -right-2 bg-white text-purple-600 p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 cursor-pointer ring-2 ring-purple-100">
                     {isUploadingImage ? (
                       <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
                     ) : (
-                      <Camera size={16} />
+                      <Camera size={18} />
                     )}
                     <input
                       type="file"
@@ -375,87 +437,105 @@ const ProfileContent: React.FC = () => {
                   </label>
             </div>
             
-                <h2 className="text-xl font-semibold text-gray-900 mb-1">{user.name}</h2>
-                <p className="text-gray-600 text-sm mb-3">{user.email}</p>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">{user.name}</h2>
+                <p className="text-gray-600 text-base mb-4">{user.email}</p>
             
-              {user.role === 'host' && (
-                  <span className="inline-block bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1 rounded-full text-xs font-medium shadow-sm">
-                    Verified Host
-                </span>
-              )}
-              {user.role === 'guest' && (
-                <div className="mt-2">
-                  <span className="inline-block bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-3 py-1 rounded-full text-xs font-medium shadow-sm">
-                    Complete KYC to become a host
+              {/* Badges Row */}
+              <div className="flex flex-wrap items-center justify-center gap-3 mt-3">
+                {/* Host Role Badge */}
+                {user.role === 'host' && (
+                  <span className="inline-flex items-center bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
+                    Host
                   </span>
-                </div>
-              )}
+                )}
+                
+                {/* Identity Verification Badge */}
+                {user.isVerified || user.kyc?.status === 'verified' ? (
+                  <span className="inline-flex items-center gap-2 bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 text-sm font-semibold px-4 py-2 rounded-full border border-green-200 shadow-sm">
+                    <Shield size={14} />
+                    Identity Verified
+                  </span>
+                ) : user.kyc?.status === 'pending' ? (
+                  <span className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 text-sm font-semibold px-4 py-2 rounded-full border border-yellow-200 shadow-sm">
+                    <Shield size={14} />
+                    Verification Pending
+                  </span>
+                ) : user.kyc?.status === 'rejected' ? (
+                  <span className="inline-flex items-center gap-2 bg-gradient-to-r from-red-100 to-rose-100 text-red-800 text-sm font-semibold px-4 py-2 rounded-full border border-red-200 shadow-sm">
+                    <Shield size={14} />
+                    Verification Rejected
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2 bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 text-sm font-semibold px-4 py-2 rounded-full border border-gray-200 shadow-sm">
+                    <Shield size={14} />
+                    Not Verified
+                  </span>
+                )}
+              </div>
             </div>
 
               {/* Navigation Tabs */}
-              <nav className="space-y-2">
+              <nav className="space-y-3">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   return (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${
+                      className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left transition-all duration-300 group ${
                         activeTab === tab.id
-                          ? 'bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 border border-purple-200'
-                          : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                          ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg transform scale-105'
+                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 hover:text-purple-700 hover:shadow-md hover:scale-105'
                       }`}
                     >
-                      <Icon size={20} className="flex-shrink-0" />
-                      <span className="font-medium">{tab.label}</span>
+                      <div className={`p-2 rounded-xl transition-all duration-300 ${
+                        activeTab === tab.id
+                          ? 'bg-white/20'
+                          : 'bg-gray-100 group-hover:bg-purple-100'
+                      }`}>
+                        <Icon size={20} className="flex-shrink-0" />
+                      </div>
+                      <span className="font-semibold text-base">{tab.label}</span>
                     </button>
                   );
                 })}
               </nav>
 
               {/* Quick Actions */}
-              <div className="mt-6 pt-6 border-t border-gray-100">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h3>
-                <div className="space-y-2">
-                  {user.role === 'host' ? (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start text-gray-700 hover:text-purple-700 hover:bg-purple-50"
-                        onClick={() => router.push('/host/dashboard')}
-                      >
-                        <Home size={16} className="mr-2" />
-                        Host Dashboard
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start text-gray-700 hover:text-purple-700 hover:bg-purple-50"
-                        onClick={() => router.push('/host/property/new')}
-                      >
-                        <Plus size={16} className="mr-2" />
-                        Add Property
-                      </Button>
-                    </>
-                  ) : (
+              {user.role === 'host' && (
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h3>
+                  <div className="space-y-2">
                     <Button
                       variant="ghost"
                       size="sm"
                       className="w-full justify-start text-gray-700 hover:text-purple-700 hover:bg-purple-50"
-                      onClick={() => router.push('/user/kyc')}
+                      onClick={() => router.push('/host/dashboard')}
                     >
-                      <Briefcase size={16} className="mr-2" />
-                      Become a Host
+                      <Home size={16} className="mr-2" />
+                      Host Dashboard
                     </Button>
-                  )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start text-gray-700 hover:text-purple-700 hover:bg-purple-50"
+                      onClick={() => router.push('/host/property/new')}
+                    >
+                      <Plus size={16} className="mr-2" />
+                      Add Property
+                    </Button>
+                  </div>
                 </div>
-            </div>
+              )}
           </Card>
         </div>
 
           {/* Main Content */}
           <div className="lg:col-span-3">
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-6 relative overflow-hidden">
+              {/* Decorative background elements */}
+              <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-blue-400/5 to-purple-400/5 rounded-full -translate-y-20 translate-x-20"></div>
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-indigo-400/5 to-pink-400/5 rounded-full translate-y-16 -translate-x-16"></div>
             {/* Profile Tab */}
             {activeTab === 'profile' && (
               <div className="space-y-6">
@@ -726,21 +806,86 @@ const ProfileContent: React.FC = () => {
                   <p className="text-gray-600 mt-1">Complete your KYC to become a host</p>
                 </div>
 
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Shield size={32} className="text-purple-600" />
+                {/* KYC Status Display */}
+                <div className="mb-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center">
+                        <Shield size={20} className="text-white" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">Verification Status</h4>
+                        <p className="text-sm text-gray-600">Current identity verification status</p>
+                      </div>
+                    </div>
+                    <div>
+                      {user.isVerified || user.kyc?.status === 'verified' ? (
+                        <span className="inline-flex items-center gap-2 bg-green-100 text-green-800 text-sm font-medium px-4 py-2 rounded-full">
+                          <Shield size={16} />
+                          Identity Verified
+                        </span>
+                      ) : user.kyc?.status === 'pending' ? (
+                        <span className="inline-flex items-center gap-2 bg-yellow-100 text-yellow-800 text-sm font-medium px-4 py-2 rounded-full">
+                          <Shield size={16} />
+                          Verification Pending
+                        </span>
+                      ) : user.kyc?.status === 'rejected' ? (
+                        <span className="inline-flex items-center gap-2 bg-red-100 text-red-800 text-sm font-medium px-4 py-2 rounded-full">
+                          <Shield size={16} />
+                          Verification Rejected
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-2 bg-gray-100 text-gray-800 text-sm font-medium px-4 py-2 rounded-full">
+                          <Shield size={16} />
+                          Not Verified
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <h4 className="text-lg font-semibold text-gray-900 mb-2">Verify Your Identity</h4>
-                  <p className="text-gray-600 mb-6">
-                    Submit your identity verification documents to become a host and start earning
-                  </p>
-                  <Button 
-                    onClick={() => router.push('/user/kyc')}
-                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-                  >
-                    Submit KYC Documents
-                  </Button>
                 </div>
+
+                {user.isVerified || user.kyc?.status === 'verified' ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Shield size={32} className="text-green-600" />
+                    </div>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-2">Identity Verified! 🎉</h4>
+                    <p className="text-gray-600 mb-6">
+                      Your identity has been successfully verified. You can now become a host and start earning!
+                    </p>
+                    <div className="flex gap-3 justify-center">
+                      <Button 
+                        onClick={() => router.push('/become-host')}
+                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                      >
+                        Become a Host
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => router.push('/host/dashboard')}
+                        className="border-green-200 text-green-700 hover:bg-green-50"
+                      >
+                        Host Dashboard
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Shield size={32} className="text-purple-600" />
+                    </div>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-2">Verify Your Identity</h4>
+                    <p className="text-gray-600 mb-6">
+                      Submit your identity verification documents to become a host and start earning
+                    </p>
+                    <Button 
+                      onClick={() => router.push('/user/kyc')}
+                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                    >
+                      Submit KYC Documents
+                    </Button>
+                  </div>
+                )}
               </Card>
             )}
 
@@ -767,8 +912,7 @@ const ProfileContent: React.FC = () => {
                 </div>
               </Card>
             )}
-
-
+            </div>
           </div>
         </div>
       </div>

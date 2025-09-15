@@ -209,7 +209,7 @@ export default function AdminPaymentsPage() {
               <div className="p-6">
                 <h3 className="text-sm font-medium text-slate-600 mb-2">Platform Fees</h3>
                 <div className="text-2xl font-bold text-slate-800">{formatCurrency(stats.platformFees)}</div>
-                <p className="text-xs text-slate-500">15% of total revenue</p>
+                <p className="text-xs text-slate-500">Platform fee of total revenue</p>
               </div>
             </Card>
 
@@ -443,7 +443,7 @@ export default function AdminPaymentsPage() {
                 <h4 className="font-medium text-slate-800 mb-3">Fee Breakdown</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-slate-700">Platform Fee (15%)</span>
+                    <span className="text-slate-700">Platform Fee</span>
                     <span className="font-medium text-slate-800">{formatCurrency(selectedPayment.platformFee)}</span>
                   </div>
                   <div className="flex justify-between">

@@ -13,6 +13,13 @@ export interface User {
   socialLogins?: {
     googleId?: string;
   };
+  kyc?: {
+    identityDocument?: string;
+    documentNumber?: string;
+    documentImage?: string;
+    status: 'pending' | 'verified' | 'rejected' | 'not_submitted';
+    rejectionReason?: string;
+  };
 }
 
 // Authentication Types
@@ -47,6 +54,7 @@ export interface Property {
   type: string;
   location: {
     address: string;
+    userAddress?: string; // User's own address description
     city: string;
     state: string;
     country: string;

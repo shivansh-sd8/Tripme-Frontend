@@ -20,9 +20,9 @@ import {
 } from "lucide-react";
 import Header from "@/components/shared/Header";
 import Footer from "@/components/shared/Footer";
+import PricesPopup from "@/components/shared/PricesPopup";
 import { useAuth } from '@/core/store/auth-context';
 import Button from '@/shared/components/ui/Button';
-import PromotionalCard from '@/components/shared/PromotionalCard';
 
 export default function Home() {
   const router = useRouter();
@@ -57,6 +57,7 @@ export default function Home() {
   }>>([]);
   const [couponLoading, setCouponLoading] = useState(true);
   const [copiedCoupon, setCopiedCoupon] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   // Removed forceUpdate effect as it was unused
 
@@ -89,13 +90,30 @@ export default function Home() {
   const fetchHomeData = async () => {
     try {
       setLoading(true);
-      
       // Fetch featured stays (properties with isFeatured: true)
-              const featuredResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/listings/featured?limit=6`);
+      const featuredResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/listings/featured?limit=6`);
       if (featuredResponse.ok) {
         const featuredData = await featuredResponse.json();
         const fetchedStays = featuredData.data?.listings || [];
-        setFeaturedStays(fetchedStays);
+        
+        // Transform the data to match the expected format
+        const transformedStays = fetchedStays.map((stay: any) => ({
+          _id: stay._id,
+          title: stay.title,
+          description: stay.description,
+          price: {
+            amount: stay.pricing?.basePrice || stay.price?.amount || 0,
+            currency: stay.pricing?.currency || stay.price?.currency || 'INR'
+          },
+          images: stay.propertyImages?.map((img: any) => img.url) || stay.images || [],
+          host: stay.host,
+          location: stay.location,
+          rating: stay.rating?.average || stay.rating || 0,
+          reviewCount: stay.reviewCount || 0,
+          tags: [...(stay.amenities || []), ...(stay.features || [])]
+        }));
+        
+        setFeaturedStays(transformedStays);
       }
 
       // Set hardcoded popular destinations for famous Indian cities
@@ -254,104 +272,67 @@ export default function Home() {
                     <span className="text-sm text-gray-600">Best Prices</span>
                   </div>
                 </div>
+
               </div>
 
-              {/* Right Column - Image Grid */}
-              <div className="grid grid-cols-4 grid-rows-3 gap-3 h-[600px]">
-                {/* Large Top Left - Beautiful Beach House */}
-                <div className="relative rounded-2xl overflow-hidden group col-span-3 row-span-2">
-                  <img
-                    src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                    alt="Beautiful Beach House"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg p-3">
-                    <div className="text-sm font-bold text-gray-900">100+ Destinations</div>
-                    <div className="text-xs text-gray-600">100 of the world&apos;s most destinations</div>
+              {/* Right Column - India Travel Video */}
+              <div className="relative flex items-center justify-center h-[600px]">
+                <div className="relative w-full max-w-2xl">
+                  {/* Video Container */}
+                  <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
+                    <video
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-[500px] object-cover"
+                    >
+                      <source src="/India_Travel_Animation_Generation.mp4" type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
+                    
+                    {/* Overlay with 99% Satisfaction Rate Badge */}
+                    <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-xl border border-gray-100 z-30">
+                      <div className="text-3xl font-bold text-gray-900 mb-1">99%</div>
+                      <div className="text-sm text-gray-600 mb-3">satisfaction rate</div>
+                      {/* User Profile Avatars */}
+                      <div className="flex -space-x-2">
+                        <div className="w-6 h-6 bg-gradient-to-br from-blue-400 to-blue-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center">
+                          <div className="w-3 h-3 bg-white rounded-full"></div>
+                        </div>
+                        <div className="w-6 h-6 bg-gradient-to-br from-green-400 to-green-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center">
+                          <div className="w-3 h-3 bg-white rounded-full"></div>
+                        </div>
+                        <div className="w-6 h-6 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center">
+                          <div className="w-3 h-3 bg-white rounded-full"></div>
+                        </div>
+                        <div className="w-6 h-6 bg-gradient-to-br from-purple-400 to-purple-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center">
+                          <div className="w-3 h-3 bg-white rounded-full"></div>
+                        </div>
+                        <div className="w-6 h-6 bg-gradient-to-br from-pink-400 to-pink-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center">
+                          <div className="w-3 h-3 bg-white rounded-full"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* India flag colors accent at bottom */}
+                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-1">
+                      <div className="w-3 h-2 bg-orange-500 rounded shadow-sm"></div>
+                      <div className="w-3 h-2 bg-white rounded shadow-sm"></div>
+                      <div className="w-3 h-2 bg-green-500 rounded shadow-sm"></div>
+                    </div>
                   </div>
-                </div>
 
-                {/* Small Top Right - Beach Image */}
-                <div className="relative rounded-2xl overflow-hidden group col-span-1 row-span-1">
-                  <img
-                    src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                    alt="Beautiful Beach"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm rounded-lg p-2">
-                    <div className="text-xs font-bold text-gray-900">100%</div>
-                    <div className="text-xs text-gray-600">Verified</div>
-                  </div>
-                </div>
-
-                {/* Medium Bottom Left - House Between Jungle */}
-                <div className="relative rounded-2xl overflow-hidden group col-span-1 row-span-2">
-                  <img
-                    src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                    alt="House Between Jungle"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                </div>
-
-                {/* Small Bottom Right - Luxury Penthouse */}
-                <div className="relative rounded-2xl overflow-hidden group col-span-1 row-span-1">
-                  <img
-                    src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                    alt="Luxury Penthouse"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
+                  {/* Floating decorative elements around video */}
+                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-orange-300 rounded-full opacity-60 animate-bounce"></div>
+                  <div className="absolute -bottom-2 -left-2 w-4 h-4 bg-green-300 rounded-full opacity-60 animate-pulse"></div>
+                  <div className="absolute top-1/2 -right-4 w-3 h-3 bg-blue-300 rounded-full opacity-60 animate-ping"></div>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Promotional Offers Section */}
-        <section className="py-12 bg-gradient-to-br from-purple-50 to-indigo-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2 font-display">Special Offers</h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto font-body">
-                Exclusive deals and discounts for your next trip
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <PromotionalCard
-                type="credit-card"
-                title="HDFC Credit Card"
-                description="Get 10% instant discount on all bookings"
-                discount="10% OFF"
-                validUntil="Dec 31, 2024"
-                code="HDFC10"
-              />
-              <PromotionalCard
-                type="cashback"
-                title="ICICI Bank"
-                description="Earn 5% cashback on your first booking"
-                discount="5% CASHBACK"
-                validUntil="Jan 15, 2025"
-                code="ICICI5"
-              />
-              <PromotionalCard
-                type="discount"
-                title="New User Special"
-                description="First-time users get 15% off on all stays"
-                discount="15% OFF"
-                validUntil="Feb 28, 2025"
-                code="NEW15"
-              />
-              <PromotionalCard
-                type="bonus"
-                title="Weekend Getaway"
-                description="Book weekend stays and get 20% bonus discount"
-                discount="20% BONUS"
-                validUntil="Mar 31, 2025"
-                code="WEEKEND20"
-              />
-            </div>
-          </div>
-        </section>
 
         {/* Dynamic Coupon Section */}
         <section className="py-12 bg-gray-50">
@@ -447,7 +428,7 @@ export default function Home() {
                   <div
                     key={destination.name}
                     className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer overflow-hidden"
-                    onClick={() => router.push(`/search?location.city=${encodeURIComponent(destination.name)}`)}
+                    onClick={() => router.push(`/search?city=${encodeURIComponent(destination.name)}`)}
                   >
                     <div className="h-48 w-full relative overflow-hidden rounded-t-2xl">
                       <img
@@ -501,8 +482,11 @@ export default function Home() {
                   // Check if current user is the host of this property
                   const isOwnProperty = user && stay.host && (
                     typeof stay.host === 'string' 
-                      ? stay.host === user._id 
-                      : stay.host._id === user._id || stay.host.id === user._id
+                      ? stay.host === user.id || stay.host === user._id
+                      : stay.host._id?.toString() === user.id?.toString() || 
+                        stay.host._id?.toString() === user._id?.toString() || 
+                        stay.host.id === user.id || 
+                        stay.host.id === user._id
                   );
                   
                   return (
@@ -607,6 +591,9 @@ export default function Home() {
         </section>
       </main>
       <Footer />
+      
+      {/* Prices Include All Fees Popup */}
+      <PricesPopup />
     </div>
   );
 }

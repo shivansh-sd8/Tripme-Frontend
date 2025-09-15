@@ -3,9 +3,14 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { apiClient } from "@/infrastructure/api/clients/api-client";
 import { useAuth } from "@/core/store/auth-context";
+import { useBooking } from "@/core/store/booking-context";
 import Header from "@/components/shared/Header";
 import Footer from "@/components/shared/Footer";
 import Button from "@/components/ui/Button";
+import HourlyBookingSelector from "@/components/booking/HourlyBookingSelector";
+import PricingBreakdown from "@/components/booking/PricingBreakdown";
+import { calculatePricingBreakdown, fetchPlatformFeeRate, toTwoDecimals, calculateHourlyExtension } from "@/shared/utils/pricingUtils";
+import { formatCurrency, PRICING_CONSTANTS } from "@/shared/constants/pricing.constants";
 import { addDays, format, differenceInDays } from 'date-fns';
 import { createPortal } from 'react-dom';
 import { 
@@ -51,6 +56,8 @@ import {
   Bed,
   Bath,
   Users as UsersIcon,
+  Zap,
+  Lock,
   Wifi as WifiIcon,
   Car as CarIcon,
   Coffee as CoffeeIcon,
@@ -71,7 +78,8 @@ import {
   Facebook,
   Twitter,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Receipt
 } from "lucide-react";
 
 export default function PropertyDetailsPage() {
@@ -79,55 +87,145 @@ export default function PropertyDetailsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const { id } = params;
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const { bookingData, updateBookingData, setBookingData } = useBooking();
   const [property, setProperty] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   
-  // Booking state
-  const [dateRange, setDateRange] = useState(() => {
-    const checkIn = searchParams.get('checkIn');
-    const checkOut = searchParams.get('checkOut');
-    
-    let startDate: Date | null = null;
-    let endDate: Date | null = null;
-    
-    // Only set dates if they are provided in URL params
-    if (checkIn) {
-      const [year, month, day] = checkIn.split('-').map(Number);
-      startDate = new Date(year, month - 1, day);
+  // Booking state - initialize from context or defaults
+  const [dateRange, setDateRange] = useState<{
+    startDate: Date;
+    endDate: Date | null;
+    key: string;
+  }>(() => {
+    if (bookingData?.startDate && bookingData?.endDate) {
+      return {
+        startDate: bookingData.startDate,
+        endDate: bookingData.endDate,
+        key: 'selection',
+      };
     }
-    
-    if (checkOut) {
-      const [year, month, day] = checkOut.split('-').map(Number);
-      endDate = new Date(year, month - 1, day);
-    }
-    
-    // Set default dates to today and tomorrow if no dates provided
-    if (!startDate) {
-      startDate = new Date();
-    }
-    if (!endDate) {
-      endDate = new Date();
-      endDate.setDate(endDate.getDate() + 1);
-    }
-    
-    console.log('Initializing date range:', { checkIn, checkOut, startDate, endDate });
-    
     return {
-      startDate: startDate,
-      endDate: endDate,
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // tomorrow
       key: 'selection',
     };
   });
-  const [guests, setGuests] = useState(parseInt(searchParams.get('guests') || '1'));
+  
+  const [guests, setGuests] = useState(() => {
+    return bookingData?.guests?.adults || 1;
+  });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showGuestPicker, setShowGuestPicker] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
-  const [specialRequests, setSpecialRequests] = useState('');
+  
+  // Hourly booking state
+  const [hourlyExtension, setHourlyExtension] = useState<number | null>(() => {
+    return bookingData?.hourlyExtension || null;
+  });
+  const [hourlyPricing, setHourlyPricing] = useState<any>(null);
+  const [specialRequests, setSpecialRequests] = useState(() => {
+    return bookingData?.specialRequests || '';
+  });
+  const [platformFeeRate, setPlatformFeeRate] = useState<number | null>(null);
+  const [isLoadingPlatformFee, setIsLoadingPlatformFee] = useState(true);
+  
+  // Pricing breakdown state
+  const [priceBreakdown, setPriceBreakdown] = useState({
+    basePrice: 0,
+    serviceFee: 0,
+    cleaningFee: 0,
+    securityDeposit: 0,
+    extraGuestCost: 0,
+    hourlyExtensionCost: 0,
+    platformFee: 0,
+    gst: 0,
+    processingFee: 0,
+    taxes: 0,
+    total: 0,
+    nights: 0,
+    subtotal: 0
+  });
+
+  // Sync local state with booking context
+  useEffect(() => {
+    if (bookingData) {
+      if (bookingData.startDate && bookingData.endDate) {
+        setDateRange({
+          startDate: bookingData.startDate,
+          endDate: bookingData.endDate,
+          key: 'selection',
+        });
+      }
+      if (bookingData.guests) {
+        setGuests(bookingData.guests.adults);
+      }
+      if (bookingData.hourlyExtension) {
+        setHourlyExtension(bookingData.hourlyExtension);
+      }
+      if (bookingData.specialRequests) {
+        setSpecialRequests(bookingData.specialRequests);
+      }
+    }
+  }, [bookingData]);
+
+  // Fetch current platform fee rate immediately
+  useEffect(() => {
+    const loadPlatformFeeRate = async () => {
+      try {
+        setIsLoadingPlatformFee(true);
+        const rate = await fetchPlatformFeeRate();
+        setPlatformFeeRate(rate);
+        console.log(`✅ Platform fee rate loaded: ${(rate * 100).toFixed(1)}%`);
+      } catch (error) {
+        console.error('❌ Error fetching platform fee rate:', error);
+        setPlatformFeeRate(PRICING_CONSTANTS.PLATFORM_FEE_RATE);
+        console.warn('⚠️ Using fallback platform fee rate: 15%');
+      } finally {
+        setIsLoadingPlatformFee(false);
+      }
+    };
+    
+    loadPlatformFeeRate();
+  }, []);
+
+  // Update priceBreakdown when pricing calculation changes
+  useEffect(() => {
+    if (!property || !dateRange.startDate || !dateRange.endDate || isLoadingPlatformFee || platformFeeRate === null) {
+      console.log('⏳ Waiting for required data to load...');
+      return;
+    }
+    
+    const pricing = calculateTotalPrice();
+    
+    if (!pricing) return;
+    
+    const newPriceBreakdown = {
+      basePrice: property?.pricing?.basePrice || 0, // Fixed: use actual price per night, not total base amount
+      serviceFee: pricing.serviceFee,
+      cleaningFee: pricing.cleaningFee,
+      securityDeposit: pricing.securityDeposit,
+      extraGuestCost: pricing.extraGuestCost,
+      extraGuestPrice: pricing.extraGuestPrice,
+      extraGuests: pricing.extraGuests,
+      hourlyExtension: pricing.hourlyExtension,
+      platformFee: pricing.platformFee,
+      gst: pricing.gst,
+      processingFee: pricing.processingFee,
+      taxes: pricing.gst,
+      total: pricing.totalAmount,
+      nights: pricing.nights,
+      subtotal: pricing.subtotal,
+      discountAmount: pricing.discountAmount
+    };
+    
+    console.log('✅ Price breakdown updated:', newPriceBreakdown);
+    setPriceBreakdown(newPriceBreakdown);
+  }, [property, dateRange.startDate, dateRange.endDate, guests, hourlyExtension, platformFeeRate, isLoadingPlatformFee]);
   
   // Availability state
   const [availability, setAvailability] = useState<any[]>([]);
@@ -137,10 +235,8 @@ export default function PropertyDetailsPage() {
   const [showAvailabilityCalendar, setShowAvailabilityCalendar] = useState(false);
   
   // UI state
-  const [activeTab, setActiveTab] = useState('overview');
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showAllAmenities, setShowAllAmenities] = useState(false);
-  const [showAllReviews, setShowAllReviews] = useState(false);
   
   // Calendar navigation state
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -152,6 +248,13 @@ export default function PropertyDetailsPage() {
   const datePickerRef = useRef<HTMLDivElement>(null);
   const guestPickerRef = useRef<HTMLDivElement>(null);
   const bookingCardRef = useRef<HTMLDivElement>(null);
+
+  // Clear availability state when dates change
+  useEffect(() => {
+    setAvailabilityError('');
+    setAvailabilityChecked(false);
+    setAvailability([]);
+  }, [dateRange.startDate, dateRange.endDate]);
 
   useEffect(() => {
     if (!id) return;
@@ -207,8 +310,14 @@ export default function PropertyDetailsPage() {
     });
   };
 
-  const formatDate = (date: Date) => format(date, 'MMM dd');
-  const formatDateFull = (date: Date) => format(date, 'EEEE, MMMM dd');
+  const formatDate = (date: Date | null) => {
+    if (!date || isNaN(date.getTime())) return 'Select date';
+    return format(date, 'MMM dd');
+  };
+  const formatDateFull = (date: Date | null) => {
+    if (!date || isNaN(date.getTime())) return 'Select date';
+    return format(date, 'EEEE, MMMM dd');
+  };
 
   // Check availability for selected dates
   const checkAvailability = async () => {
@@ -218,8 +327,13 @@ export default function PropertyDetailsPage() {
     }
 
     // Validate date range
+    if (!dateRange.startDate || isNaN(dateRange.startDate.getTime())) {
+      setAvailabilityError('Please select a valid check-in date');
+      return;
+    }
+    
     const startDate = new Date(dateRange.startDate);
-    const endDate = new Date(dateRange.endDate);
+    const endDate = dateRange.endDate && !isNaN(dateRange.endDate.getTime()) ? new Date(dateRange.endDate) : null;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -228,13 +342,13 @@ export default function PropertyDetailsPage() {
       return;
     }
 
-    if (startDate >= endDate) {
+    if (!endDate || startDate >= endDate) {
       setAvailabilityError('Check-out date must be after check-in date');
       return;
     }
 
     // Check minimum nights if property has this requirement
-    const nights = differenceInDays(endDate, startDate);
+    const nights = endDate && !isNaN(endDate.getTime()) && !isNaN(startDate.getTime()) ? differenceInDays(endDate, startDate) : 0;
     if (property?.minNights && nights < property.minNights) {
       setAvailabilityError(`Minimum ${property.minNights} nights required`);
       return;
@@ -252,13 +366,11 @@ export default function PropertyDetailsPage() {
       if (response.success && response.data) {
         const availabilityData = response.data.availability || [];
         
-        console.log('Availability data received:', availabilityData);
-        console.log('Checking availability for dates:', startDateStr, 'to', endDateStr);
         
         // Check if all selected dates are available
-        let currentDate = new Date(startDate);
+        const currentDate = new Date(startDate);
         let allAvailable = true;
-        let conflictingDates: string[] = [];
+        const conflictingDates: string[] = [];
         
         while (currentDate < endDate) {
           const dateStr = currentDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
@@ -269,18 +381,39 @@ export default function PropertyDetailsPage() {
             let availabilityDateStr: string;
             if (typeof a.date === 'string') {
               // Parse the date string and convert to local date string
+              try {
               const parsedDate = new Date(a.date);
+                if (isNaN(parsedDate.getTime())) {
+                  console.warn('Invalid date string:', a.date);
+                  return false;
+                }
               availabilityDateStr = parsedDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+              } catch (error) {
+                console.warn('Error parsing date string:', a.date, error);
+                return false;
+              }
             } else if (a.date instanceof Date) {
+              if (isNaN(a.date.getTime())) {
+                console.warn('Invalid Date object:', a.date);
+                return false;
+              }
               availabilityDateStr = a.date.toLocaleDateString('en-CA'); // YYYY-MM-DD format
             } else {
+              try {
               const parsedDate = new Date(a.date);
+                if (isNaN(parsedDate.getTime())) {
+                  console.warn('Invalid date value:', a.date);
+                  return false;
+                }
               availabilityDateStr = parsedDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+              } catch (error) {
+                console.warn('Error parsing date value:', a.date, error);
+                return false;
+              }
             }
             return availabilityDateStr === dateStr;
           });
           
-          console.log(`Date ${dateStr}:`, dateAvailability ? `Status: ${dateAvailability.status}` : 'No record (assuming available)');
           
           // Check availability status - dates are available by default unless explicitly marked as unavailable
           if (dateAvailability) {
@@ -288,24 +421,20 @@ export default function PropertyDetailsPage() {
             if (dateAvailability.status === 'booked') {
               allAvailable = false;
               conflictingDates.push(dateStr);
-              console.log(`Date ${dateStr} is booked and not available`);
             } else if (dateAvailability.status === 'maintenance') {
               allAvailable = false;
               conflictingDates.push(dateStr);
-              console.log(`Date ${dateStr} is under maintenance`);
             } else if (dateAvailability.status === 'blocked') {
               allAvailable = false;
               conflictingDates.push(dateStr);
-              console.log(`Date ${dateStr} is blocked and not available`);
             } else if (dateAvailability.status === 'available') {
-              console.log(`Date ${dateStr} is available for booking`);
             } else {
               // Any other unknown status - treat as available by default
-              console.log(`Date ${dateStr} has unknown status: ${dateAvailability.status} - treating as available`);
             }
           } else {
-            // Date doesn't exist in Availability model - it's available by default
-            console.log(`Date ${dateStr} not found in availability model - available by default`);
+            // Date doesn't exist in Availability model - it's NOT available
+            allAvailable = false;
+            conflictingDates.push(dateStr);
           }
           
           currentDate.setDate(currentDate.getDate() + 1);
@@ -315,11 +444,9 @@ export default function PropertyDetailsPage() {
           setAvailabilityChecked(true);
           setAvailabilityError('');
           setAvailability(availabilityData);
-          console.log('All dates are available!');
         } else {
           setAvailabilityError(`Selected dates are not available. Conflicting dates: ${conflictingDates.join(', ')}`);
           setAvailabilityChecked(false);
-          console.log('Some dates are not available:', conflictingDates);
         }
       } else {
         setAvailabilityError('Failed to check availability');
@@ -335,7 +462,11 @@ export default function PropertyDetailsPage() {
   };
 
   // Date validation function
-  const validateDateRange = (startDate: Date, endDate: Date) => {
+  const validateDateRange = (startDate: Date | null, endDate: Date | null) => {
+    if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return false;
+    }
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -351,7 +482,7 @@ export default function PropertyDetailsPage() {
     }
 
     // Check minimum nights if property has this requirement
-    const nights = differenceInDays(endDate, startDate);
+    const nights = (!endDate || !startDate || isNaN(endDate.getTime()) || isNaN(startDate.getTime())) ? 0 : differenceInDays(endDate, startDate);
     if (property?.minNights && nights < property.minNights) {
       setAvailabilityError(`Minimum ${property.minNights} nights required`);
       return false;
@@ -394,26 +525,52 @@ export default function PropertyDetailsPage() {
   };
 
   const calculateTotalNights = () => {
-    if (!dateRange.startDate || !dateRange.endDate) return 0;
+    if (!dateRange.startDate || !dateRange.endDate || isNaN(dateRange.startDate.getTime()) || isNaN(dateRange.endDate.getTime())) return 0;
     return differenceInDays(dateRange.endDate, dateRange.startDate);
   };
 
   const calculateTotalPrice = () => {
+    if (!property || !dateRange.startDate || !dateRange.endDate || isLoadingPlatformFee || platformFeeRate === null) {
+      console.log('⏳ Waiting for platform fee rate to load...');
+      return null;
+    }
+    
     const nights = calculateTotalNights();
     const basePrice = property?.pricing?.basePrice || 0;
+    const extraGuestPrice = property?.pricing?.extraGuestPrice || 0;
     const cleaningFee = property?.pricing?.cleaningFee || 0;
     const serviceFee = property?.pricing?.serviceFee || 0;
     const securityDeposit = property?.pricing?.securityDeposit || 0;
+    const extraGuests = guests > 1 ? guests - 1 : 0;
     
-    const subtotal = basePrice * nights;
-    const total = subtotal + cleaningFee + serviceFee;
+    // Calculate hourly extension cost using shared utility
+    let hourlyExtensionCost = 0;
+    if (hourlyExtension && property?.hourlyBooking?.enabled) {
+      hourlyExtensionCost = calculateHourlyExtension(basePrice, hourlyExtension);
+    }
     
-    return {
-      subtotal,
+    console.log(`💰 Calculating pricing with platform fee rate: ${(platformFeeRate * 100).toFixed(1)}%`);
+    
+    const pricing = calculatePricingBreakdown({
+      basePrice,
+      nights,
+      extraGuestPrice,
+      extraGuests,
       cleaningFee,
       serviceFee,
       securityDeposit,
-      total
+      hourlyExtension: hourlyExtensionCost,
+      currency: property?.pricing?.currency || 'INR',
+      platformFeeRate: platformFeeRate
+    });
+    
+    // Note: priceBreakdown state will be set in useEffect to avoid infinite re-renders
+    
+    return {
+      ...pricing,
+      // Legacy fields for backward compatibility
+      subtotal: pricing.subtotal,
+      total: pricing.totalAmount
     };
   };
 
@@ -429,15 +586,25 @@ export default function PropertyDetailsPage() {
       return;
     }
 
-    // Navigate to the dedicated booking page with current selection
-    const params = new URLSearchParams({
-      checkIn: dateRange.startDate.toISOString().split('T')[0],
-      checkOut: dateRange.endDate.toISOString().split('T')[0],
-      guests: guests.toString(),
-      specialRequests: specialRequests || ''
+    // Update booking context with current selection
+    updateBookingData({
+      propertyId: id as string,
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
+      guests: { adults: guests, children: 0, infants: 0 },
+      hourlyExtension: hourlyExtension,
+      specialRequests: specialRequests,
+      pricing: {
+        basePrice: property?.pricing?.basePrice || 0,
+        cleaningFee: property?.pricing?.cleaningFee || 0,
+        serviceFee: property?.pricing?.serviceFee || 0,
+        securityDeposit: property?.pricing?.securityDeposit || 0,
+        totalPrice: calculateTotalPrice().total || 0
+      }
     });
-    
-    router.push(`/book/${id}?${params.toString()}`);
+
+    // Navigate to booking page with clean URL (only property ID)
+    router.push(`/book/${id}`);
   };
 
   // Function to refresh availability after booking
@@ -522,9 +689,13 @@ export default function PropertyDetailsPage() {
   // Check if current user is the host of this property (safe for unauthenticated users)
   const isOwnProperty = isAuthenticated && user && property?.host && (
     typeof property.host === 'string' 
-      ? property.host === user._id 
-      : property.host._id === user._id || property.host.id === user._id
+      ? property.host === user.id || property.host === user._id
+      : property.host._id?.toString() === user.id?.toString() || 
+        property.host._id?.toString() === user._id?.toString() || 
+        property.host.id === user.id || 
+        property.host.id === user._id
   );
+
 
   return (
     <div className="min-h-screen bg-white">
@@ -634,39 +805,14 @@ export default function PropertyDetailsPage() {
                 </div>
               </div>
 
-              {/* Tabs */}
-              <div className="mb-8">
-                <div className="border-b border-gray-200">
-                  <nav className="flex space-x-8">
-                    {[
-                      { id: 'overview', label: 'Overview', icon: <Home className="w-4 h-4" /> },
-                      { id: 'amenities', label: 'Amenities', icon: <CheckCircle className="w-4 h-4" /> },
-                      { id: 'reviews', label: 'Reviews', icon: <Star className="w-4 h-4" /> },
-                      { id: 'location', label: 'Location', icon: <MapPin className="w-4 h-4" /> },
-                      { id: 'host', label: 'Host', icon: <Users className="w-4 h-4" /> }
-                    ].map((tab) => (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                          activeTab === tab.id
-                            ? 'border-indigo-500 text-indigo-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                        }`}
-                      >
-                        {tab.icon}
-                        {tab.label}
-                      </button>
-                    ))}
-                  </nav>
+              {/* Overview Section */}
+              <div className="mb-12">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
+                    <Home className="w-5 h-5 text-white" />
                 </div>
+                  <h2 className="text-2xl font-bold text-gray-900 font-display">About this place</h2>
               </div>
-
-              {/* Tab Content */}
-              <div className="mb-8">
-                {activeTab === 'overview' && (
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4 font-display">About this place</h2>
                     <div className="text-gray-700 leading-relaxed">
                       {showFullDescription ? (
                         <div>
@@ -698,11 +844,15 @@ export default function PropertyDetailsPage() {
                       )}
                     </div>
                   </div>
-                )}
 
-                {activeTab === 'amenities' && (
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6 font-display">What this place offers</h2>
+              {/* Amenities Section */}
+              <div className="mb-12">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900 font-display">What this place offers</h2>
+                </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {(showAllAmenities ? property.amenities : property.amenities?.slice(0, 8))?.map((amenity: string) => (
                         <div key={amenity} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
@@ -720,12 +870,16 @@ export default function PropertyDetailsPage() {
                       </button>
                     )}
                   </div>
-                )}
 
-                {activeTab === 'reviews' && (
-                  <div>
+              {/* Reviews Section */}
+              <div className="mb-12">
                     <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center">
+                      <Star className="w-5 h-5 text-white" />
+                    </div>
                       <h2 className="text-2xl font-bold text-gray-900 font-display">Reviews</h2>
+                  </div>
                       <div className="flex items-center gap-2">
                         <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                         <span className="font-medium">{property.rating || 4.5}</span>
@@ -738,11 +892,15 @@ export default function PropertyDetailsPage() {
                       <p className="text-gray-600">Be the first to review this property!</p>
                     </div>
                   </div>
-                )}
 
-                {activeTab === 'location' && (
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4 font-display">Location</h2>
+              {/* Location Section */}
+              <div className="mb-12">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
+                    <MapPin className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900 font-display">Location</h2>
+                </div>
                     <div className="bg-gray-100 rounded-2xl p-6 mb-6">
                       <div className="flex items-center gap-3 mb-4">
                         <MapPin className="w-5 h-5 text-gray-600" />
@@ -755,11 +913,15 @@ export default function PropertyDetailsPage() {
                       </p>
                     </div>
                   </div>
-                )}
 
-                {activeTab === 'host' && (
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4 font-display">About the host</h2>
+              {/* Host Section */}
+              <div className="mb-12">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                    <Users className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900 font-display">About the host</h2>
+                </div>
                     <div className="bg-gray-50 rounded-2xl p-6">
                       <div className="flex items-start gap-4 mb-6">
                         <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center overflow-hidden">
@@ -784,7 +946,15 @@ export default function PropertyDetailsPage() {
                             </span>
                           </div>
                           <p className="text-sm text-gray-600 mb-3">
-                            Member since {property.host?.createdAt ? new Date(property.host.createdAt).getFullYear() : '2024'}
+                        Member since {property.host?.createdAt ? (() => {
+                          try {
+                            const date = new Date(property.host.createdAt);
+                            return isNaN(date.getTime()) ? '2024' : date.getFullYear();
+                          } catch (error) {
+                            console.warn('Error parsing host creation date:', property.host.createdAt, error);
+                            return '2024';
+                          }
+                        })() : '2024'}
                           </p>
                           {property.host?.bio && (
                             <p className="text-gray-700 text-sm leading-relaxed mb-4">
@@ -853,8 +1023,6 @@ export default function PropertyDetailsPage() {
                         </button>
                       </div>
                     </div>
-                  </div>
-                )}
               </div>
 
               {/* House Rules */}
@@ -892,6 +1060,7 @@ export default function PropertyDetailsPage() {
                       <span>{property.reviewCount || 0} reviews</span>
                     </div>
                   </div>
+
 
                   {/* Date Selection */}
                   {!isOwnProperty && (
@@ -942,7 +1111,7 @@ export default function PropertyDetailsPage() {
                           <div className={`text-sm ${
                             selectionStep === 'checkout' ? 'text-indigo-900' : 'text-gray-900'
                           }`}>
-                            {formatDate(dateRange.endDate)}
+                            {dateRange.endDate ? formatDate(dateRange.endDate) : 'Select date'}
                           </div>
                         </div>
                       </div>
@@ -1047,9 +1216,9 @@ export default function PropertyDetailsPage() {
                                   
                                   const isStartDate = dateRange.startDate && 
                                     dateRange.startDate.toDateString() === date.toDateString();
-                                  const isEndDate = dateRange.endDate && dateRange.endDate.getTime() !== 0 &&
+                                  const isEndDate = dateRange.endDate && 
                                     dateRange.endDate.toDateString() === date.toDateString();
-                                  const isInRange = dateRange.startDate && dateRange.endDate && dateRange.endDate.getTime() !== 0 &&
+                                  const isInRange = dateRange.startDate && dateRange.endDate &&
                                     date > dateRange.startDate && date < dateRange.endDate;
                                   
                                   const isSelectable = isCurrentMonth && !isPast;
@@ -1086,7 +1255,7 @@ export default function PropertyDetailsPage() {
                                           setDateRange({
                                             ...dateRange,
                                             startDate: new Date(date),
-                                            endDate: new Date(0),
+                                            endDate: null,
                                             key: 'selection'
                                           });
                                           setSelectionStep('checkout');
@@ -1106,7 +1275,7 @@ export default function PropertyDetailsPage() {
                                             console.log('New date before start, making it new start date');
                                             setDateRange({
                                               startDate: new Date(date),
-                                              endDate: new Date(0),
+                                              endDate: null,
                                               key: 'selection'
                                             });
                                             setSelectionStep('checkin');
@@ -1116,7 +1285,7 @@ export default function PropertyDetailsPage() {
                                           console.log('Starting over with new check-in date');
                                           setDateRange({
                                             startDate: new Date(date),
-                                            endDate: new Date(0),
+                                            endDate: null,
                                             key: 'selection'
                                           });
                                           setSelectionStep('checkin');
@@ -1271,97 +1440,195 @@ export default function PropertyDetailsPage() {
                     </div>
                   )}
 
-                  {/* Pricing Breakdown */}
+                  {/* Hourly Booking Extension - Modern Design */}
+                  {!isOwnProperty && property?.hourlyBooking?.enabled && nights >= (property?.hourlyBooking?.minStayDays || 1) && (
+                    <div className="mb-6">
+                      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl p-6 border border-purple-200">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center">
+                            <Clock className="w-5 h-5 text-white" />
+                        </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-gray-900">Extend Your Stay</h3>
+                            <p className="text-sm text-gray-600">Add extra hours at a discounted rate</p>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-3 gap-3">
+                          {[
+                            { hours: 6, rate: property.hourlyBooking.sixHours || 0.3, label: '6 Hours', icon: '⏰' },
+                            { hours: 12, rate: property.hourlyBooking.twelveHours || 0.6, label: '12 Hours', icon: '🕐' },
+                            { hours: 18, rate: property.hourlyBooking.eighteenHours || 0.75, label: '18 Hours', icon: '🕕' }
+                          ].map((option) => (
+                            <div
+                              key={option.hours}
+                              className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                                hourlyExtension === option.hours
+                                  ? 'border-purple-500 bg-purple-100 shadow-lg scale-105'
+                                  : 'border-gray-200 hover:border-purple-300 hover:shadow-md'
+                              }`}
+                              onClick={() => setHourlyExtension(hourlyExtension === option.hours ? null : option.hours)}
+                            >
+                              <div className="text-center">
+                                <div className="text-2xl mb-2">{option.icon}</div>
+                                <div className="font-bold text-gray-900 text-sm">{option.label}</div>
+                                <div className="text-xs text-gray-600 mt-1">
+                                  {Math.round(option.rate * 100)}% of daily rate
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {hourlyExtension && (
+                          <div className="mt-4 p-4 bg-white rounded-xl border border-purple-200">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-semibold text-gray-900">{hourlyExtension} hours selected</div>
+                                <div className="text-sm text-gray-600">
+                                  New checkout: {(() => {
+                                    if (!dateRange.endDate) return 'Select dates first';
+                                    const [hours, minutes] = (property?.checkOutTime || '11:00').split(':').map(Number);
+                                    const baseCheckout = new Date(dateRange.endDate);
+                                    baseCheckout.setHours(hours, minutes, 0, 0);
+                                    const newCheckout = new Date(baseCheckout);
+                                    newCheckout.setHours(newCheckout.getHours() + hourlyExtension);
+                                    return newCheckout.toLocaleTimeString('en-US', { 
+                                      hour: 'numeric', 
+                                      minute: '2-digit',
+                                      hour12: true 
+                                    });
+                                  })()}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => setHourlyExtension(null)}
+                                className="p-1 hover:bg-gray-100 rounded-full"
+                              >
+                                <X className="w-4 h-4 text-gray-500" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                          </div>
+                        )}
+
+                  {/* Pricing Breakdown - Modern Design */}
                   {!isOwnProperty && nights > 0 && (
-                    <div className="mb-6 p-4 bg-gray-50 rounded-xl">
-                      <div className="space-y-3">
-                        <div className="flex justify-between">
-                          <span className="text-gray-700">
-                            {formatPrice(property.pricing?.basePrice || 0)} × {nights} night{nights > 1 ? 's' : ''}
-                          </span>
-                          <span className="text-gray-900">{formatPrice(pricing.subtotal)}</span>
+                    <div className="mb-6">
+                      <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl p-6 border border-emerald-200">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl flex items-center justify-center">
+                            <Receipt className="w-5 h-5 text-white" />
                         </div>
-                        {property.pricing?.cleaningFee > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-700">Cleaning fee</span>
-                            <span className="text-gray-900">{formatPrice(property.pricing.cleaningFee)}</span>
+                          <div>
+                            <h3 className="text-lg font-bold text-gray-900">Price Breakdown</h3>
+                            <p className="text-sm text-gray-600">{nights} night{nights > 1 ? 's' : ''} stay</p>
                           </div>
-                        )}
-                        {property.pricing?.serviceFee > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-700">Service fee</span>
-                            <span className="text-gray-900">{formatPrice(property.pricing.serviceFee)}</span>
-                          </div>
-                        )}
-                        <hr className="border-gray-300" />
-                        <div className="flex justify-between font-semibold">
-                          <span className="text-gray-900">Total</span>
-                          <span className="text-gray-900">{formatPrice(pricing.total)}</span>
                         </div>
+                        
+                        <PricingBreakdown
+                          pricing={priceBreakdown}
+                          showPlatformFees={true}
+                          variant="customer"
+                        />
                       </div>
                     </div>
                   )}
 
-                  {/* Special Requests */}
+                  {/* Special Requests - Modern Design */}
                   {!isOwnProperty && (
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Special Requests (Optional)
-                      </label>
+                    <div className="mb-6">
+                      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-200">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
+                            <MessageCircle className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-gray-900">Special Requests</h3>
+                            <p className="text-sm text-gray-600">Let us know your preferences</p>
+                          </div>
+                        </div>
                       <textarea
                         value={specialRequests}
                         onChange={(e) => setSpecialRequests(e.target.value)}
                         placeholder="Any special requests or requirements..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+                          className="w-full px-4 py-3 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white"
                         rows={3}
                         maxLength={500}
                       />
-                      <div className="text-xs text-gray-500 mt-1 text-right">
+                        <div className="flex justify-between items-center mt-2">
+                          <div className="text-xs text-gray-500">
+                            We'll do our best to accommodate your requests
+                          </div>
+                          <div className="text-xs text-gray-500">
                         {specialRequests.length}/500
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
 
-                  {/* Booking Button */}
+                  {/* Booking Button - Modern Design */}
                   {isOwnProperty ? (
-                    <div className="w-full bg-gray-100 border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
-                      <div className="text-gray-500 mb-2">
-                        <Users className="w-8 h-8 mx-auto mb-2" />
+                    <div className="w-full bg-gradient-to-r from-gray-100 to-gray-200 border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center">
+                      <div className="w-16 h-16 bg-gradient-to-r from-gray-400 to-gray-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <Users className="w-8 h-8 text-white" />
                       </div>
-                      <h3 className="font-semibold text-gray-700 mb-1">This is your property</h3>
-                      <p className="text-sm text-gray-500 mb-4">
+                      <h3 className="text-xl font-bold text-gray-800 mb-2">This is your property</h3>
+                      <p className="text-gray-600 mb-6">
                         You cannot book your own property. This is a preview of how guests see your listing.
                       </p>
                       <Button 
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg text-sm"
+                        className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-3 px-6 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                         onClick={() => router.push(`/host/property/${id}/edit`)}
                       >
+                        <Home className="w-4 h-4 mr-2" />
                         Edit Property
                       </Button>
                     </div>
                   ) : (
+                    <div className="space-y-4">
                     <Button 
-                      className={`w-full py-4 rounded-xl font-semibold text-lg shadow-lg transition-all duration-200 ${
+                        className={`w-full py-4 rounded-2xl font-bold text-lg shadow-xl transition-all duration-300 transform ${
                         availabilityChecked && nights > 0
-                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white hover:shadow-xl' 
+                            ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white hover:shadow-2xl hover:scale-105' 
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
                       onClick={handleBooking}
                       disabled={bookingLoading || !availabilityChecked || nights === 0}
                     >
                       {bookingLoading ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          Processing...
+                          <div className="flex items-center justify-center gap-3">
+                            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <span>Processing...</span>
                         </div>
                       ) : !availabilityChecked ? (
-                        'Check Availability First'
+                          <div className="flex items-center justify-center gap-3">
+                            <CheckCircle className="w-6 h-6" />
+                            <span>Check Availability First</span>
+                          </div>
                       ) : nights === 0 ? (
-                        'Select valid dates'
+                          <div className="flex items-center justify-center gap-3">
+                            <Calendar className="w-6 h-6" />
+                            <span>Select Valid Dates</span>
+                          </div>
                       ) : (
-                        `Continue to Book for ${nights} night${nights > 1 ? 's' : ''}`
+                          <div className="flex items-center justify-center gap-3">
+                            <Zap className="w-6 h-6" />
+                            <span>Continue to Book • {nights} night{nights > 1 ? 's' : ''}</span>
+                          </div>
                       )}
                     </Button>
+                      
+                      <div className="text-center">
+                        <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
+                          <Lock className="w-4 h-4" />
+                          You won't be charged yet
+                        </p>
+                      </div>
+                    </div>
                   )}
 
                   {/* Additional Info */}

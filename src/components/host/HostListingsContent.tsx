@@ -426,12 +426,25 @@ const HostListingsContent: React.FC = () => {
 
   const handleStatusChange = async (listingId: string, newStatus: string) => {
     try {
-      const response = await apiClient.updateListing(listingId, { status: newStatus });
+      let response;
+      
+      if (newStatus === 'published') {
+        response = await apiClient.publishListing(listingId);
+      } else if (newStatus === 'draft') {
+        response = await apiClient.unpublishListing(listingId);
+      } else {
+        // Fallback to regular update for other status changes
+        response = await apiClient.updateListing(listingId, { status: newStatus });
+      }
       
       if (response.success) {
         setListings(prev => prev.map(listing => 
           listing._id === listingId 
-            ? { ...listing, status: newStatus as any }
+            ? { 
+                ...listing, 
+                status: newStatus as any,
+                isDraft: newStatus === 'draft' // Update isDraft flag as well
+              }
             : listing
         ));
       } else {

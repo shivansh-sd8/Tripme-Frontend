@@ -42,6 +42,12 @@ interface DetailedBooking {
   totalAmount: number;
   specialRequests?: string;
   createdAt: string;
+  bookingDuration?: 'daily' | 'hourly';
+  hourlyExtension?: {
+    hours: number;
+    rate: number;
+    totalHours: number;
+  };
   listing?: {
     title: string;
     images: string[];
@@ -467,6 +473,30 @@ const BookingDetailModal: React.FC<BookingDetailModalProps> = ({
                         </div>
                       )}
                     </div>
+
+                    {/* Hourly Extension Details */}
+                    {booking.hourlyExtension && (
+                      <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Clock className="w-4 h-4 text-blue-600" />
+                          <h4 className="font-semibold text-blue-900">Hourly Extension</h4>
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-blue-700">Extension requested:</span>
+                            <span className="text-blue-900 font-medium">{booking.hourlyExtension.hours} hours</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-blue-700">Rate:</span>
+                            <span className="text-blue-900 font-medium">{Math.round(booking.hourlyExtension.rate * 100)}% of daily rate</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-blue-700">Total extension hours:</span>
+                            <span className="text-blue-900 font-medium">{booking.hourlyExtension.totalHours} hours</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Payment Details */}

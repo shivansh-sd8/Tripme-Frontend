@@ -56,6 +56,8 @@ interface SystemSettings {
   payments: {
     currency: string;
     commission: number;
+    platformFeeRate: number;
+    platformFeePercentage: string;
     autoPayout: boolean;
     minPayout: number;
   };
@@ -91,6 +93,8 @@ export default function AdminSettings() {
     payments: {
       currency: 'INR',
       commission: 15,
+      platformFeeRate: 0.10, // This will be updated by the API call
+      platformFeePercentage: '15.0',
       autoPayout: false,
       minPayout: 1000
     },
@@ -113,9 +117,40 @@ export default function AdminSettings() {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/admin/settings');
-      if (response.success) {
-        setSettings(response.data);
+      
+      // Fetch general settings
+      const settingsResponse = await apiClient.get('/admin/settings');
+      if (settingsResponse.success) {
+        setSettings(prev => ({
+          ...prev,
+          ...settingsResponse.data,
+          // Ensure platform object exists
+          platform: {
+            name: '',
+            description: '',
+            maintenance: false,
+            registration: true,
+            ...prev.platform,
+            ...settingsResponse.data.platform
+          }
+        }));
+      }
+      
+      // Fetch current platform fee rate
+      try {
+        const feeResponse = await apiClient.get('/admin/pricing/platform-fee');
+        if (feeResponse.success) {
+          setSettings(prev => ({
+            ...prev,
+            payments: {
+              ...prev.payments,
+              platformFeeRate: feeResponse.data.platformFeeRate,
+              platformFeePercentage: feeResponse.data.platformFeePercentage
+            }
+          }));
+        }
+      } catch (feeError) {
+        console.warn('Could not fetch platform fee rate:', feeError);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -134,6 +169,35 @@ export default function AdminSettings() {
       }
     } catch (error) {
       console.error('Error saving settings:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updatePlatformFeeRate = async (newRate: number, changeReason: string) => {
+    try {
+      setSaving(true);
+      const response = await apiClient.put('/admin/pricing/platform-fee', {
+        platformFeeRate: newRate / 100, // Convert percentage to decimal
+        changeReason: changeReason || 'Platform fee rate updated via admin panel'
+      });
+      
+      if (response.success) {
+        // Update local state
+        setSettings(prev => ({
+          ...prev,
+          payments: {
+            ...prev.payments,
+            platformFeeRate: newRate / 100,
+            platformFeePercentage: newRate.toFixed(1)
+          }
+        }));
+        console.log('Platform fee rate updated successfully');
+        return true;
+      }
+    } catch (error) {
+      console.error('Error updating platform fee rate:', error);
+      return false;
     } finally {
       setSaving(false);
     }
@@ -228,7 +292,7 @@ export default function AdminSettings() {
                     Platform Name
                   </label>
                   <Input
-                    value={settings.platform.name}
+                    value={settings.platform?.name || ''}
                     onChange={(e) => setSettings({
                       ...settings,
                       platform: { ...settings.platform, name: e.target.value }
@@ -241,7 +305,7 @@ export default function AdminSettings() {
                     Platform Description
                   </label>
                   <Input
-                    value={settings.platform.description}
+                    value={settings.platform?.description || ''}
                     onChange={(e) => setSettings({
                       ...settings,
                       platform: { ...settings.platform, description: e.target.value }
@@ -260,14 +324,14 @@ export default function AdminSettings() {
                   <button
                     onClick={() => setSettings({
                       ...settings,
-                      platform: { ...settings.platform, maintenance: !settings.platform.maintenance }
+                      platform: { ...settings.platform, maintenance: !settings.platform?.maintenance }
                     })}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      settings.platform.maintenance ? 'bg-red-600' : 'bg-gray-200'
+                      settings.platform?.maintenance ? 'bg-red-600' : 'bg-gray-200'
                     }`}
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      settings.platform.maintenance ? 'translate-x-6' : 'translate-x-1'
+                      settings.platform?.maintenance ? 'translate-x-6' : 'translate-x-1'
                     }`} />
                   </button>
                 </div>
@@ -280,14 +344,14 @@ export default function AdminSettings() {
                   <button
                     onClick={() => setSettings({
                       ...settings,
-                      platform: { ...settings.platform, registration: !settings.platform.registration }
+                      platform: { ...settings.platform, registration: !settings.platform?.registration }
                     })}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      settings.platform.registration ? 'bg-green-600' : 'bg-gray-200'
+                      settings.platform?.registration ? 'bg-green-600' : 'bg-gray-200'
                     }`}
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      settings.platform.registration ? 'translate-x-6' : 'translate-x-1'
+                      settings.platform?.registration ? 'translate-x-6' : 'translate-x-1'
                     }`} />
                   </button>
                 </div>
@@ -486,6 +550,52 @@ export default function AdminSettings() {
                     step="0.1"
                   />
                 </div>
+              </div>
+              
+              {/* Platform Fee Management */}
+              <div className="border-t pt-6">
+                <h4 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
+                  <CreditCard className="w-5 h-5 mr-2" />
+                  Platform Fee Management
+                </h4>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-blue-900">Current Platform Fee Rate</p>
+                      <p className="text-2xl font-bold text-blue-600">{settings.payments.platformFeePercentage}%</p>
+                      <p className="text-xs text-blue-700">Applied to all new bookings</p>
+                    </div>
+                    <div className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newRate = prompt('Enter new platform fee rate (0-100):', settings.payments.platformFeePercentage);
+                          if (newRate && !isNaN(parseFloat(newRate))) {
+                            const rate = parseFloat(newRate);
+                            if (rate >= 0 && rate <= 100) {
+                              const reason = prompt('Enter reason for change (optional):', '');
+                              updatePlatformFeeRate(rate, reason || '');
+                            } else {
+                              alert('Rate must be between 0 and 100');
+                            }
+                          }
+                        }}
+                        disabled={saving}
+                      >
+                        {saving ? (
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
+                        ) : (
+                          <Settings className="w-4 h-4 mr-2" />
+                        )}
+                        Update Rate
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Platform fee is calculated as a percentage of the booking subtotal and affects all new bookings immediately.
+                </p>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { 
   Menu, 
   X, 
@@ -13,9 +13,9 @@ import {
   Calendar, 
   MapPin,
   ChevronDown,
-  Home,
-  Briefcase,
-  BookOpen,
+  Building,
+  BellRing,
+  Globe,
   Star,
   Sparkles,
   Search,
@@ -25,16 +25,36 @@ import Button from '@/shared/components/ui/Button';
 import { apiClient } from '@/infrastructure/api/clients/api-client';
 import { useAuth } from '@/core/store/auth-context';
 import Dropdown from '../ui/Dropdown';
-import SearchForm from '@/components/trips/SearchForm';
+import AirbnbSearchForm from '@/components/trips/AirbnbSearchForm';
 
-const Header = () => {
+interface HeaderProps {
+  searchExpanded?: boolean;
+  onSearchToggle?: (expanded: boolean) => void;
+}
+
+const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle }: HeaderProps = {}) => {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, isAuthenticated, isLoading, logout, refreshUser } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [hideMobileHeader, setHideMobileHeader] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [searchExpanded, setSearchExpanded] = useState(false);
+  const [internalSearchExpanded, setInternalSearchExpanded] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<'homes' | 'services'>('homes');
+  
+  // Set active category based on current route
+  useEffect(() => {
+    if (pathname === '/services') {
+      setActiveCategory('services');
+    } else if (pathname === '/search' || pathname === '/') {
+      setActiveCategory('homes');
+    }
+  }, [pathname]);
+  
+  // Use external search state if provided, otherwise use internal state
+  const searchExpanded = externalSearchExpanded !== undefined ? externalSearchExpanded : internalSearchExpanded;
+  const setSearchExpanded = onSearchToggle || setInternalSearchExpanded;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -108,7 +128,8 @@ const Header = () => {
   }
 
   // When search is expanded, show full header regardless of scroll state
-  const shouldShowFullHeader = !scrolled || searchExpanded;
+  // Show search bar on stories page only when expanded
+  const shouldShowFullHeader = (!scrolled || searchExpanded) && (pathname !== '/stories' || searchExpanded);
 
   return (
     <header className={`w-full z-50 fixed top-0 left-0 right-0 transition-all duration-500 ease-in-out header-container ${
@@ -140,25 +161,39 @@ const Header = () => {
           {/* Desktop Navigation - Centered - Show when not scrolled or search expanded */}
           {shouldShowFullHeader ? (
             <div className="hidden lg:flex items-center gap-12 transition-all duration-500 ease-in-out">
-              <Link 
-                href="/search" 
-                className="flex items-center gap-3 px-6 py-3 rounded-full text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200 group relative"
+              <button
+                onClick={() => {
+                  setActiveCategory('homes');
+                  router.push('/');
+                }}
+                className={`flex items-center gap-3 px-6 py-3 rounded-full transition-all duration-200 group relative ${
+                  activeCategory === 'homes' 
+                    ? 'text-purple-600 bg-purple-50' 
+                    : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
+                }`}
               >
-                <Home size={22} className="group-hover:scale-110 transition-transform duration-200" />
+                <Building size={22} className="group-hover:scale-110 transition-transform duration-200" />
                 <span className="font-medium text-base">Homes</span>
-              </Link>
-              <Link 
-                href="/services" 
-                className="flex items-center gap-3 px-6 py-3 rounded-full text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200 group relative"
+              </button>
+              <button
+                onClick={() => {
+                  setActiveCategory('services');
+                  router.push('/services');
+                }}
+                className={`flex items-center gap-3 px-6 py-3 rounded-full transition-all duration-200 group relative ${
+                  activeCategory === 'services'
+                    ? 'text-purple-600 bg-purple-50'
+                    : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
+                }`}
               >
-                <Briefcase size={22} className="group-hover:scale-110 transition-transform duration-200" />
+                <BellRing size={22} className="group-hover:scale-110 transition-transform duration-200" />
                 <span className="font-medium text-base">Services</span>
-              </Link>
+              </button>
               <Link 
                 href="/stories" 
                 className="flex items-center gap-3 px-6 py-3 rounded-full text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200 group relative"
               >
-                <BookOpen size={22} className="group-hover:scale-110 transition-transform duration-200" />
+                <Globe size={22} className="group-hover:scale-110 transition-transform duration-200" />
                 <span className="font-medium text-base">Stories</span>
               </Link>
             </div>
@@ -344,28 +379,42 @@ const Header = () => {
         {mobileMenuOpen && (
           <div className="lg:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50">
             <div className="px-4 py-4 space-y-3">
-              <Link 
-                href="/search" 
-                className="flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200"
-                onClick={() => setMobileMenuOpen(false)}
+              <button
+                onClick={() => {
+                  setActiveCategory('homes');
+                  router.push('/');
+                  setMobileMenuOpen(false);
+                }}
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl w-full text-left transition-all duration-200 ${
+                  activeCategory === 'homes' 
+                    ? 'text-purple-600 bg-purple-50' 
+                    : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
+                }`}
               >
-                <Home size={20} />
+                <Building size={20} />
                 <span className="font-medium">Homes</span>
-              </Link>
-              <Link 
-                href="/services" 
-                className="flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200"
-                onClick={() => setMobileMenuOpen(false)}
+              </button>
+              <button
+                onClick={() => {
+                  setActiveCategory('services');
+                  router.push('/services');
+                  setMobileMenuOpen(false);
+                }}
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl w-full text-left transition-all duration-200 ${
+                  activeCategory === 'services'
+                    ? 'text-purple-600 bg-purple-50'
+                    : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
+                }`}
               >
-                <Briefcase size={20} />
+                <BellRing size={20} />
                 <span className="font-medium">Services</span>
-              </Link>
+              </button>
               <Link 
                 href="/stories" 
                 className="flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <BookOpen size={20} />
+                <Globe size={20} />
                 <span className="font-medium">Stories</span>
               </Link>
               
@@ -436,9 +485,7 @@ const Header = () => {
         {shouldShowFullHeader && (
           <div className="flex justify-center w-full pb-3">
             <div className="w-full max-w-4xl">
-              <div className="bg-white rounded-full shadow-lg p-0.5">
-                <SearchForm variant="compact" />
-              </div>
+              <AirbnbSearchForm variant="compact" activeCategory={activeCategory} />
             </div>
           </div>
         )}

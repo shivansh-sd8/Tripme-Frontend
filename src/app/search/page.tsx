@@ -2,9 +2,10 @@
 import React, { useEffect, useState, useRef, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
-import { MapPin, Star, Users, Heart, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { MapPin, Star, Users, Heart, ChevronLeft, ChevronRight, X, Calendar } from 'lucide-react';
 import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
+import PricesPopup from '@/components/shared/PricesPopup';
 import { apiClient } from '@/infrastructure/api/clients/api-client';
 import { useAuth } from '@/core/store/auth-context';
 import Button from '@/components/ui/Button';
@@ -504,7 +505,7 @@ function SearchPageContent() {
   };
 
   // Get search parameters from URL
-  const cityFromQuery = searchParams.get('location.city') || '';
+  const cityFromQuery = searchParams.get('city') || '';
 
   // Refresh user data when component mounts to ensure we have the latest role
   useEffect(() => {
@@ -522,16 +523,31 @@ function SearchPageContent() {
     const fetchListings = async () => {
       setLoading(true);
       const params: any = {};
-      // Get city and coordinates from URL
-      const city = searchParams.get('location.city');
+      
+      // Get all search parameters from URL
+      const city = searchParams.get('city');
       const lng = searchParams.get('location[coordinates][0]');
       const lat = searchParams.get('location[coordinates][1]');
-      if (city) params['location.city'] = city;
+      const checkIn = searchParams.get('checkIn');
+      const checkOut = searchParams.get('checkOut');
+      const guests = searchParams.get('guests');
+      const adults = searchParams.get('adults');
+      const children = searchParams.get('children');
+      const infants = searchParams.get('infants');
+      
+      // Build search parameters
+      if (city) params['city'] = city;
       if (lng && lat) {
         params['location[coordinates][0]'] = lng;
         params['location[coordinates][1]'] = lat;
         setMapCenter([parseFloat(lat), parseFloat(lng)]);
       }
+      if (checkIn) params['checkIn'] = checkIn;
+      if (checkOut) params['checkOut'] = checkOut;
+      if (guests) params['guests'] = guests;
+      if (adults) params['adults'] = adults;
+      if (children) params['children'] = children;
+      if (infants) params['infants'] = infants;
       
       // Always fetch listings - if no city specified, show all available listings
       const res = await apiClient.getListings(params);
@@ -587,16 +603,10 @@ function SearchPageContent() {
       {/* Use the same Header component as home page */}
       <Header />
 
-      {/* Main content: grid + map - Add top padding to account for fixed header */}
+      {/* Main content: grid + map */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 flex-1 flex flex-col lg:flex-row gap-4 lg:gap-8 pt-48 pb-16">
         {/* Stays grid */}
         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 pt-2 pb-12 pr-0 lg:pr-8">
-          <div className="col-span-full mb-4">
-            <span className="text-base sm:text-lg font-medium text-gray-800">
-              {cityFromQuery ? `Over ${listings.length} places in ${cityFromQuery}` : `${listings.length} places available`}
-            </span>
-            <span className="bg-pink-100 text-pink-700 px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ml-2">Prices include all fees</span>
-          </div>
                       {loading ? (
               <div className="col-span-full">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
@@ -617,60 +627,149 @@ function SearchPageContent() {
               </div>
             </div>
           ) : listings.length === 0 ? (
-            <div className="col-span-full flex flex-col items-center justify-center py-20 px-6">
-              {/* Beautiful No Results Design */}
-              <div className="max-w-md mx-auto text-center">
-                {/* Illustration */}
-                <div className="relative mb-8">
-                  <div className="w-32 h-32 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <div className="w-20 h-20 bg-gradient-to-br from-purple-200 to-indigo-200 rounded-full flex items-center justify-center">
-                      <MapPin className="w-10 h-10 text-purple-600" />
+            <div className="col-span-full">
+              {/* Modern No Results Design */}
+              <div className="max-w-4xl mx-auto">
+                {/* Hero Section */}
+                <div className="text-center py-16 px-6">
+                  {/* Animated Illustration */}
+                  <div className="relative mb-12">
+                    <div className="w-40 h-40 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-full flex items-center justify-center mx-auto shadow-2xl">
+                      <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center relative">
+                        <MapPin className="w-12 h-12 text-indigo-600" />
+                        {/* Floating elements */}
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full animate-bounce"></div>
+                        <div className="absolute -bottom-1 -left-2 w-4 h-4 bg-pink-400 rounded-full animate-pulse"></div>
+                        <div className="absolute top-1/2 -right-4 w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
+                      </div>
+                    </div>
+                    {/* Background decorative elements */}
+                    <div className="absolute inset-0 -z-10">
+                      <div className="absolute top-8 left-8 w-16 h-16 bg-blue-100 rounded-full opacity-30 animate-pulse"></div>
+                      <div className="absolute bottom-8 right-8 w-12 h-12 bg-purple-100 rounded-full opacity-40 animate-bounce"></div>
+                      <div className="absolute top-1/2 left-4 w-8 h-8 bg-pink-100 rounded-full opacity-50 animate-ping"></div>
                     </div>
                   </div>
-                  {/* Decorative elements */}
-                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <div className="w-4 h-4 bg-yellow-400 rounded-full"></div>
+
+                  {/* Main Message */}
+                  <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 font-display">
+                    {cityFromQuery ? `No stays found in ${cityFromQuery}` : 'No stays found for your search'}
+                  </h1>
+                  <p className="text-xl text-gray-600 mb-8 leading-relaxed max-w-2xl mx-auto">
+                    {cityFromQuery 
+                      ? `We couldn't find any available stays in ${cityFromQuery} for your selected dates and guest count.`
+                      : "We couldn't find any available stays matching your search criteria."
+                    }
+                  </p>
+                </div>
+
+                {/* Search Summary Card */}
+                {(searchParams.get('checkIn') || searchParams.get('guests')) && (
+                  <div className="mb-12 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 shadow-lg">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      Your Search Details
+                    </h3>
+                    <div className="flex flex-wrap gap-3">
+                      {searchParams.get('city') && (
+                        <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm border border-blue-200">
+                          <MapPin className="w-4 h-4 text-blue-600" />
+                          <span className="text-blue-700 font-medium">{searchParams.get('city')}</span>
+                        </div>
+                      )}
+                      {searchParams.get('checkIn') && searchParams.get('checkOut') && (
+                        <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm border border-green-200">
+                          <Calendar className="w-4 h-4 text-green-600" />
+                          <span className="text-green-700 font-medium">
+                            {new Date(searchParams.get('checkIn')!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(searchParams.get('checkOut')!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                      )}
+                      {searchParams.get('guests') && (
+                        <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm border border-purple-200">
+                          <Users className="w-4 h-4 text-purple-600" />
+                          <span className="text-purple-700 font-medium">
+                            {searchParams.get('guests')} guest{parseInt(searchParams.get('guests')!) > 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="absolute -bottom-2 -left-2 w-6 h-6 bg-pink-100 rounded-full flex items-center justify-center">
-                    <div className="w-3 h-3 bg-pink-400 rounded-full"></div>
+                )}
+
+                {/* Suggestions Grid */}
+                <div className="grid md:grid-cols-2 gap-8 mb-12">
+                  {/* Try Different Dates */}
+                  <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <Calendar className="w-5 h-5 text-green-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">Try Different Dates</h3>
+                    </div>
+                    <p className="text-gray-600 mb-4">Popular destinations often have limited availability during peak seasons. Try adjusting your dates by a few days.</p>
+                    <Button 
+                      className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition-colors"
+                      onClick={() => router.push('/')}
+                    >
+                      Modify Search Dates
+                    </Button>
+                  </div>
+
+                  {/* Explore Nearby Areas */}
+                  <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">Explore Nearby Areas</h3>
+                    </div>
+                    <p className="text-gray-600 mb-4">Consider staying in nearby cities or regions that might have more availability.</p>
+                    <Button 
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors"
+                      onClick={() => router.push('/')}
+                    >
+                      Browse Other Destinations
+                    </Button>
                   </div>
                 </div>
 
-                {/* Main Message */}
-                <h2 className="text-3xl font-bold text-gray-900 mb-4 font-display">
-                  Exploring New Horizons
-                </h2>
-                <p className="text-lg text-gray-600 mb-6 leading-relaxed font-body">
-                  Our team is working hard to bring amazing stays to {cityFromQuery || 'this location'}. 
-                  We're constantly expanding our network of hosts and properties.
-                </p>
-
-                {/* Progress Indicator */}
-                <div className="bg-gray-100 rounded-full p-1 mb-8 max-w-xs mx-auto">
-                  <div className="bg-gradient-to-r from-purple-500 to-indigo-500 h-2 rounded-full w-3/4"></div>
+                {/* Popular Destinations */}
+                <div className="mb-12">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">Popular Destinations</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {['Mumbai', 'Delhi', 'Bangalore', 'Goa', 'Jaipur', 'Kerala', 'Himachal Pradesh', 'Rajasthan'].map((destination) => (
+                      <button
+                        key={destination}
+                        className="p-4 bg-white rounded-xl border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all duration-200 text-center group"
+                        onClick={() => router.push(`/search?city=${destination}&category=homes`)}
+                      >
+                        <div className="text-sm font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">
+                          {destination}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <p className="text-sm text-gray-500 mb-8">
-                  We're actively working with local hosts to add properties here
-                </p>
 
                 {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
                   <Button 
-                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200"
-                    onClick={() => router.push('/search')}
+                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 text-lg"
+                    onClick={() => router.push('/')}
                   >
-                    Explore Other Destinations
+                    Start New Search
                   </Button>
                   {user?.role === 'host' ? (
                     <Button 
-                      className="bg-white border-2 border-purple-200 text-purple-600 hover:bg-purple-50 px-6 py-3 rounded-xl font-medium transition-all duration-200"
+                      className="bg-white border-2 border-indigo-200 text-indigo-600 hover:bg-indigo-50 px-8 py-4 rounded-xl font-semibold transition-all duration-200 text-lg"
                       onClick={() => router.push('/host/dashboard')}
                     >
                       Host Dashboard
                     </Button>
                   ) : (
                     <Button 
-                      className="bg-white border-2 border-purple-200 text-purple-600 hover:bg-purple-50 px-6 py-3 rounded-xl font-medium transition-all duration-200"
+                      className="bg-white border-2 border-indigo-200 text-indigo-600 hover:bg-indigo-50 px-8 py-4 rounded-xl font-semibold transition-all duration-200 text-lg"
                       onClick={() => router.push('/become-host')}
                     >
                       Become a Host
@@ -678,38 +777,22 @@ function SearchPageContent() {
                   )}
                 </div>
 
-                {/* Additional Info */}
-                <div className="mt-12 p-6 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border border-purple-100">
-                  <h3 className="font-semibold text-gray-900 mb-3">What's happening?</h3>
-                  <div className="space-y-3 text-sm text-gray-600">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span>Verifying local hosts and properties</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <span>Setting up quality standards</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                      <span>Preparing for your amazing stay</span>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Newsletter Signup */}
-                <div className="mt-8 p-6 bg-white rounded-2xl border border-gray-200 shadow-sm">
-                  <h4 className="font-semibold text-gray-900 mb-2">Get notified when we're ready!</h4>
-                  <p className="text-sm text-gray-600 mb-4">We'll let you know as soon as stays become available in this area.</p>
-                  <div className="flex gap-2">
-                    <Input 
-                      type="email" 
-                      placeholder="Enter your email"
-                      className="flex-1"
-                    />
-                    <Button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">
-                      Notify Me
-                    </Button>
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-8 border border-indigo-200">
+                  <div className="text-center max-w-2xl mx-auto">
+                    <h4 className="text-2xl font-bold text-gray-900 mb-3">Stay Updated!</h4>
+                    <p className="text-gray-600 mb-6">Get notified when new properties become available in your preferred destinations.</p>
+                    <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+                      <Input 
+                        type="email" 
+                        placeholder="Enter your email address"
+                        className="flex-1 py-3 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      />
+                      <Button className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                        Subscribe
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-3">We'll never spam you. Unsubscribe anytime.</p>
                   </div>
                 </div>
               </div>
@@ -729,7 +812,8 @@ function SearchPageContent() {
             ))
           )}
         </div>
-                {/* Map: responsive design */}
+        
+        {/* Map: responsive design */}
         {listings.length > 0 && (
           <>
             {/* Mobile Map - Full width, below cards */}
@@ -836,6 +920,9 @@ function SearchPageContent() {
       </div>
       {/* Footer for consistency */}
       <Footer />
+      
+      {/* Prices Include All Fees Popup */}
+      <PricesPopup />
     </div>
   );
 }
@@ -853,4 +940,4 @@ export default function SearchPage() {
       <SearchPageContent />
     </Suspense>
   );
-} 
+}

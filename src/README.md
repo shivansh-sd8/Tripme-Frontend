@@ -35,7 +35,7 @@ src/
 │   ├── user/                    # User-related components
 │   │   └── ProfileContent.tsx
 │   ├── trips/                   # Trip-related components
-│   │   ├── SearchForm.tsx
+│   │   ├── AirbnbSearchForm.tsx
 │   │   └── StayCard.tsx
 │   └── bookings/                # Booking-related components
 │       └── BookingsContent.tsx
@@ -114,7 +114,7 @@ import { User, Booking } from '@/types';
 
 // Components
 import Header from '@/components/shared/Header';
-import SearchForm from '@/components/trips/SearchForm';
+import AirbnbSearchForm from '@/components/trips/AirbnbSearchForm';
 
 // Libraries
 import { useAuth } from '@/lib/auth';

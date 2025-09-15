@@ -65,6 +65,11 @@ const VALIDATION_RULES = {
     maxLength: 500,
     required: true
   },
+  userAddress: {
+    minLength: 10,
+    maxLength: 1000,
+    required: true
+  },
   city: {
     minLength: 2,
     maxLength: 100,
@@ -144,6 +149,7 @@ const PropertyForm: React.FC = () => {
       type: 'Point' as const,
       coordinates: [0, 0] as [number, number],
       address: '',
+      userAddress: '', // User's own address input
       city: '',
       state: '',
       country: 'India',
@@ -170,6 +176,15 @@ const PropertyForm: React.FC = () => {
     checkInTime: '15:00',
     checkOutTime: '11:00',
     cancellationPolicy: 'moderate' as Property['cancellationPolicy'],
+    hourlyBooking: {
+      enabled: false,
+      minStayDays: 1,
+      hourlyRates: {
+        sixHours: 0.30,
+        twelveHours: 0.60,
+        eighteenHours: 0.75
+      }
+    },
     images: [] as { url: string; publicId: string; isPrimary: boolean; caption?: string; width?: number; height?: number; format?: string; size?: number }[]
   });
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
@@ -346,6 +361,7 @@ const PropertyForm: React.FC = () => {
         type: 'Point',
         coordinates: formData.location.coordinates,
         address: formData.location.address,
+        userAddress: formData.location.userAddress,
         city: formData.location.city,
         state: formData.location.state,
         country: formData.location.country,
@@ -372,6 +388,7 @@ const PropertyForm: React.FC = () => {
       checkInTime: formData.checkInTime,
       checkOutTime: formData.checkOutTime,
       cancellationPolicy: formData.cancellationPolicy,
+      hourlyBooking: formData.hourlyBooking,
       images: formData.images.map(image => ({
         url: image.url,
         publicId: image.publicId,
@@ -515,7 +532,6 @@ const PropertyForm: React.FC = () => {
     <div className="pl-4 pr-6 py-6">
       <div className="space-y-6">
         <div className="text-center mb-6">
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">Basic Information</h3>
           <p className="text-gray-700 text-base">Tell us about your property</p>
         </div>
         
@@ -708,78 +724,91 @@ const PropertyForm: React.FC = () => {
     <div className="pl-4 pr-6 py-6">
       <div className="space-y-6">
         <div className="text-center mb-6">
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">Location</h3>
           <p className="text-gray-700 text-base">Where is your property located?</p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-base font-semibold text-gray-900 mb-2">
-              Street Address <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.location.address}
-              onChange={(e) => handleLocationChange('address', e.target.value)}
-              placeholder="123 Main Street"
-              className={`w-full px-4 py-3 text-base border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
-                validationMessages.address || fieldErrors['location.address'] ? 'border-red-300' : 'border-gray-200'
-              }`}
-            />
-            {(validationMessages.address || fieldErrors['location.address']) && (
-              <ValidationMessage field="address" message={validationMessages.address || fieldErrors['location.address'] || ''} />
-            )}
-          </div>
-          <div>
-            <label className="block text-base font-semibold text-gray-900 mb-2">
-              City <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.location.city}
-              onChange={(e) => handleLocationChange('city', e.target.value)}
-              placeholder="Mumbai"
-              className={`w-full px-4 py-3 text-base border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
-                validationMessages.city || fieldErrors['location.city'] ? 'border-red-300' : 'border-gray-200'
-              }`}
-            />
-            {(validationMessages.city || fieldErrors['location.city']) && (
-              <ValidationMessage field="city" message={validationMessages.city || fieldErrors['location.city'] || ''} />
-            )}
-          </div>
-          <div>
-            <label className="block text-base font-semibold text-gray-900 mb-2">
-              State <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.location.state}
-              onChange={(e) => handleLocationChange('state', e.target.value)}
-              placeholder="Maharashtra"
-              className={`w-full px-4 py-3 text-base border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
-                validationMessages.state || fieldErrors['location.state'] ? 'border-red-300' : 'border-gray-200'
-              }`}
-            />
-            {(validationMessages.state || fieldErrors['location.state']) && (
-              <ValidationMessage field="state" message={validationMessages.state || fieldErrors['location.state'] || ''} />
-            )}
-          </div>
-          <div>
-            <label className="block text-base font-semibold text-gray-900 mb-2">
-              Postal Code <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.location.postalCode}
-              onChange={(e) => handleLocationChange('postalCode', e.target.value)}
-              placeholder="400001"
-              className={`w-full px-4 py-3 text-base border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
-                validationMessages.postalCode || fieldErrors['location.postalCode'] ? 'border-red-300' : 'border-gray-200'
-              }`}
-            />
-            {(validationMessages.postalCode || fieldErrors['location.postalCode']) && (
-              <ValidationMessage field="postalCode" message={validationMessages.postalCode || fieldErrors['location.postalCode'] || ''} />
-            )}
+        {/* User's Address Input */}
+        <div className="mb-6">
+          <label className="block text-base font-semibold text-gray-900 mb-2">
+            Your Property Address <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            value={formData.location.userAddress}
+            onChange={(e) => handleLocationChange('userAddress', e.target.value)}
+            placeholder="Enter your complete property address as you would like it to appear to guests..."
+            rows={3}
+            className={`w-full px-4 py-3 text-base border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 text-gray-900 placeholder-gray-500 resize-none ${
+              validationMessages.userAddress || fieldErrors['location.userAddress'] ? 'border-red-300' : 'border-gray-200'
+            }`}
+          />
+          <p className="text-sm text-gray-600 mt-2">This is how your address will appear to guests. Be specific and include landmarks if helpful.</p>
+          {(validationMessages.userAddress || fieldErrors['location.userAddress']) && (
+            <ValidationMessage field="userAddress" message={validationMessages.userAddress || fieldErrors['location.userAddress'] || ''} />
+          )}
+        </div>
+
+        {/* Map-based Location Selection */}
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6">
+          <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-blue-600" />
+            Map Location (for search & directions)
+          </h4>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Street Address (from map)
+              </label>
+              <input
+                type="text"
+                value={formData.location.address}
+                readOnly
+                placeholder="Select location on map below"
+                className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl bg-gray-100 text-gray-600 cursor-not-allowed"
+              />
+              <p className="text-xs text-gray-500 mt-1">This will be filled automatically when you select a location on the map</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                City (from map)
+              </label>
+              <input
+                type="text"
+                value={formData.location.city}
+                readOnly
+                placeholder="Will be filled from map selection"
+                className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl bg-gray-100 text-gray-600 cursor-not-allowed"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                State (from map)
+              </label>
+              <input
+                type="text"
+                value={formData.location.state}
+                readOnly
+                placeholder="Will be filled from map selection"
+                className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl bg-gray-100 text-gray-600 cursor-not-allowed"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Postal Code
+              </label>
+              <input
+                type="text"
+                value={formData.location.postalCode}
+                onChange={(e) => handleLocationChange('postalCode', e.target.value)}
+                placeholder="400001"
+                className={`w-full px-4 py-3 text-base border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
+                  validationMessages.postalCode || fieldErrors['location.postalCode'] ? 'border-red-300' : 'border-gray-200'
+                }`}
+              />
+              {(validationMessages.postalCode || fieldErrors['location.postalCode']) && (
+                <ValidationMessage field="postalCode" message={validationMessages.postalCode || fieldErrors['location.postalCode'] || ''} />
+              )}
+            </div>
           </div>
         </div>
         
@@ -794,6 +823,30 @@ const PropertyForm: React.FC = () => {
               onSelect={(coords, address) => {
                 handleLocationChange('coordinates', coords);
                 handleLocationChange('address', address);
+                
+                // Extract city and state from the address
+                const addressParts = address.split(', ');
+                let city = '';
+                let state = '';
+                
+                // Try to extract city and state from the address
+                if (addressParts.length >= 2) {
+                  // Look for state (usually second to last or last part)
+                  const possibleState = addressParts[addressParts.length - 2] || addressParts[addressParts.length - 1];
+                  if (possibleState && possibleState.length > 0) {
+                    state = possibleState.trim();
+                  }
+                  
+                  // Look for city (usually before state)
+                  const possibleCity = addressParts[addressParts.length - 3] || addressParts[addressParts.length - 2];
+                  if (possibleCity && possibleCity.length > 0 && possibleCity !== state) {
+                    city = possibleCity.trim();
+                  }
+                }
+                
+                // Update city and state if found
+                if (city) handleLocationChange('city', city);
+                if (state) handleLocationChange('state', state);
               }}
             />
           </div>
@@ -827,7 +880,6 @@ const PropertyForm: React.FC = () => {
     <div className="pl-4 pr-6 py-6">
       <div className="space-y-6">
         <div className="text-center mb-6">
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">Pricing</h3>
           <p className="text-gray-700 text-base">Set your rates and fees</p>
         </div>
         
@@ -925,6 +977,90 @@ const PropertyForm: React.FC = () => {
             <option value="USD">USD ($)</option>
             <option value="GBP">GBP (£)</option>
           </select>
+        </div>
+
+        {/* Hourly Booking Settings */}
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Hourly Booking</h3>
+              <p className="text-sm text-gray-700">Allow guests to extend their stay with hourly options</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.hourlyBooking.enabled}
+                onChange={(e) => handleInputChange('hourlyBooking', { ...formData.hourlyBooking, enabled: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+            </label>
+          </div>
+
+          {formData.hourlyBooking.enabled && (
+            <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">Hourly Extension Rates</label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-800 mb-1">6 Hours</label>
+                    <div className="flex items-center">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={Math.round(formData.hourlyBooking.hourlyRates.sixHours * 100)}
+                        onChange={(e) => handleInputChange('hourlyBooking', {
+                          ...formData.hourlyBooking,
+                          hourlyRates: { ...formData.hourlyBooking.hourlyRates, sixHours: Number(e.target.value) / 100 }
+                        })}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 text-gray-900 font-medium bg-white"
+                      />
+                      <span className="ml-1 text-xs font-medium text-gray-700">%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-800 mb-1">12 Hours</label>
+                    <div className="flex items-center">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={Math.round(formData.hourlyBooking.hourlyRates.twelveHours * 100)}
+                        onChange={(e) => handleInputChange('hourlyBooking', {
+                          ...formData.hourlyBooking,
+                          hourlyRates: { ...formData.hourlyBooking.hourlyRates, twelveHours: Number(e.target.value) / 100 }
+                        })}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 text-gray-900 font-medium bg-white"
+                      />
+                      <span className="ml-1 text-xs font-medium text-gray-700">%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-800 mb-1">18 Hours</label>
+                    <div className="flex items-center">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={Math.round(formData.hourlyBooking.hourlyRates.eighteenHours * 100)}
+                        onChange={(e) => handleInputChange('hourlyBooking', {
+                          ...formData.hourlyBooking,
+                          hourlyRates: { ...formData.hourlyBooking.hourlyRates, eighteenHours: Number(e.target.value) / 100 }
+                        })}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 text-gray-900 font-medium bg-white"
+                      />
+                      <span className="ml-1 text-xs font-medium text-gray-700">%</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-600 mt-2">Percentage of daily rate for each extension period</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

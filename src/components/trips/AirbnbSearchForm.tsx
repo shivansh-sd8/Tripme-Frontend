@@ -1,0 +1,1277 @@
+"use client";
+import React, { useState, useEffect, useRef } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { Search, MapPin, Calendar, Users, Minus, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { DateRange } from 'react-date-range';
+import { addDays, format } from 'date-fns';
+import AsyncSelect from 'react-select/async';
+import { RangeKeyDict } from 'react-date-range';
+import { createPortal } from 'react-dom';
+import 'react-date-range/dist/styles.css';
+import 'react-date-range/dist/theme/default.css';
+import { cn } from '@/shared/utils/pricingUtils';
+
+// Custom CSS for Airbnb-style calendar
+const customCalendarStyles = `
+  .rdrCalendarWrapper {
+    font-size: 14px !important;
+    width: 100% !important;
+    max-width: 600px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-family: Circular, -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif !important;
+  }
+  
+  .rdrDateRangeWrapper {
+    width: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  .rdrDefinedRangesWrapper {
+    display: none !important;
+  }
+  
+  .rdrDateRangePickerWrapper {
+    width: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  .rdrCalendarWrapper .rdrDateRangeWrapper {
+    width: 100% !important;
+  }
+  
+  .rdrMonth {
+    width: 50% !important;
+    padding: 16px !important;
+    border-right: 1px solid #e5e7eb !important;
+  }
+  
+  .rdrMonth:last-child {
+    border-right: none !important;
+  }
+  
+  .rdrMonthAndYearWrapper {
+    padding: 0 0 12px 0 !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    color: #222222 !important;
+    text-align: center !important;
+    margin-bottom: 0 !important;
+    position: relative !important;
+    line-height: 1.2 !important;
+  }
+  
+  .rdrMonthAndYearPickers select {
+    font-size: 16px !important;
+    padding: 4px 8px !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
+    background: white !important;
+  }
+  
+  .rdrWeekDays {
+    padding: 0 !important;
+    margin-bottom: 6px !important;
+    display: grid !important;
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: 0 !important;
+  }
+  
+  .rdrWeekDay {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #717171 !important;
+    padding: 8px 0 !important;
+    text-align: center !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    line-height: 1 !important;
+  }
+  
+  .rdrDays {
+    padding: 0 !important;
+    display: grid !important;
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: 0 !important;
+  }
+  
+  .rdrDay {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 14px !important;
+    margin: 0 !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    background: transparent !important;
+    cursor: pointer !important;
+    font-weight: 400 !important;
+  }
+  
+  .rdrDay:hover {
+    background-color: #f7f7f7 !important;
+  }
+  
+  .rdrDay.rdrDayToday .rdrDayNumber {
+    color: #222222 !important;
+    font-weight: 400 !important;
+  }
+  
+  .rdrDay.rdrDayToday {
+    border: none !important;
+  }
+  
+  .rdrDay.rdrDayInRange {
+    background-color: #f7f7f7 !important;
+    color: #222222 !important;
+    border-radius: 0 !important;
+  }
+  
+  .rdrDay.rdrDayInRange:not(.rdrDayStartOfRange):not(.rdrDayEndOfRange) {
+    background-color: #f7f7f7 !important;
+    color: #222222 !important;
+    border-radius: 0 !important;
+  }
+  
+  .rdrDay.rdrDayStartOfRange,
+  .rdrDay.rdrDayEndOfRange {
+    background-color: #222222 !important;
+    color: white !important;
+    font-weight: 600 !important;
+    border-radius: 50% !important;
+  }
+  
+  .rdrDay.rdrDayStartOfRange:not(.rdrDayEndOfRange) {
+    background-color: #222222 !important;
+    color: white !important;
+  }
+  
+  .rdrDay.rdrDayEndOfRange:not(.rdrDayStartOfRange) {
+    background-color: #222222 !important;
+    color: white !important;
+  }
+  
+  .rdrDay.rdrDayStartOfRange {
+    border-radius: 50% !important;
+  }
+  
+  .rdrDay.rdrDayEndOfRange {
+    border-radius: 50% !important;
+  }
+  
+  .rdrDay.rdrDayStartOfRange.rdrDayEndOfRange {
+    border-radius: 50% !important;
+    background-color: #222222 !important;
+    color: white !important;
+  }
+  
+  .rdrDay.rdrDayInRange:not(.rdrDayStartOfRange):not(.rdrDayEndOfRange) {
+    border-radius: 0 !important;
+  }
+  
+  .rdrDay.rdrDayPassive {
+    color: #d1d5db !important;
+  }
+  
+  .rdrDay.rdrDayDisabled {
+    color: #d1d5db !important;
+    background-color: transparent !important;
+  }
+  
+  .rdrNextPrevButton {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    background-color: transparent !important;
+    border: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: none !important;
+    color: #222222 !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+  }
+  
+  .rdrNextPrevButton:hover {
+    background-color: #f7f7f7 !important;
+  }
+  
+  .rdrNextPrevButton i {
+    border: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-left: 4px solid transparent !important;
+    border-right: 4px solid transparent !important;
+    border-top: 4px solid #222222 !important;
+  }
+  
+  .rdrPprevButton i {
+    border-top: 4px solid transparent !important;
+    border-bottom: 4px solid transparent !important;
+    border-right: 4px solid #222222 !important;
+    border-left: none !important;
+  }
+
+  /* Animation for overlays */
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .search-overlay {
+    animation: slideDown 0.2s ease-out;
+  }
+`;
+
+const MAPBOX_TOKEN = 'pk.eyJ1Ijoic2hpdmFuc2gxODA5IiwiYSI6ImNtZTRhdmJyMTA5YTEya3F0cWN2c3RpdmcifQ.7l3-Hj7ihCHCwH656wq1oA';
+const MAPBOX_API_URL = 'https://api.mapbox.com/geocoding/v5/mapbox.places';
+
+const formatDate = (date: Date) => format(date, 'dd MMM');
+
+// Timezone-safe date formatting for storage and URL parameters
+const formatDateForStorage = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Timezone-safe date parsing from storage and URL parameters
+const parseDateFromStorage = (dateString: string) => {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+interface AirbnbSearchFormProps {
+  variant?: 'default' | 'compact';
+  initialValues?: {
+    location?: string;
+    checkIn?: string;
+    checkOut?: string;
+    guests?: number;
+  };
+  className?: string;
+  activeCategory?: 'homes' | 'services';
+}
+
+interface GuestCounts {
+  adults: number;
+  children: number;
+  infants: number;
+}
+
+const customSelectStyles = {
+  control: (provided: any, state: any) => ({
+    ...provided,
+    background: 'transparent',
+    border: 'none',
+    boxShadow: 'none',
+    minHeight: 'unset',
+    height: '2.5rem',
+    fontSize: '1rem',
+    fontWeight: 500,
+    color: '#1e293b',
+    paddingLeft: 0,
+    '&:hover': {
+      border: 'none',
+    },
+    '&:focus-within': {
+      border: 'none',
+      boxShadow: 'none',
+    },
+  }),
+  valueContainer: (provided: any) => ({
+    ...provided,
+    padding: 0,
+    paddingLeft: 0,
+  }),
+  input: (provided: any) => ({
+    ...provided,
+    margin: 0,
+    padding: 0,
+  }),
+  placeholder: (provided: any) => ({
+    ...provided,
+    color: '#94a3b8',
+    fontWeight: 400,
+  }),
+  singleValue: (provided: any) => ({
+    ...provided,
+    color: '#1e293b',
+  }),
+  dropdownIndicator: (provided: any) => ({
+    ...provided,
+    color: '#6366f1',
+    paddingRight: 0,
+  }),
+  indicatorSeparator: () => ({ display: 'none' }),
+  menu: (provided: any) => ({
+    ...provided,
+    zIndex: 50,
+    borderRadius: '16px',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+    background: '#fff',
+    padding: '8px 0',
+    marginTop: 8,
+    border: '1px solid #e5e7eb',
+    animation: 'slideDown 0.2s ease-out',
+  }),
+  option: (provided: any, state: any) => ({
+    ...provided,
+    backgroundColor: state.isSelected
+      ? 'rgba(99,102,241,0.1)'
+      : '#fff',
+    color: state.isSelected ? '#6366f1' : '#1e293b',
+    padding: '12px 16px',
+    fontWeight: state.isSelected ? 600 : 500,
+    fontSize: '1rem',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    margin: '0 8px',
+    transition: 'all 0.15s ease',
+    '&:hover': {
+      backgroundColor: state.isSelected ? 'rgba(99,102,241,0.15)' : '#f3f4f6',
+    },
+  }),
+};
+
+async function fetchPlacesMapbox(inputValue: string) {
+  if (!inputValue || inputValue.length < 2) return [];
+
+  const url = `${MAPBOX_API_URL}/${encodeURIComponent(inputValue)}.json` +
+              `?access_token=${MAPBOX_TOKEN}` +
+              `&types=place,region,locality,poi` +
+              `&country=IN` +
+              `&limit=10`;
+
+  const res = await fetch(url);
+  const data = await res.json();
+
+  return (data.features || []).map((feature: any) => ({
+    value: feature.text,
+    label: feature.place_name,
+    coordinates: feature.center,
+    type: feature.place_type?.[0] || 'unknown',
+    context: feature.context || [],
+  }));
+}
+
+// Debounce utility
+function debounce<F extends (...args: any[]) => void>(func: F, wait: number) {
+  let timeout: ReturnType<typeof setTimeout>;
+  return (...args: Parameters<F>) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
+
+const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({ 
+  variant = 'default', 
+  initialValues, 
+  className,
+  activeCategory = 'homes'
+}) => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [activeField, setActiveField] = useState<'where' | 'checkin' | 'checkout' | 'who' | 'service' | null>(null);
+  const [selectedService, setSelectedService] = useState<{ value: string; label: string } | null>(null);
+  const [selectedCity, setSelectedCity] = useState<{ value: string; label: string; coordinates?: [number, number]; type?: string } | null>(
+    initialValues?.location ? { value: initialValues.location, label: initialValues.location } : null
+  );
+  
+  // Override activeCategory based on current route
+  const currentCategory = pathname === '/services' ? 'services' : activeCategory;
+  const [dateRange, setDateRange] = useState({
+    startDate: initialValues?.checkIn ? new Date(initialValues.checkIn) : new Date(),
+    endDate: initialValues?.checkOut ? new Date(initialValues.checkOut) : addDays(new Date(), 1),
+    key: 'selection',
+  });
+  const [isSelectingStartDate, setIsSelectingStartDate] = useState(true);
+  const [guestCounts, setGuestCounts] = useState<GuestCounts>({
+    adults: Math.max(1, initialValues?.guests || 2),
+    children: 0,
+    infants: 0
+  });
+
+  // Update form when initialValues change
+  useEffect(() => {
+    if (initialValues?.location) {
+      setSelectedCity({ value: initialValues.location, label: initialValues.location });
+    }
+    if (initialValues?.checkIn) {
+      setDateRange(prev => ({ ...prev, startDate: new Date(initialValues.checkIn!) }));
+    }
+    if (initialValues?.checkOut) {
+      setDateRange(prev => ({ ...prev, endDate: new Date(initialValues.checkOut!) }));
+    }
+    if (initialValues?.guests) {
+      setGuestCounts(prev => ({ ...prev, adults: Math.max(1, initialValues.guests!) }));
+    }
+  }, [initialValues]);
+
+  const [dateFlexibility, setDateFlexibility] = useState<'exact' | '1' | '2' | '3' | '7' | '14'>('exact');
+  const [recentSearches, setRecentSearches] = useState<Array<{ location: string; dates?: string }>>([]);
+  
+  // Service options for Services category
+  const serviceOptions = [
+    { value: 'cleaning', label: 'Cleaning' },
+    { value: 'maintenance', label: 'Maintenance' },
+    { value: 'security', label: 'Security' },
+    { value: 'concierge', label: 'Concierge' },
+    { value: 'catering', label: 'Catering' },
+    { value: 'transportation', label: 'Transportation' },
+    { value: 'photography', label: 'Photography' },
+    { value: 'event-planning', label: 'Event Planning' }
+  ];
+
+  const [suggestedDestinations, setSuggestedDestinations] = useState<Array<{ label: string; description: string; icon?: React.ReactNode }>>([
+    {
+      label: 'Nearby',
+      description: 'Find what\'s around you',
+      icon: <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">🧭</div>
+    },
+    {
+      label: 'North Goa, Goa',
+      description: 'Popular beach destination',
+      icon: <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">🏖️</div>
+    },
+    {
+      label: 'New Delhi, Delhi',
+      description: 'For sights like India Gate',
+      icon: <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">🏛️</div>
+    },
+    {
+      label: 'Pune City, Maharashtra',
+      description: 'Popular with travellers near you',
+      icon: <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">🌊</div>
+    },
+    {
+      label: 'Mumbai, Maharashtra',
+      description: 'For its top-notch dining',
+      icon: <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">🌊</div>
+    },
+    {
+      label: 'Jaipur, Rajasthan',
+      description: 'For its stunning architecture',
+      icon: <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">🏛️</div>
+    },
+    {
+      label: 'Puducherry, Puducherry',
+      description: 'Popular beach destination',
+      icon: <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">🏖️</div>
+    }
+  ]);
+
+  // Load recent searches from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('tripme_recent_searches');
+      if (saved) {
+        try {
+          setRecentSearches(JSON.parse(saved));
+        } catch (error) {
+          console.error('Error parsing recent searches:', error);
+        }
+      }
+    }
+  }, []);
+
+  // Load search state on component mount and when searchParams change
+  useEffect(() => {
+    loadSearchState();
+  }, [searchParams]);
+
+  // Auto-save search state when data changes
+  useEffect(() => {
+    if (selectedCity) {
+      saveSearchState();
+    }
+  }, [selectedCity, dateRange, guestCounts]);
+
+  // Save search to recent searches
+  const saveRecentSearch = (location: string, dates?: string) => {
+    const newSearch = { location, dates };
+    const updated = [newSearch, ...recentSearches.filter(s => s.location !== location)].slice(0, 5);
+    setRecentSearches(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('tripme_recent_searches', JSON.stringify(updated));
+    }
+  };
+
+  // Save current search state to localStorage
+  const saveSearchState = () => {
+    if (typeof window !== 'undefined' && selectedCity && dateRange.startDate && dateRange.endDate) {
+      const searchState = {
+        location: selectedCity.label,
+        checkIn: formatDateForStorage(dateRange.startDate),
+        checkOut: formatDateForStorage(dateRange.endDate),
+        guests: totalGuests,
+        adults: guestCounts.adults,
+        children: guestCounts.children,
+        infants: guestCounts.infants
+      };
+      localStorage.setItem('tripme_current_search', JSON.stringify(searchState));
+    }
+  };
+
+  // Load search state from localStorage and URL parameters
+  const loadSearchState = () => {
+    if (typeof window !== 'undefined') {
+      // First try to load from URL parameters (higher priority)
+      const cityFromUrl = searchParams.get('city');
+      const checkInFromUrl = searchParams.get('checkIn');
+      const checkOutFromUrl = searchParams.get('checkOut');
+      const adultsFromUrl = searchParams.get('adults');
+      const childrenFromUrl = searchParams.get('children');
+      const infantsFromUrl = searchParams.get('infants');
+      
+      if (cityFromUrl || checkInFromUrl || checkOutFromUrl) {
+        // Load from URL parameters
+        if (cityFromUrl) {
+          setSelectedCity({ value: cityFromUrl, label: cityFromUrl });
+        }
+        if (checkInFromUrl && checkOutFromUrl) {
+          setDateRange({
+            startDate: parseDateFromStorage(checkInFromUrl),
+            endDate: parseDateFromStorage(checkOutFromUrl),
+            key: 'selection'
+          });
+        }
+        if (adultsFromUrl || childrenFromUrl || infantsFromUrl) {
+          setGuestCounts({
+            adults: parseInt(adultsFromUrl || '1'),
+            children: parseInt(childrenFromUrl || '0'),
+            infants: parseInt(infantsFromUrl || '0')
+          });
+        }
+      } else {
+        // Fallback to localStorage
+        const saved = localStorage.getItem('tripme_current_search');
+        if (saved) {
+          try {
+            const searchState = JSON.parse(saved);
+            setSelectedCity({ value: searchState.location, label: searchState.location });
+            setDateRange({
+              startDate: parseDateFromStorage(searchState.checkIn),
+              endDate: parseDateFromStorage(searchState.checkOut),
+              key: 'selection'
+            });
+            setGuestCounts({
+              adults: searchState.adults || 1,
+              children: searchState.children || 0,
+              infants: searchState.infants || 0
+            });
+          } catch (error) {
+            console.error('Error loading search state:', error);
+          }
+        }
+      }
+    }
+  };
+
+  // Calculate total guests
+  const totalGuests = guestCounts.adults + guestCounts.children + guestCounts.infants;
+
+  // Debounced loadOptions for react-select/async
+  const debouncedLoadOptions = useRef(
+    debounce((inputValue: string, callback: (options: any[]) => void) => {
+      fetchPlacesMapbox(inputValue).then(callback);
+    }, 400)
+  ).current;
+
+  // Inject custom calendar styles
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const style = document.createElement('style');
+      style.textContent = customCalendarStyles;
+      document.head.appendChild(style);
+      return () => {
+        document.head.removeChild(style);
+      };
+    }
+  }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCity) return;
+    
+    // Save current search state before navigating
+    saveSearchState();
+    
+    // If Services category is selected, redirect to services page
+    if (currentCategory === 'services') {
+      const params = new URLSearchParams();
+      if (selectedCity) {
+        params.append('city', selectedCity.value);
+      }
+      if (selectedService) {
+        params.append('serviceType', selectedService.value);
+      }
+      const servicesUrl = `/services${params.toString() ? `?${params.toString()}` : ''}`;
+      router.push(servicesUrl);
+      saveRecentSearch(selectedCity.label, `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`);
+      return;
+    }
+    
+    // For Homes category, use the existing search logic
+    const params = new URLSearchParams({
+      guests: totalGuests.toString(),
+      adults: guestCounts.adults.toString(),
+      children: guestCounts.children.toString(),
+      infants: guestCounts.infants.toString(),
+      checkIn: formatDateForStorage(dateRange.startDate),
+      checkOut: formatDateForStorage(dateRange.endDate),
+      category: currentCategory,
+    });
+
+    // Always add city to URL parameters if selectedCity exists
+    if (selectedCity) {
+      params.append('city', selectedCity.value);
+      
+      // If coordinates are available, also add them for more precise search
+      if (selectedCity.coordinates && selectedCity.coordinates.length === 2) {
+        params.append('location[coordinates][0]', String(selectedCity.coordinates[0]));
+        params.append('location[coordinates][1]', String(selectedCity.coordinates[1]));
+        params.append('location[radius]', '50000'); // 50km default radius
+      }
+    }
+
+    const searchUrl = `/search?${params.toString()}`;
+    router.push(searchUrl);
+    saveRecentSearch(selectedCity.label, `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`);
+  };
+
+  // Guest selection helpers
+  const updateGuestCount = (type: keyof GuestCounts, increment: boolean) => {
+    setGuestCounts(prev => {
+      const newCounts = { ...prev };
+      if (increment) {
+        if (type === 'adults') {
+          newCounts.adults = Math.min(16, newCounts.adults + 1);
+        } else if (type === 'children') {
+          newCounts.children = Math.min(10, newCounts.children + 1);
+        } else if (type === 'infants') {
+          newCounts.infants = Math.min(5, newCounts.infants + 1);
+        }
+      } else {
+        if (type === 'adults') {
+          newCounts.adults = Math.max(1, newCounts.adults - 1);
+        } else if (type === 'children') {
+          newCounts.children = Math.max(0, newCounts.children - 1);
+        } else if (type === 'infants') {
+          newCounts.infants = Math.max(0, newCounts.infants - 1);
+        }
+      }
+      return newCounts;
+    });
+  };
+
+  // Generate guest display text
+  const getGuestDisplayText = () => {
+    const parts = [];
+    if (guestCounts.adults > 0) {
+      parts.push(`${guestCounts.adults} adult${guestCounts.adults > 1 ? 's' : ''}`);
+    }
+    if (guestCounts.children > 0) {
+      parts.push(`${guestCounts.children} child${guestCounts.children > 1 ? 'ren' : ''}`);
+    }
+    if (guestCounts.infants > 0) {
+      parts.push(`${guestCounts.infants} infant${guestCounts.infants > 1 ? 's' : ''}`);
+    }
+    return parts.length > 0 ? parts.join(', ') : 'Add guests';
+  };
+
+  // Close overlays on outside click (but not on scroll)
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.search-form-container')) {
+        setActiveField(null);
+      }
+    }
+    
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setActiveField(null);
+      }
+    }
+
+    if (activeField) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscape);
+      // Don't add scroll listener - overlays should stay open when scrolling
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [activeField]);
+
+  return (
+    <div className={cn("search-form-container relative w-full", className)}>
+      {/* Main Search Bar */}
+      <form
+        onSubmit={handleSearch}
+        className="flex bg-white rounded-full shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 min-h-[56px] items-center relative"
+      >
+        {/* Where Field - Fixed width */}
+        <div className="w-80 relative">
+          <button
+            type="button"
+            onClick={() => setActiveField(activeField === 'where' ? null : 'where')}
+            className={cn(
+              "w-full px-6 py-3 text-left transition-all duration-200 flex flex-col justify-center min-h-[56px]",
+              activeField === 'where' 
+                ? "bg-white shadow-lg border-r border-gray-200" 
+                : "hover:bg-gray-50"
+            )}
+          >
+            <div className="text-sm font-semibold text-gray-900 mb-1">Where</div>
+            <div className={cn(
+              "text-base truncate",
+              selectedCity ? "text-gray-900" : "text-gray-500"
+            )}>
+              {selectedCity ? selectedCity.label : 'Search destinations'}
+            </div>
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className="w-px h-12 bg-gray-300 flex-shrink-0"></div>
+
+        {/* Date Field - Different layout for Services vs Homes */}
+        {currentCategory === 'services' ? (
+          /* Single Date Range Field for Services */
+          <div className="w-64 relative">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveField(activeField === 'checkin' ? null : 'checkin');
+                if (activeField !== 'checkin') {
+                  setIsSelectingStartDate(true); // Reset to start date selection
+                }
+              }}
+              className={cn(
+                "w-full px-4 py-3 text-left transition-all duration-200 flex flex-col justify-center min-h-[56px]",
+                activeField === 'checkin' 
+                  ? "bg-white shadow-lg border-r border-gray-200" 
+                  : "hover:bg-gray-50"
+              )}
+            >
+              <div className="text-sm font-semibold text-gray-900 mb-1">Date</div>
+              <div className={cn(
+                "text-base truncate",
+                dateRange.startDate && dateRange.endDate ? "text-gray-900" : "text-gray-500"
+              )}>
+                {dateRange.startDate && dateRange.endDate 
+                  ? `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`
+                  : dateRange.startDate 
+                    ? `${formatDate(dateRange.startDate)} - Select end date`
+                    : 'Add dates'
+              }
+              </div>
+            </button>
+          </div>
+        ) : (
+          /* Separate Check In and Check Out Fields for Homes */
+          <>
+            {/* Check In Field - Fixed width */}
+            <div className="w-32 relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveField(activeField === 'checkin' ? null : 'checkin');
+                  if (activeField !== 'checkin') {
+                    setIsSelectingStartDate(true); // Reset to start date selection
+                  }
+                }}
+                className={cn(
+                  "w-full px-4 py-3 text-left transition-all duration-200 flex flex-col justify-center min-h-[56px]",
+                  activeField === 'checkin' 
+                    ? "bg-white shadow-lg border-r border-gray-200" 
+                    : "hover:bg-gray-50"
+                )}
+              >
+                <div className="text-sm font-semibold text-gray-900 mb-1">Check in</div>
+                <div className={cn(
+                  "text-base truncate",
+                  dateRange.startDate ? "text-gray-900" : "text-gray-500"
+                )}>
+                  {dateRange.startDate && dateRange.endDate 
+                    ? formatDate(dateRange.startDate)
+                    : dateRange.startDate 
+                      ? `${formatDate(dateRange.startDate)} - Select end date`
+                      : 'Add dates'
+                }
+              </div>
+            </button>
+          </div>
+
+            {/* Divider */}
+            <div className="w-px h-12 bg-gray-300 flex-shrink-0"></div>
+
+            {/* Check Out Field - Fixed width */}
+            <div className="w-32 relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveField(activeField === 'checkout' ? null : 'checkout');
+                  if (activeField !== 'checkout') {
+                    setIsSelectingStartDate(true); // Reset to start date selection
+                  }
+                }}
+                className={cn(
+                  "w-full px-4 py-3 text-left transition-all duration-200 flex flex-col justify-center min-h-[56px]",
+                  activeField === 'checkout' 
+                    ? "bg-white shadow-lg border-r border-gray-200" 
+                    : "hover:bg-gray-50"
+                )}
+              >
+                <div className="text-sm font-semibold text-gray-900 mb-1">Check out</div>
+                <div className={cn(
+                  "text-base truncate",
+                  dateRange.endDate ? "text-gray-900" : "text-gray-500"
+                )}>
+                  {dateRange.startDate && dateRange.endDate 
+                    ? formatDate(dateRange.endDate)
+                    : dateRange.startDate 
+                      ? 'Add end date'
+                      : 'Add dates'
+                }
+              </div>
+            </button>
+          </div>
+          </>
+        )}
+
+        {/* Divider */}
+        <div className="w-px h-12 bg-gray-300 flex-shrink-0"></div>
+
+        {/* Who/Service Field - Fixed width */}
+        <div className="w-40 relative">
+          {currentCategory === 'services' ? (
+            <button
+              type="button"
+              onClick={() => setActiveField(activeField === 'service' ? null : 'service')}
+              className={cn(
+                "w-full px-4 py-3 text-left transition-all duration-200 flex flex-col justify-center min-h-[56px]",
+                activeField === 'service' 
+                  ? "bg-white shadow-lg" 
+                  : "hover:bg-gray-50"
+              )}
+            >
+              <div className="text-sm font-semibold text-gray-900 mb-1">Type of service</div>
+              <div className="text-gray-500 text-base truncate">
+                {selectedService ? selectedService.label : 'Add service'}
+              </div>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setActiveField(activeField === 'who' ? null : 'who')}
+              className={cn(
+                "w-full px-4 py-3 text-left transition-all duration-200 flex flex-col justify-center min-h-[56px]",
+                activeField === 'who' 
+                  ? "bg-white shadow-lg" 
+                  : "hover:bg-gray-50"
+              )}
+            >
+              <div className="text-sm font-semibold text-gray-900 mb-1">Who</div>
+              <div className="text-gray-500 text-base truncate">{getGuestDisplayText()}</div>
+            </button>
+          )}
+        </div>
+
+        {/* Search Button - Fixed size and positioned at extreme right */}
+        <button
+          type="submit"
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 z-10"
+        >
+          <Search size={20} />
+        </button>
+      </form>
+
+      {/* Where Overlay */}
+      {activeField === 'where' && (
+        <div className="absolute top-full left-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 search-overlay w-96">
+          <div className="p-6">
+            <div className="text-lg font-semibold text-gray-900 mb-4">Search destinations</div>
+            
+            {/* Search Input */}
+            <div className="relative mb-6">
+              <div className="flex items-center bg-gray-100 rounded-xl px-4 py-3">
+                <Search className="text-gray-400 mr-3" size={20} />
+                <AsyncSelect
+                  cacheOptions
+                  loadOptions={debouncedLoadOptions}
+                  defaultOptions={false}
+                  value={selectedCity}
+                  onChange={option => {
+                    const opt = option as { value: string; label: string; coordinates?: [number, number]; type?: string };
+                    setSelectedCity({ value: opt.value, label: opt.label, coordinates: opt.coordinates, type: opt.type });
+                    setActiveField(null);
+                    // Auto-focus on dates after location selection
+                    setTimeout(() => {
+                      setActiveField('checkin');
+                    }, 100);
+                  }}
+                  placeholder="Search destinations"
+                  styles={{
+                    ...customSelectStyles,
+                    menuPortal: (base: any) => ({ ...base, zIndex: 60 })
+                  }}
+                  menuPortalTarget={typeof window !== 'undefined' ? document.body : undefined}
+                  isSearchable
+                  menuPlacement="auto"
+                  className="w-full"
+                  components={{ DropdownIndicator: () => null }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Scrollable Content */}
+          <div className="max-h-96 overflow-y-auto px-6 pb-6">
+            {/* Suggested Destinations */}
+            <div className="space-y-2">
+              {suggestedDestinations.map((dest, idx) => (
+                <button
+                  key={dest.label}
+                  type="button"
+                  className="w-full flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left"
+                  onClick={() => {
+                    setSelectedCity({ value: dest.label, label: dest.label });
+                    setActiveField(null);
+                    // Auto-focus on dates after location selection
+                    setTimeout(() => {
+                      setActiveField('checkin');
+                    }, 100);
+                  }}
+                >
+                  <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-gray-100">
+                    {dest.icon}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-900">{dest.label}</div>
+                    <div className="text-gray-500 text-sm">{dest.description}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Recent Searches */}
+            {recentSearches.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="text-sm font-semibold text-gray-700 mb-3">Recent searches</div>
+                <div className="space-y-2">
+                  {recentSearches.map((search, idx) => (
+                    <button
+                      key={search.location + idx}
+                      type="button"
+                      className="w-full flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left"
+                      onClick={() => {
+                        setSelectedCity({ value: search.location, label: search.location });
+                        setActiveField(null);
+                        // Auto-focus on dates after location selection
+                        setTimeout(() => {
+                          setActiveField('checkin');
+                        }, 100);
+                      }}
+                    >
+                      <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-gray-100">
+                        <MapPin className="text-gray-500" size={20} />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900">{search.location}</div>
+                        {search.dates && <div className="text-gray-500 text-sm">{search.dates}</div>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Date Picker Overlay */}
+      {(activeField === 'checkin' || activeField === 'checkout') && (
+        <div className={cn(
+          "absolute top-full mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 search-overlay w-[700px]",
+          activeCategory === 'services' ? "left-0" : "left-0"
+        )}>
+          <div className="p-3">
+            <div className="flex items-center gap-0 mb-4">
+              <button
+                type="button"
+                className={cn(
+                  "px-6 py-3 text-sm font-semibold transition-colors border-b-2",
+                  activeField === 'checkin' 
+                    ? "text-gray-900 border-gray-900" 
+                    : "text-gray-500 border-transparent hover:text-gray-700"
+                )}
+                onClick={() => setActiveField('checkin')}
+              >
+                {currentCategory === 'services' ? 'Date' : 'Dates'}
+              </button>
+              {currentCategory !== 'services' && (
+                <>
+                  <button
+                    type="button"
+                    className="px-6 py-3 text-sm font-semibold text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition-colors"
+                  >
+                    Months
+                  </button>
+                  <button
+                    type="button"
+                    className="px-6 py-3 text-sm font-semibold text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition-colors"
+                  >
+                    Flexible
+                  </button>
+                </>
+              )}
+            </div>
+
+            <DateRange
+              ranges={[dateRange]}
+              onChange={(ranges: RangeKeyDict) => {
+                const selection = ranges.selection;
+                
+                if (isSelectingStartDate) {
+                  // Selecting start date
+                  if (selection.startDate) {
+                    setDateRange({
+                      startDate: selection.startDate,
+                      endDate: dateRange.endDate, // Keep existing end date
+                      key: 'selection'
+                    });
+                    setIsSelectingStartDate(false); // Next click will be end date
+                  }
+                } else {
+                  // Selecting end date
+                  if (selection.endDate && selection.endDate > dateRange.startDate) {
+                    setDateRange({
+                      startDate: dateRange.startDate,
+                      endDate: selection.endDate,
+                      key: 'selection'
+                    });
+                    // Both dates selected - close picker and move to guests
+                    setActiveField(null);
+                    setTimeout(() => {
+                      setActiveField('who');
+                    }, 200);
+                  }
+                }
+              }}
+              minDate={new Date()}
+              rangeColors={["#222222"]}
+              showDateDisplay={false}
+              showMonthAndYearPickers={true}
+              direction="horizontal"
+              months={2}
+              className="rounded-lg"
+            />
+
+            {/* Date Flexibility Options */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="text-sm font-semibold text-gray-700 mb-3">Date flexibility</div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: 'exact', label: 'Exact dates' },
+                  { value: '1', label: '± 1 day' },
+                  { value: '2', label: '± 2 days' },
+                  { value: '3', label: '± 3 days' },
+                  { value: '7', label: '± 7 days' },
+                  { value: '14', label: '± 14 days' }
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setDateFlexibility(option.value as any)}
+                    className={cn(
+                      "px-4 py-2 text-sm rounded-full border transition-colors",
+                      dateFlexibility === option.value
+                        ? "bg-gray-900 text-white border-gray-900"
+                        : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setDateRange({
+                    startDate: new Date(),
+                    endDate: addDays(new Date(), 1),
+                    key: 'selection'
+                  });
+                  setIsSelectingStartDate(true);
+                }}
+                className="text-sm text-gray-600 hover:text-gray-800 underline"
+              >
+                Clear dates
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveField(null)}
+                className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guest Selection Overlay */}
+      {activeField === 'who' && (
+        <div className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 p-6 z-50 search-overlay w-80">
+          <div className="text-lg font-semibold text-gray-900 mb-4">Guests</div>
+          
+          {/* Adults */}
+          <div className="flex items-center justify-between py-4 border-b border-gray-200">
+            <div>
+              <div className="font-semibold text-gray-900">Adults</div>
+              <div className="text-sm text-gray-500">Ages 13 or above</div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => updateGuestCount('adults', false)}
+                disabled={guestCounts.adults <= 1}
+              >
+                <Minus size={16} />
+              </button>
+              <span className="w-8 text-center font-semibold">{guestCounts.adults}</span>
+              <button
+                type="button"
+                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => updateGuestCount('adults', true)}
+                disabled={guestCounts.adults >= 16}
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Children */}
+          <div className="flex items-center justify-between py-4 border-b border-gray-200">
+            <div>
+              <div className="font-semibold text-gray-900">Children</div>
+              <div className="text-sm text-gray-500">Ages 2-12</div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => updateGuestCount('children', false)}
+                disabled={guestCounts.children <= 0}
+              >
+                <Minus size={16} />
+              </button>
+              <span className="w-8 text-center font-semibold">{guestCounts.children}</span>
+              <button
+                type="button"
+                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => updateGuestCount('children', true)}
+                disabled={guestCounts.children >= 10}
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Infants */}
+          <div className="flex items-center justify-between py-4">
+            <div>
+              <div className="font-semibold text-gray-900">Infants</div>
+              <div className="text-sm text-gray-500">Under 2</div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => updateGuestCount('infants', false)}
+                disabled={guestCounts.infants <= 0}
+              >
+                <Minus size={16} />
+              </button>
+              <span className="w-8 text-center font-semibold">{guestCounts.infants}</span>
+              <button
+                type="button"
+                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => updateGuestCount('infants', true)}
+                disabled={guestCounts.infants >= 5}
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Service Animal Link */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              className="text-sm text-gray-600 underline hover:text-gray-800 transition-colors"
+            >
+              Bringing a service animal?
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Service Selection Overlay */}
+      {activeField === 'service' && (
+        <div className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 p-6 z-50 search-overlay w-80">
+          <div className="text-lg font-semibold text-gray-900 mb-4">Type of service</div>
+          
+          <div className="space-y-2">
+            {serviceOptions.map((service) => (
+              <button
+                key={service.value}
+                type="button"
+                onClick={() => {
+                  setSelectedService(service);
+                  setActiveField(null);
+                }}
+                className={cn(
+                  "w-full text-left px-4 py-3 rounded-lg border transition-all duration-200",
+                  selectedService?.value === service.value
+                    ? "border-gray-900 bg-gray-50"
+                    : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                )}
+              >
+                <div className="font-medium text-gray-900">{service.label}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AirbnbSearchForm;

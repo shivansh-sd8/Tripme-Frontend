@@ -93,13 +93,15 @@ export class BookingService {
     }
   }
 
-  public calculateBookingFee(totalAmount: number): {
+  public calculateBookingFee(subtotal: number): {
     platformFee: number;
     hostEarning: number;
   } {
-    const platformFeeRate = 0.10; // 10% platform fee
-    const platformFee = totalAmount * platformFeeRate;
-    const hostEarning = totalAmount - platformFee;
+    // Note: Platform fee rate is now dynamic and fetched from backend
+    // This is a fallback value - the actual rate should come from the backend
+    const platformFeeRate = 0.15; // Fallback rate (will be overridden by dynamic rate)
+    const platformFee = subtotal * platformFeeRate;
+    const hostEarning = subtotal - platformFee;
 
     return {
       platformFee: Math.round(platformFee * 100) / 100,

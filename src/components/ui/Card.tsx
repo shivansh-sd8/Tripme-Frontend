@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@/utils/utils';
+import { cn } from '@/shared/utils/pricingUtils';
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;

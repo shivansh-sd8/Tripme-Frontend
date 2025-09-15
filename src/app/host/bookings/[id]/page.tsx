@@ -18,9 +18,16 @@ import {
   CreditCard,
   Loader2,
   Eye,
-  CheckCircle2
+  CheckCircle2,
+  Calendar,
+  Star,
+  Shield,
+  Download,
+  Copy,
+  Trash2,
+  Info,
+  FileText
 } from 'lucide-react';
-
 
 import Button from '@/components/ui/Button';
 import { apiClient } from '@/infrastructure/api/clients/api-client';
@@ -49,103 +56,169 @@ interface HostBookingDetails {
       state: string;
       country: string;
     };
-    propertyType: string;
+    pricing: {
+      basePrice: number;
+      cleaningFee: number;
+      serviceFee: number;
+      securityDeposit: number;
+      currency: string;
+    };
     amenities: string[];
-    checkInTime: string;
-    checkOutTime: string;
-    bedrooms: number;
-    bathrooms: number;
-    maxGuests: number;
+    houseRules: string[];
+    cancellationPolicy: {
+      type: 'flexible' | 'moderate' | 'strict' | 'super_strict';
+      description: string;
+    };
+    host: {
+      _id: string;
+      name: string;
+      email: string;
+      phone: string;
+      profileImage: string;
+    };
+    propertyType?: string;
+    checkInTime?: string;
+    checkOutTime?: string;
   };
   service?: {
     _id: string;
     title: string;
+    description: string;
     media: Array<{
       url: string;
-      type: string;
+      type: 'image' | 'video';
     }>;
-    description: string;
     pricing: {
       basePrice: number;
+      perPersonPrice?: number;
       currency: string;
     };
+    provider: {
+      _id: string;
+      name: string;
+      email: string;
+      phone: string;
+      profileImage: string;
+    };
+    serviceType: string;
+    duration: {
+      value: number;
+      unit: 'minutes' | 'hours' | 'days';
+    };
+    location: {
+      address: string;
+      city: string;
+      state: string;
+      country: string;
+    };
+    cancellationPolicy?: {
+      type: 'flexible' | 'moderate' | 'strict' | 'super_strict';
+      description: string;
+    };
   };
-  bookingType: 'property' | 'service';
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'expired';
   checkIn: string;
   checkOut: string;
+  checkInTime?: string;
+  checkOutTime?: string;
   timeSlot?: {
     startTime: string;
     endTime: string;
   };
-  checkInTime: string;
-  checkOutTime: string;
   guests: {
     adults: number;
     children: number;
     infants: number;
   };
   totalAmount: number;
+  subtotal: number;
   taxAmount: number;
-  serviceFee: number;
-  cleaningFee: number;
-  securityDeposit: number;
+  platformFee: number;
+  processingFee: number;
+  gst: number;
+  discountAmount: number;
+  hostFee: number;
   currency: string;
-  cancellationPolicy: string;
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
   specialRequests?: string;
-  paymentStatus: string;
-  refundAmount: number;
-  refunded: boolean;
-  refundStatus: string;
-  checkedIn: boolean;
-  checkedInAt?: string;
-  checkedInBy?: {
-    _id: string;
-    name: string;
+  cancellationReason?: string;
+  cancelledAt?: string;
+  refundAmount?: number;
+  refunded?: boolean;
+  refundStatus?: 'pending' | 'completed' | 'failed' | 'not_applicable';
+  checkedIn?: boolean;
+  checkedOut?: boolean;
+  bookingType: 'property' | 'service';
+  bookingDuration?: 'daily' | 'hourly';
+  receiptId?: string;
+  hourlyExtension?: {
+    hours: number;
+    rate: number;
+    totalHours: number;
   };
-  checkInNotes?: string;
-  createdAt: string;
-  updatedAt: string;
-  receiptId: string;
+  pricingBreakdown?: {
+    customerBreakdown: {
+      baseAmount: number;
+      cleaningFee: number;
+  serviceFee: number;
+      securityDeposit: number;
+      hourlyExtension: number;
+      discountAmount: number;
+      subtotal: number;
+      platformFee: number;
+      processingFee: number;
+      gst: number;
+      totalAmount: number;
+    };
+    hostBreakdown: {
+      baseAmount: number;
+  cleaningFee: number;
+      serviceFee: number;
+  securityDeposit: number;
+      hourlyExtension: number;
+      discountAmount: number;
+      subtotal: number;
+      platformFee: number;
+      hostEarning: number;
+    };
+    platformBreakdown: {
+      platformFee: number;
+      processingFee: number;
+      gst: number;
+      totalRevenue: number;
+    };
+  };
 }
 
 export default function HostBookingDetailPage() {
-  const params = useParams();
+  const { id } = useParams();
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const [booking, setBooking] = useState<HostBookingDetails | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'guest' | 'actions' | 'payment'>('overview');
-
-  const bookingId = params.id as string;
+  const [error, setError] = useState('');
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState('');
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/auth/login');
-      return;
-    }
-    if (bookingId) {
+    if (id) {
       fetchBookingDetails();
     }
-  }, [isAuthenticated, bookingId, router]);
+  }, [id]);
 
   const fetchBookingDetails = async () => {
     try {
       setLoading(true);
-      setError(null);
+      const response = await apiClient.getBooking(id as string);
       
-      const response = await apiClient.getBooking(bookingId);
-      
-      if (response.success && response.data?.booking) {
+      if (response.success) {
         setBooking(response.data.booking);
       } else {
-        setError('Failed to load booking details');
+        setError(response.message || 'Failed to fetch booking details');
       }
-    } catch (err: any) {
-      console.error('Error fetching booking details:', err);
-      setError(err?.message || 'Failed to load booking details');
+    } catch (error: any) {
+      setError('Failed to fetch booking details');
     } finally {
       setLoading(false);
     }
@@ -155,20 +228,16 @@ export default function HostBookingDetailPage() {
     if (!booking) return;
     
     try {
-      setUpdatingStatus(newStatus);
-      
+      setUpdatingStatus(true);
       const response = await apiClient.updateBookingStatus(booking._id, newStatus);
       
       if (response.success) {
         setBooking(prev => prev ? { ...prev, status: newStatus as any } : null);
-      } else {
-        alert('Failed to update booking status');
       }
-    } catch (err: any) {
-      console.error('Error updating status:', err);
-      alert(err?.message || 'Failed to update status');
+    } catch (error) {
+      console.error('Error updating booking status:', error);
     } finally {
-      setUpdatingStatus(null);
+      setUpdatingStatus(false);
     }
   };
 
@@ -176,101 +245,76 @@ export default function HostBookingDetailPage() {
     if (!booking) return;
     
     try {
-      const response = await apiClient.checkInGuest(booking._id, 'Guest checked in by host');
+      setUpdatingStatus(true);
+      const response = await apiClient.checkInGuest(booking._id);
       
       if (response.success) {
-        setBooking(prev => prev ? { 
-          ...prev, 
-          checkedIn: true, 
-          checkedInAt: new Date().toISOString(),
-          checkedInBy: { _id: user?._id || '', name: user?.name || '' }
-        } : null);
-      } else {
-        alert('Failed to check in guest');
+        setBooking(prev => prev ? { ...prev, checkedIn: true } : null);
       }
-    } catch (err: any) {
-      console.error('Error checking in guest:', err);
-      alert(err?.message || 'Failed to check in guest');
+    } catch (error) {
+      console.error('Error checking in guest:', error);
+    } finally {
+      setUpdatingStatus(false);
     }
   };
 
-  const formatPrice = (amount: number) => {
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+          <CheckCircle className="w-4 h-4 mr-1" />
+          Confirmed
+        </span>;
+      case 'pending':
+        return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+          <Clock className="w-4 h-4 mr-1" />
+          Pending
+        </span>;
+      case 'cancelled':
+        return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+          <XCircle className="w-4 h-4 mr-1" />
+          Cancelled
+        </span>;
+      case 'completed':
+        return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+          <CheckCircle className="w-4 h-4 mr-1" />
+          Completed
+        </span>;
+      default:
+        return null;
+    }
+  };
+
+  const formatCurrency = (amount: number, currency: string = 'INR') => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'INR'
+      currency: currency
     }).format(amount);
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
-  };
-
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'long',
       year: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric'
+      month: 'long',
+      day: 'numeric'
     });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'completed':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'expired':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return <CheckCircle className="w-4 h-4" />;
-      case 'pending':
-        return <Clock className="w-4 h-4" />;
-      case 'cancelled':
-        return <XCircle className="w-4 h-4" />;
-      case 'completed':
-        return <CheckCircle2 className="w-4 h-4" />;
-      case 'expired':
-        return <AlertCircle className="w-4 h-4" />;
-      default:
-        return <Clock className="w-4 h-4" />;
-    }
-  };
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <main className="pt-28 sm:pt-32 pb-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
               <div className="text-center">
-                <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-6"></div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Loading booking details</h2>
-                <p className="text-gray-600">Fetching booking information...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading booking details...</p>
               </div>
-            </div>
-          </div>
-        </main>
       </div>
     );
   }
@@ -278,439 +322,815 @@ export default function HostBookingDetailPage() {
   if (error || !booking) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <main className="pt-28 sm:pt-32 pb-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-center min-h-[60vh]">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <AlertCircle className="w-8 h-8 text-red-600" />
+        <div className="text-center py-12">
+          <h2 className="text-xl font-semibold text-gray-900">Booking not found</h2>
+          <p className="text-gray-500 mt-2">The booking you're looking for doesn't exist.</p>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h2>
-                <p className="text-gray-600 mb-6">{error || 'Booking not found'}</p>
-                <Button onClick={fetchBookingDetails} className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white">
-                  Try Again
-                </Button>
-              </div>
-            </div>
-          </div>
-        </main>
       </div>
     );
   }
 
+  const nights = Math.ceil((new Date(booking.checkOut).getTime() - new Date(booking.checkIn).getTime()) / (1000 * 60 * 60 * 24));
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
-      <main className="pt-28 sm:pt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* Modern Header */}
           <div className="mb-8">
-            <div className="flex items-center space-x-4 mb-6">
-              <Button
-                variant="ghost"
-                size="sm"
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
                 onClick={() => router.back()}
-                className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300 bg-white rounded-lg shadow-sm transition-all duration-200"
               >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </button>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                  Host Booking Details
-                </h1>
-                <p className="text-gray-600 mt-1">Manage this guest's booking</p>
+                <h1 className="text-2xl font-semibold text-gray-900">Booking Details</h1>
+                <p className="text-sm text-gray-500 mt-1">#{booking._id?.slice(-8) || 'Unknown'}</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              {getStatusBadge(booking.status)}
+            </div>
               </div>
             </div>
             
-            {/* Status Badge */}
-            <div className="inline-flex items-center px-4 py-2 rounded-full border-2 font-medium text-sm">
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(booking.status)}`}>
-                {getStatusIcon(booking.status)}
-                <span className="ml-2 capitalize">{booking.status}</span>
+        {/* Modern Grid Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Property & Guest Details */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Property/Service Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="relative">
+                {(booking.listing?.images?.[0]?.url || booking.service?.media?.[0]?.url) ? (
+                  <img
+                    src={booking.listing?.images?.[0]?.url || booking.service?.media?.[0]?.url}
+                    alt={booking.listing?.title || booking.service?.title}
+                    className="w-full h-48 object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
+                    <Home className="w-12 h-12 text-gray-400" />
+            </div>
+                )}
+          </div>
+
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                      {booking.listing?.title || booking.service?.title || 'Property/Service Title'}
+                    </h2>
+                    <div className="flex items-center text-gray-500 text-sm mb-1">
+                      <MapPin className="w-4 h-4 mr-2" />
+                      <span>
+                        {booking.listing?.location?.address || booking.service?.location?.address || 'Location not specified'}
               </span>
+                    </div>
+                    <div className="flex items-center text-gray-500 text-sm">
+                      <User className="w-4 h-4 mr-2" />
+                      <span>
+                        {booking.bookingType === 'property' ? 'Property' : 'Service'} Booking
+                      </span>
+                    </div>
             </div>
           </div>
 
-          {/* Beautiful Tabs */}
-          <div className="mb-8">
-            <div className="bg-white rounded-3xl p-2 shadow-lg border border-gray-100">
-              <nav className="flex space-x-2">
-                {[
-                  { id: 'overview', label: 'Overview', icon: Eye },
-                  { id: 'guest', label: 'Guest Info', icon: User },
-                  { id: 'actions', label: 'Actions', icon: CheckCircle },
-                  { id: 'payment', label: 'Payment', icon: CreditCard }
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex-1 py-4 px-6 rounded-2xl font-medium text-sm flex items-center justify-center space-x-3 transition-all duration-300 ${
-                      activeTab === tab.id
-                        ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg transform scale-105'
-                        : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
-                    }`}
-                  >
-                    <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-white' : 'text-gray-500'}`} />
-                    <span className="font-semibold">{tab.label}</span>
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-            {/* Main Content */}
-            <div className="xl:col-span-3 space-y-8">
-              {/* Overview Tab */}
-              {activeTab === 'overview' && (
-                <div className="space-y-8">
-                  {/* Property/Service Details */}
-                  <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 hover:shadow-2xl transition-all duration-500">
-                    <div className="flex items-center space-x-3 mb-6">
-                      <div className="p-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl">
-                        <Home className="h-6 w-6 text-white" />
+                <div className="border-t pt-4">
+                  <h3 className="text-sm font-medium text-gray-900 mb-2">Description</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    {booking.listing?.description || booking.service?.description || 'No description available.'}
+                  </p>
                       </div>
-                      <h3 className="text-2xl font-bold text-gray-900">
-                        {booking.bookingType === 'property' ? 'Property Details' : 'Service Details'}
+            </div>
+          </div>
+
+            {/* Guest Information Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <User className="w-5 h-5 mr-2 text-gray-600" />
+                Guest Information
                       </h3>
+              
+              <div className="flex items-start space-x-4">
+                <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                  <User className="w-6 h-6 text-gray-500" />
+                      </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-gray-900">{booking.user.name}</h4>
+                  <p className="text-sm text-gray-500 mb-2">{booking.user.email}</p>
+                  {booking.user.phone && (
+                    <p className="text-sm text-gray-500 mb-3">{booking.user.phone}</p>
+                  )}
+                  <div className="flex space-x-2">
+                    <button className="flex items-center space-x-1 px-3 py-1 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:border-gray-300">
+                      <MessageSquare className="w-4 h-4" />
+                      <span>Message</span>
+                    </button>
+                    <button className="flex items-center space-x-1 px-3 py-1 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:border-gray-300">
+                      <Phone className="w-4 h-4" />
+                      <span>Call</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                      <div>
-                        <h4 className="text-xl font-semibold text-gray-900 mb-4">
-                          {booking.listing?.title || booking.service?.title}
-                        </h4>
-                        <p className="text-gray-600 mb-6">
-                          {booking.listing?.description || booking.service?.description}
-                        </p>
-                        
-                        {booking.listing && (
-                          <div className="space-y-4">
-                            <div className="flex items-center space-x-3">
-                              <MapPin className="h-5 w-5 text-purple-500" />
-                              <span className="text-gray-700">
-                                {booking.listing.location.address}, {booking.listing.location.city}, {booking.listing.location.state}
-                              </span>
+            {/* Stay Details Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Calendar className="w-5 h-5 mr-2 text-gray-600" />
+                Stay Details
+                      </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-center">
+                      <Calendar className="w-4 h-4 text-blue-600 mr-2" />
+                      <span className="text-sm font-medium text-blue-800">Check-in</span>
                             </div>
-                            <div className="flex items-center space-x-3">
-                              <Users className="h-5 w-5 text-purple-500" />
-                              <span className="text-gray-700">
-                                {booking.listing.bedrooms} bedrooms, {booking.listing.bathrooms} bathrooms
-                              </span>
+                    <div className="text-right">
+                      <div className="text-sm font-semibold text-gray-900">{formatDate(booking.checkIn)}</div>
+                      <div className="text-xs text-blue-600">
+                        {booking.timeSlot ? formatTime(booking.timeSlot.startTime) : (booking.listing?.checkInTime || '3:00 PM')}
                             </div>
                           </div>
+                    </div>
+                    
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div className="flex items-center">
+                      <Calendar className="w-4 h-4 text-green-600 mr-2" />
+                      <span className="text-sm font-medium text-green-800">Check-out</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-semibold text-gray-900">{formatDate(booking.checkOut)}</div>
+                      <div className="text-xs text-green-600">
+                        {booking.timeSlot ? formatTime(booking.timeSlot.endTime) : (booking.checkOutTime || booking.listing?.checkOutTime || '11:00 AM')}
+                        {booking.hourlyExtension?.hours && (
+                          <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                            +{booking.hourlyExtension.hours}h extension
+                          </span>
                         )}
                       </div>
+                    </div>
+                  </div>
+                      </div>
                       
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                          <span className="text-gray-600 font-medium">Check-in</span>
-                          <span className="font-semibold text-gray-900">{formatDate(booking.checkIn)}</span>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                    <div className="flex items-center">
+                      <Users className="w-4 h-4 text-purple-600 mr-2" />
+                      <span className="text-sm font-medium text-purple-800">Guests</span>
                         </div>
-                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                          <span className="text-gray-600 font-medium">Check-out</span>
-                          <span className="font-semibold text-gray-900">{formatDate(booking.checkOut)}</span>
+                    <div className="text-sm font-semibold text-gray-900">
+                      {booking.guests.adults} adults
+                      {booking.guests.children > 0 && `, ${booking.guests.children} children`}
+                      {booking.guests.infants > 0 && `, ${booking.guests.infants} infants`}
                         </div>
-                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                          <span className="text-gray-600 font-medium">Guests</span>
-                          <span className="font-semibold text-gray-900">
-                            {booking.guests.adults + booking.guests.children + booking.guests.infants}
-                          </span>
                         </div>
-                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                          <span className="text-gray-600 font-medium">Total Amount</span>
-                          <span className="font-semibold text-gray-900">{formatPrice(booking.totalAmount)}</span>
+                  
+                  <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                    <div className="flex items-center">
+                      <Clock className="w-4 h-4 text-orange-600 mr-2" />
+                      <span className="text-sm font-medium text-orange-800">Duration</span>
+                    </div>
+                    <div className="text-sm font-semibold text-gray-900">
+                      {booking.timeSlot ? 
+                        `${Math.ceil((new Date(booking.timeSlot.endTime).getTime() - new Date(booking.timeSlot.startTime).getTime()) / (1000 * 60 * 60))} hours` :
+                        `${nights} night${nights !== 1 ? 's' : ''}`
+                      }
+                    </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Special Requests */}
+            {/* Special Requests Card */}
                   {booking.specialRequests && (
-                    <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 hover:shadow-2xl transition-all duration-500">
-                      <div className="flex items-center space-x-3 mb-6">
-                        <div className="p-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl">
-                          <MessageSquare className="h-6 w-6 text-white" />
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <Info className="w-5 h-5 mr-2 text-gray-600" />
+                  Special Requests
+                </h3>
+                <p className="text-gray-600 text-sm leading-relaxed">{booking.specialRequests}</p>
                         </div>
-                        <h3 className="text-2xl font-bold text-gray-900">Special Requests</h3>
-                      </div>
-                      <p className="text-gray-700 text-lg leading-relaxed">{booking.specialRequests}</p>
-                    </div>
-                  )}
-                </div>
-              )}
+                        )}
 
-              {/* Guest Info Tab */}
-              {activeTab === 'guest' && (
-                <div className="space-y-8">
-                  <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 hover:shadow-2xl transition-all duration-500">
-                    <div className="flex items-center space-x-3 mb-6">
-                      <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl">
-                        <User className="h-6 w-6 text-white" />
+            {/* Detailed Booking Information Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <FileText className="w-5 h-5 mr-2 text-gray-600" />
+                Booking Details
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Booking ID</span>
+                    <span className="text-sm font-mono text-gray-900">{booking._id}</span>
                       </div>
-                      <h3 className="text-2xl font-bold text-gray-900">Guest Information</h3>
+                      
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Booking Type</span>
+                    <span className="text-sm font-medium text-gray-900 capitalize">{booking.bookingType}</span>
+                    </div>
+                  
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Duration Type</span>
+                    <span className="text-sm font-medium text-gray-900 capitalize">{booking.bookingDuration || 'daily'}</span>
+                </div>
+                  
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Created</span>
+                    <span className="text-sm text-gray-900">
+                      {new Date(booking._id).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                          </span>
+                      </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className="space-y-6">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200">
-                            {booking.user.profileImage ? (
-                              <img 
-                                src={booking.user.profileImage} 
-                                alt={booking.user.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
-                                <User className="w-8 h-8 text-white" />
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Receipt ID</span>
+                    <span className="text-sm font-mono text-gray-900">{booking.receiptId || 'N/A'}</span>
                               </div>
-                            )}
+                  
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Currency</span>
+                    <span className="text-sm font-medium text-gray-900">{booking.currency || 'INR'}</span>
                           </div>
-                          <div>
-                            <h4 className="text-xl font-semibold text-gray-900">{booking.user.name}</h4>
-                            <p className="text-gray-600">Guest</p>
+                  
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Cancellation Policy</span>
+                    <span className="text-sm font-medium text-gray-900 capitalize">
+                      {booking.listing?.cancellationPolicy?.type || booking.service?.cancellationPolicy?.type || 'moderate'}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Check-in Status</span>
+                    <span className={`text-sm font-medium ${
+                      booking.checkedIn ? 'text-green-600' : 'text-gray-600'
+                    }`}>
+                      {booking.checkedIn ? 'Checked In' : 'Not Checked In'}
+                    </span>
+                        </div>
+                      </div>
                           </div>
                         </div>
+
+            {/* Hourly Extension Details */}
+            {booking.hourlyExtension && booking.hourlyExtension.hours > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <Clock className="w-5 h-5 mr-2 text-gray-600" />
+                  Hourly Extension Details
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <div className="text-sm font-medium text-blue-800 mb-1">Extension Hours</div>
+                    <div className="text-lg font-bold text-blue-900">{booking.hourlyExtension.hours} hours</div>
+                    </div>
+                    
+                  <div className="bg-green-50 rounded-lg p-4">
+                    <div className="text-sm font-medium text-green-800 mb-1">Rate</div>
+                    <div className="text-lg font-bold text-green-900">
+                      {Math.round((booking.hourlyExtension.rate || 0) * 100)}% of daily rate
+                              </div>
+                          </div>
+                  
+                  <div className="bg-purple-50 rounded-lg p-4">
+                    <div className="text-sm font-medium text-purple-800 mb-1">Total Hours</div>
+                    <div className="text-lg font-bold text-purple-900">{booking.hourlyExtension.totalHours} hours</div>
+                          </div>
+                        </div>
+              </div>
+            )}
+
+            {/* Contact Information Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Phone className="w-5 h-5 mr-2 text-gray-600" />
+                Guest Contact Information
+              </h3>
                         
                         <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div className="flex items-center space-x-3">
-                            <Mail className="h-5 w-5 text-blue-500" />
-                            <span className="text-gray-700">{booking.user.email}</span>
+                    <Mail className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm text-gray-700">Email</span>
                           </div>
+                  <span className="text-sm font-medium text-gray-900">{booking.user.email}</span>
+                </div>
+                
                           {booking.user.phone && (
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div className="flex items-center space-x-3">
-                              <Phone className="h-5 w-5 text-blue-500" />
-                              <span className="text-gray-700">{booking.user.phone}</span>
+                      <Phone className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-700">Phone</span>
+                    </div>
+                    <span className="text-sm font-medium text-gray-900">{booking.user.phone}</span>
                             </div>
                           )}
+                
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <User className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm text-gray-700">Full Name</span>
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">{booking.user.name}</span>
+                </div>
                         </div>
                       </div>
                       
-                      <div className="space-y-4">
-                        <h5 className="text-lg font-semibold text-gray-900 mb-4">Guest Details</h5>
+            {/* Special Requests Card */}
+            {booking.specialRequests && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <MessageSquare className="w-5 h-5 mr-2 text-gray-600" />
+                  Special Requests
+                </h3>
+                <div className="p-4 bg-yellow-50 rounded-lg">
+                  <p className="text-sm text-gray-700 leading-relaxed">{booking.specialRequests}</p>
+                          </div>
+                          </div>
+            )}
+
+            {/* Cancellation Information */}
+            {booking.status === 'cancelled' && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <XCircle className="w-5 h-5 mr-2 text-red-600" />
+                  Cancellation Details
+                </h3>
+                
                         <div className="space-y-3">
-                          <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
-                            <span className="text-gray-600">Adults</span>
-                            <span className="font-medium">{booking.guests.adults}</span>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm text-gray-600">Cancelled At</span>
+                    <span className="text-sm text-gray-900">
+                      {booking.cancelledAt ? new Date(booking.cancelledAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) : 'N/A'}
+                    </span>
                           </div>
-                          <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
-                            <span className="text-gray-600">Children</span>
-                            <span className="font-medium">{booking.guests.children}</span>
+                  
+                  {booking.cancellationReason && (
+                    <div className="py-2">
+                      <span className="text-sm text-gray-600 block mb-2">Reason</span>
+                      <p className="text-sm text-gray-900 bg-red-50 p-3 rounded-lg">{booking.cancellationReason}</p>
                           </div>
-                          <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
-                            <span className="text-gray-600">Infants</span>
-                            <span className="font-medium">{booking.guests.infants}</span>
+                  )}
+                  
+                  {(booking.refundAmount || 0) > 0 && (
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm text-gray-600">Refund Amount</span>
+                      <span className="text-sm font-medium text-green-600">
+                        {formatCurrency(booking.refundAmount || 0)}
+                      </span>
                           </div>
+                  )}
+                  
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm text-gray-600">Refund Status</span>
+                    <span className={`text-sm font-medium ${
+                      booking.refundStatus === 'completed' ? 'text-green-600' : 
+                      booking.refundStatus === 'pending' ? 'text-yellow-600' : 
+                      'text-gray-600'
+                    }`}>
+                      {booking.refundStatus ? booking.refundStatus.charAt(0).toUpperCase() + booking.refundStatus.slice(1) : 'N/A'}
+                    </span>
                         </div>
                       </div>
                     </div>
+              )}
+
+            {/* Amenities Card */}
+            {booking.listing?.amenities && booking.listing.amenities.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <Star className="w-5 h-5 mr-2 text-gray-600" />
+                  Property Amenities
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {booking.listing.amenities.map((amenity, index) => (
+                    <div key={index} className="flex items-center space-x-2 p-2 rounded-lg bg-gray-50">
+                      <span className="text-sm text-gray-700">{amenity}</span>
+                      </div>
+                  ))}
                   </div>
                 </div>
               )}
 
-              {/* Actions Tab */}
-              {activeTab === 'actions' && (
-                <div className="space-y-8">
-                  <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 hover:shadow-2xl transition-all duration-500">
-                    <div className="flex items-center space-x-3 mb-6">
-                      <div className="p-3 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl">
-                        <CheckCircle className="h-6 w-6 text-white" />
+            {/* House Rules Card */}
+            {booking.listing?.houseRules && booking.listing.houseRules.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <Shield className="w-5 h-5 mr-2 text-gray-600" />
+                  House Rules
+                </h3>
+                <div className="space-y-2">
+                  {booking.listing.houseRules.map((rule, index) => (
+                    <div key={index} className="flex items-start space-x-2">
+                      <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-gray-700">{rule}</span>
                       </div>
-                      <h3 className="text-2xl font-bold text-gray-900">Booking Actions</h3>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Status Update */}
-                      <div className="space-y-4">
-                        <h5 className="text-lg font-semibold text-gray-900">Update Status</h5>
-                        <div className="space-y-3">
-                          {['pending', 'confirmed', 'completed', 'cancelled'].map((status) => (
-                            <Button
-                              key={status}
-                              onClick={() => handleStatusUpdate(status)}
-                              disabled={updatingStatus === status || booking.status === status}
-                              variant={booking.status === status ? 'default' : 'outline'}
-                              className={`w-full justify-start ${
-                                booking.status === status 
-                                  ? 'bg-purple-600 text-white' 
-                                  : 'hover:bg-purple-50 hover:border-purple-300'
-                              }`}
-                            >
-                              {updatingStatus === status ? (
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              ) : (
-                                getStatusIcon(status)
-                              )}
-                              <span className="ml-2 capitalize">{status}</span>
-                            </Button>
                           ))}
                         </div>
-                      </div>
-                      
-                      {/* Check-in */}
+              </div>
+            )}
+                    </div>
+                    
+          {/* Right Column - Pricing & Actions */}
+          <div className="space-y-6">
+            {/* Comprehensive Price Breakdown Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <CreditCard className="w-5 h-5 mr-2 text-gray-600" />
+                Complete Price Breakdown
+              </h3>
+              
                       <div className="space-y-4">
-                        <h5 className="text-lg font-semibold text-gray-900">Guest Check-in</h5>
-                        <div className="space-y-3">
-                          {!booking.checkedIn ? (
-                            <Button
-                              onClick={handleCheckIn}
-                              className="w-full bg-green-600 hover:bg-green-700 text-white"
-                            >
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Check In Guest
-                            </Button>
-                          ) : (
-                            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                              <div className="flex items-center space-x-2">
-                                <CheckCircle className="w-5 h-5 text-green-600" />
-                                <span className="text-green-800 font-medium">Guest Checked In</span>
+                {/* Revenue Section */}
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-blue-800 mb-3">Revenue Breakdown</h4>
+                  <div className="space-y-2">
+                    {/* Base Amount */}
+                    <div className="flex justify-between items-center py-1">
+                      <span className="text-sm text-gray-700">Base Amount</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {formatCurrency(booking.pricingBreakdown?.hostBreakdown?.baseAmount || booking.listing?.pricing?.basePrice || booking.service?.pricing?.basePrice || 0)}
+                      </span>
                               </div>
-                              <p className="text-green-700 text-sm mt-1">
-                                {formatDateTime(booking.checkedInAt || '')}
-                              </p>
+                    
+                    {/* Cleaning Fee */}
+                    {(booking.pricingBreakdown?.hostBreakdown?.cleaningFee || booking.listing?.pricing?.cleaningFee || 0) > 0 && (
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-sm text-gray-700">Cleaning Fee</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {formatCurrency(booking.pricingBreakdown?.hostBreakdown?.cleaningFee || booking.listing?.pricing?.cleaningFee || 0)}
+                        </span>
                             </div>
                           )}
+                    
+                    {/* Service Fee */}
+                    <div className="flex justify-between items-center py-1">
+                      <span className="text-sm text-gray-700">Service Fee</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {formatCurrency(booking.pricingBreakdown?.hostBreakdown?.serviceFee || booking.listing?.pricing?.serviceFee || booking.service?.pricing?.basePrice || 0)}
+                      </span>
+                        </div>
+                    
+                    {/* Security Deposit */}
+                    {(booking.pricingBreakdown?.hostBreakdown?.securityDeposit || booking.listing?.pricing?.securityDeposit || 0) > 0 && (
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-sm text-gray-700">Security Deposit</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {formatCurrency(booking.pricingBreakdown?.hostBreakdown?.securityDeposit || booking.listing?.pricing?.securityDeposit || 0)}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Hourly Extension */}
+                    {(booking.pricingBreakdown?.hostBreakdown?.hourlyExtension || 0) > 0 && (
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-sm text-gray-700">Hourly Extension</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {formatCurrency(booking.pricingBreakdown?.hostBreakdown?.hourlyExtension || 0)}
+                        </span>
+                              </div>
+              )}
+
+                    {/* Discount Applied */}
+                    {(booking.pricingBreakdown?.hostBreakdown?.discountAmount || booking.discountAmount || 0) > 0 && (
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-sm text-gray-700">Discount Applied</span>
+                        <span className="text-sm font-medium text-green-600">
+                          -{formatCurrency(booking.pricingBreakdown?.hostBreakdown?.discountAmount || booking.discountAmount || 0)}
+                        </span>
+                            </div>
+                          )}
+                    
+                    {/* Subtotal */}
+                    <div className="border-t border-blue-200 pt-2 mt-2">
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-sm font-semibold text-blue-800">Subtotal</span>
+                        <span className="text-sm font-bold text-blue-800">
+                          {formatCurrency(booking.pricingBreakdown?.hostBreakdown?.subtotal || booking.subtotal || 0)}
+                              </span>
                         </div>
                       </div>
                     </div>
                   </div>
+                        
+                {/* Platform Fees Section */}
+                <div className="bg-orange-50 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-orange-800 mb-3">Platform Fees</h4>
+                  <div className="space-y-2">
+                    {/* Platform Fee */}
+                    <div className="flex justify-between items-center py-1">
+                      <span className="text-sm text-gray-700">Platform Fee ({booking.pricingBreakdown?.customerBreakdown?.subtotal > 0 ? Math.round((booking.pricingBreakdown?.platformBreakdown?.platformFee || 0) / booking.pricingBreakdown?.customerBreakdown?.subtotal * 100) : 0}%)</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {formatCurrency(booking.pricingBreakdown?.hostBreakdown?.platformFee || booking.platformFee || 0)}
+                      </span>
                 </div>
-              )}
-
-              {/* Payment Tab */}
-              {activeTab === 'payment' && (
-                <div className="space-y-8">
-                  <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 hover:shadow-2xl transition-all duration-500">
-                    <div className="flex items-center space-x-3 mb-6">
-                      <div className="p-3 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl">
-                        <CreditCard className="h-6 w-6 text-white" />
+                    
+                    {/* Processing Fee */}
+                    <div className="flex justify-between items-center py-1">
+                      <span className="text-sm text-gray-700">Processing Fee</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {formatCurrency(booking.pricingBreakdown?.platformBreakdown?.processingFee || booking.processingFee || 0)}
+                      </span>
                       </div>
-                      <h3 className="text-2xl font-bold text-gray-900">Payment Details</h3>
+                      
+                    {/* GST */}
+                    <div className="flex justify-between items-center py-1">
+                      <span className="text-sm text-gray-700">GST (18%)</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {formatCurrency(booking.pricingBreakdown?.platformBreakdown?.gst || booking.gst || 0)}
+                      </span>
+                          </div>
+                          </div>
                     </div>
                     
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                          <h5 className="text-lg font-semibold text-gray-900">Payment Status</h5>
-                          <div className="p-4 bg-gray-50 rounded-lg">
-                            <div className="flex items-center justify-between">
-                              <span className="text-gray-600">Status</span>
-                              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                booking.paymentStatus === 'paid' 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-yellow-100 text-yellow-800'
-                              }`}>
-                                {booking.paymentStatus}
+                {/* Host Earning Section */}
+                <div className="bg-green-50 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-green-800 mb-3">Your Earnings</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-base font-semibold text-green-800">Total Host Earning</span>
+                      <span className="text-lg font-bold text-green-800">
+                        {formatCurrency(booking.pricingBreakdown?.hostBreakdown?.hostEarning || booking.hostFee || 0)}
                               </span>
+                          </div>
+                    <div className="text-xs text-green-700">
+                      After platform fees and taxes
                             </div>
                           </div>
                         </div>
                         
-                        <div className="space-y-4">
-                          <h5 className="text-lg font-semibold text-gray-900">Receipt</h5>
-                          <div className="p-4 bg-gray-50 rounded-lg">
-                            <p className="text-gray-600 text-sm">Receipt ID</p>
-                            <p className="font-mono text-gray-900">{booking.receiptId}</p>
+                {/* Customer Payment Section */}
+                <div className="bg-purple-50 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-purple-800 mb-3">Customer Payment</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center py-1">
+                      <span className="text-sm text-gray-700">Total Amount Paid</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {formatCurrency(booking.pricingBreakdown?.customerBreakdown?.totalAmount || booking.totalAmount || 0)}
+                      </span>
+                        </div>
+                    <div className="flex justify-between items-center py-1">
+                      <span className="text-sm text-gray-700">Payment Status</span>
+                      <span className={`text-sm font-medium ${
+                        booking.paymentStatus === 'paid' ? 'text-green-600' : 
+                        booking.paymentStatus === 'pending' ? 'text-yellow-600' : 
+                        'text-red-600'
+                      }`}>
+                        {booking.paymentStatus?.charAt(0).toUpperCase() + booking.paymentStatus?.slice(1)}
+                      </span>
+                      </div>
+                    </div>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="border-t border-gray-200 pt-6">
-                        <h5 className="text-lg font-semibold text-gray-900 mb-4">Fee Breakdown</h5>
+            {/* Payment Information Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <CreditCard className="w-5 h-5 mr-2 text-gray-600" />
+                Payment Information
+              </h3>
+              
                         <div className="space-y-3">
-                          <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
-                            <span className="text-gray-600">Base Amount</span>
-                            <span className="font-medium">{formatPrice(booking.totalAmount)}</span>
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm text-gray-600">Payment Status</span>
+                  <span className={`text-sm font-medium ${
+                    booking.paymentStatus === 'paid' ? 'text-green-600' : 
+                    booking.paymentStatus === 'pending' ? 'text-yellow-600' : 
+                    'text-red-600'
+                  }`}>
+                    {booking.paymentStatus?.charAt(0).toUpperCase() + booking.paymentStatus?.slice(1)}
+                  </span>
                           </div>
-                          <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
-                            <span className="text-gray-600">Service Fee</span>
-                            <span className="font-medium">{formatPrice(booking.serviceFee)}</span>
+                
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm text-gray-600">Total Amount</span>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {formatCurrency(booking.totalAmount)}
+                  </span>
                           </div>
-                          <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
-                            <span className="text-gray-600">Cleaning Fee</span>
-                            <span className="font-medium">{formatPrice(booking.cleaningFee)}</span>
+                
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm text-gray-600">Your Earning</span>
+                  <span className="text-sm font-semibold text-green-600">
+                    {formatCurrency(booking.pricingBreakdown?.hostBreakdown?.hostEarning || booking.hostFee || 0)}
+                  </span>
                           </div>
-                          <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
-                            <span className="text-gray-600">Security Deposit</span>
-                            <span className="font-medium">{formatPrice(booking.securityDeposit)}</span>
+                
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm text-gray-600">Platform Fee</span>
+                  <span className="text-sm text-gray-900">
+                    {formatCurrency(booking.pricingBreakdown?.hostBreakdown?.platformFee || booking.platformFee || 0)}
+                  </span>
                           </div>
-                          <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
-                            <span className="text-gray-600">Platform Fee</span>
-                            <span className="font-medium">{formatPrice(booking.platformFee || 0)}</span>
+                
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm text-gray-600">Processing Fee</span>
+                  <span className="text-sm text-gray-900">
+                    {formatCurrency(booking.pricingBreakdown?.platformBreakdown?.processingFee || booking.processingFee || 0)}
+                  </span>
                           </div>
-                          <div className="border-t border-gray-200 pt-3">
-                            <div className="flex justify-between">
-                              <span className="text-lg font-semibold text-gray-900">Total</span>
-                              <span className="text-lg font-semibold text-gray-900">{formatPrice(booking.totalAmount)}</span>
                             </div>
                           </div>
+
+            {/* Refund Information Card */}
+            {((booking.refundAmount || 0) > 0 || booking.refunded) && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <XCircle className="w-5 h-5 mr-2 text-gray-600" />
+                  Refund Information
+                </h3>
+                
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Refund Amount</span>
+                    <span className="text-sm font-semibold text-green-600">
+                      {formatCurrency(booking.refundAmount || 0)}
+                    </span>
                         </div>
+                  
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Refund Status</span>
+                    <span className={`text-sm font-medium ${
+                      booking.refundStatus === 'completed' ? 'text-green-600' : 
+                      booking.refundStatus === 'pending' ? 'text-yellow-600' : 
+                      'text-gray-600'
+                    }`}>
+                      {booking.refundStatus ? booking.refundStatus.charAt(0).toUpperCase() + booking.refundStatus.slice(1) : 'N/A'}
+                    </span>
                       </div>
+                  
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm text-gray-600">Refunded</span>
+                    <span className={`text-sm font-medium ${
+                      booking.refunded ? 'text-green-600' : 'text-gray-600'
+                    }`}>
+                      {booking.refunded ? 'Yes' : 'No'}
+                    </span>
                     </div>
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* Sidebar */}
-            <div className="xl:col-span-1 space-y-6">
-              {/* Quick Actions */}
-              <div className="bg-white rounded-3xl p-6 shadow-xl border border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            {/* Actions Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
+              
                 <div className="space-y-3">
-                  <Button
-                    onClick={() => router.push(`/host/bookings`)}
-                    variant="outline"
-                    className="w-full justify-start"
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Bookings
-                  </Button>
-                  
-                  <Button
-                    onClick={() => window.open(`mailto:${booking.user.email}`, '_blank')}
-                    variant="outline"
-                    className="w-full justify-start"
-                  >
-                    <Mail className="w-4 h-4 mr-2" />
-                    Email Guest
-                  </Button>
-                  
-                  {booking.user.phone && (
-                    <Button
-                      onClick={() => window.open(`tel:${booking.user.phone}`, '_blank')}
-                      variant="outline"
-                      className="w-full justify-start"
+                {booking.status === 'pending' && (
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => handleStatusUpdate('confirmed')}
+                      disabled={updatingStatus}
+                      className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
                     >
-                      <Phone className="w-4 h-4 mr-2" />
-                      Call Guest
-                    </Button>
-                  )}
+                      {updatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                      <span>Accept Booking</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => setShowCancelModal(true)}
+                      disabled={updatingStatus}
+                      className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      <span>Reject Booking</span>
+                    </button>
+                  </div>
+                )}
+                
+                {booking.status === 'confirmed' && !booking.checkedIn && (
+                  <button
+                    onClick={handleCheckIn}
+                    disabled={updatingStatus}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {updatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                    <span>Check In Guest</span>
+                  </button>
+                )}
+                
+                <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                  <Download className="w-4 h-4" />
+                  <span>Download Receipt</span>
+                </button>
+                
+                <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                  <Copy className="w-4 h-4" />
+                  <span>Copy Booking ID</span>
+                </button>
+                
+                <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Message Guest</span>
+                </button>
+                
+                <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                  <Phone className="w-4 h-4" />
+                  <span>Call Guest</span>
+                </button>
                 </div>
               </div>
 
-              {/* Booking Summary */}
-              <div className="bg-white rounded-3xl p-6 shadow-xl border border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Booking Summary</h3>
+            {/* Booking Information Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Booking Information</h3>
+              
                 <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Created</span>
-                    <span className="text-gray-900">{formatDate(booking.createdAt)}</span>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm text-gray-600">Booking ID</span>
+                  <span className="text-sm font-mono text-gray-900">{booking._id}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Last Updated</span>
-                    <span className="text-gray-900">{formatDate(booking.updatedAt)}</span>
+                
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm text-gray-600">Payment Status</span>
+                  <span className={`text-sm font-medium ${
+                    booking.paymentStatus === 'paid' ? 'text-green-600' : 
+                    booking.paymentStatus === 'pending' ? 'text-yellow-600' : 
+                    'text-red-600'
+                  }`}>
+                    {booking.paymentStatus?.charAt(0).toUpperCase() + booking.paymentStatus?.slice(1)}
+                  </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Cancellation Policy</span>
-                    <span className="text-gray-900 capitalize">{booking.cancellationPolicy}</span>
+                
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm text-gray-600">Booking Type</span>
+                  <span className="text-sm text-gray-900 capitalize">{booking.bookingType}</span>
                   </div>
+                
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm text-gray-600">Created</span>
+                  <span className="text-sm text-gray-900">
+                    {new Date(booking._id).toLocaleDateString()}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </main>
+
+        {/* Cancel Booking Modal */}
+        {showCancelModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Reject Booking</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Are you sure you want to reject this booking?
+              </p>
+              <div className="p-3 bg-yellow-50 rounded-lg mb-4">
+                <p className="text-sm text-yellow-800">
+                  <Info className="h-4 w-4 inline mr-1" />
+                  The guest will receive a full refund automatically.
+                </p>
+              </div>
+              <textarea
+                value={cancellationReason}
+                onChange={(e) => setCancellationReason(e.target.value)}
+                placeholder="Reason for rejection (optional)"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 mb-4"
+                rows={3}
+              />
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  Keep Booking
+                </button>
+                <button
+                  onClick={() => handleStatusUpdate('cancelled')}
+                  disabled={updatingStatus}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {updatingStatus ? 'Rejecting...' : 'Reject Booking'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

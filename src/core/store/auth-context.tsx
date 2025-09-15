@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(updatedUser);
   };
 
-  const refreshUser = async (force = false) => {
+  const refreshUser = React.useCallback(async (force = false) => {
     // Prevent multiple simultaneous refresh calls
     if (isRefreshing && !force) {
       return;
@@ -104,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [isRefreshing, user]);
 
   const isAdmin = () => authService.isAdmin();
   const isHost = () => authService.isHost();

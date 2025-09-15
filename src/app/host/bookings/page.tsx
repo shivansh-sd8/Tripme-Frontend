@@ -441,7 +441,7 @@ const HostBookingsPage: React.FC = () => {
                                   <span className="text-green-700 font-medium">Your Earning:</span>
                                   <span className="text-green-800 font-bold">{formatPrice(booking.hostFee)}</span>
                                 </div>
-                                <p className="text-xs text-green-600">After 15% platform fee</p>
+                                <p className="text-xs text-green-600">After platform fee</p>
                               </div>
                             )}
                           </div>

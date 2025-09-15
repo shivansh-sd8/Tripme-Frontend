@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Calendar, MapPin, Users, Star, Clock, CheckCircle, XCircle } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
-import { formatDate, formatPrice } from '@/utils/utils';
+import { formatDate, formatPrice } from '@/shared/utils/pricingUtils';
 
 // Mock booking data
 const mockBookings = [

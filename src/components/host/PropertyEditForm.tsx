@@ -155,7 +155,7 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  // Removed unused fieldErrors state
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   
   const [formData, setFormData] = useState({
     title: '',
@@ -193,6 +193,15 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
     checkInTime: '15:00',
     checkOutTime: '11:00',
     cancellationPolicy: 'moderate' as Property['cancellationPolicy'],
+    hourlyBooking: {
+      enabled: false,
+      minStayDays: 1,
+      hourlyRates: {
+        sixHours: 0.30,
+        twelveHours: 0.60,
+        eighteenHours: 0.75
+      }
+    },
     images: [] as { url: string; publicId: string; isPrimary: boolean; caption?: string; width?: number; height?: number; format?: string; size?: number }[]
   });
 
@@ -285,6 +294,15 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
           checkInTime: listing.checkInTime || '15:00',
           checkOutTime: listing.checkOutTime || '11:00',
           cancellationPolicy: listing.cancellationPolicy || 'moderate',
+          hourlyBooking: {
+            enabled: listing.hourlyBooking?.enabled || false,
+            minStayDays: listing.hourlyBooking?.minStayDays || 1,
+            hourlyRates: {
+              sixHours: listing.hourlyBooking?.hourlyRates?.sixHours || 0.30,
+              twelveHours: listing.hourlyBooking?.hourlyRates?.twelveHours || 0.60,
+              eighteenHours: listing.hourlyBooking?.hourlyRates?.eighteenHours || 0.75
+            }
+          },
           images: listing.images || []
         });
       } else {
@@ -335,6 +353,16 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
     }));
   };
 
+  const handleHourlyBookingChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      hourlyBooking: {
+        ...prev.hourlyBooking,
+        [field]: value
+      }
+    }));
+  };
+
   const formatDataForBackend = () => {
     return {
       title: formData.title,
@@ -372,6 +400,7 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
       checkInTime: formData.checkInTime,
       checkOutTime: formData.checkOutTime,
       cancellationPolicy: formData.cancellationPolicy,
+      hourlyBooking: formData.hourlyBooking,
       images: formData.images.map(image => ({
         url: image.url,
         publicId: image.publicId,
@@ -806,7 +835,7 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
                                 <input
                                   type="number"
                                   value={formData.pricing.basePrice}
-                                  onChange={(e) => handleInputChange('pricing.basePrice', parseFloat(e.target.value))}
+                                  onChange={(e) => handlePricingChange('basePrice', parseFloat(e.target.value) || 0)}
                                   placeholder="0"
                                   className="w-full pl-12 pr-4 py-3 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
                                 />
@@ -823,7 +852,7 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
                                 <input
                                   type="number"
                                   value={formData.pricing.extraGuestPrice}
-                                  onChange={(e) => handleInputChange('pricing.extraGuestPrice', parseFloat(e.target.value))}
+                                  onChange={(e) => handlePricingChange('extraGuestPrice', parseFloat(e.target.value) || 0)}
                                   placeholder="0"
                                   className="w-full pl-12 pr-4 py-3 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
                                 />
@@ -839,7 +868,7 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
                                 <input
                                   type="number"
                                   value={formData.pricing.cleaningFee}
-                                  onChange={(e) => handleInputChange('pricing.cleaningFee', parseFloat(e.target.value))}
+                                  onChange={(e) => handlePricingChange('cleaningFee', parseFloat(e.target.value) || 0)}
                                   placeholder="0"
                                   className="w-full pl-12 pr-4 py-3 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
                                 />
@@ -853,13 +882,97 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
                                 <input
                                   type="number"
                                   value={formData.pricing.securityDeposit}
-                                  onChange={(e) => handleInputChange('pricing.securityDeposit', parseFloat(e.target.value))}
+                                  onChange={(e) => handlePricingChange('securityDeposit', parseFloat(e.target.value) || 0)}
                                   placeholder="0"
                                   className="w-full pl-12 pr-4 py-3 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
                                 />
                               </div>
                             </div>
                           </div>
+                        </div>
+
+                        {/* Hourly Booking Settings */}
+                        <div className="mt-8 pt-6 border-t border-gray-200">
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900">Hourly Booking</h3>
+                              <p className="text-sm text-gray-700">Allow guests to extend their stay with hourly options</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={formData.hourlyBooking.enabled}
+                                onChange={(e) => handleHourlyBookingChange('enabled', e.target.checked)}
+                                className="sr-only peer"
+                              />
+                              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                            </label>
+                          </div>
+
+                          {formData.hourlyBooking.enabled && (
+                            <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+                              <div>
+                                <label className="block text-sm font-semibold text-gray-900 mb-3">Hourly Extension Rates</label>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-800 mb-1">6 Hours</label>
+                                    <div className="flex items-center">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        value={Math.round(formData.hourlyBooking.hourlyRates.sixHours * 100)}
+                                        onChange={(e) => handleHourlyBookingChange('hourlyRates', {
+                                          ...formData.hourlyBooking.hourlyRates,
+                                          sixHours: Number(e.target.value) / 100
+                                        })}
+                                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 text-gray-900 font-medium bg-white"
+                                      />
+                                      <span className="ml-1 text-xs font-medium text-gray-700">%</span>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-800 mb-1">12 Hours</label>
+                                    <div className="flex items-center">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        value={Math.round(formData.hourlyBooking.hourlyRates.twelveHours * 100)}
+                                        onChange={(e) => handleHourlyBookingChange('hourlyRates', {
+                                          ...formData.hourlyBooking.hourlyRates,
+                                          twelveHours: Number(e.target.value) / 100
+                                        })}
+                                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 text-gray-900 font-medium bg-white"
+                                      />
+                                      <span className="ml-1 text-xs font-medium text-gray-700">%</span>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-800 mb-1">18 Hours</label>
+                                    <div className="flex items-center">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        value={Math.round(formData.hourlyBooking.hourlyRates.eighteenHours * 100)}
+                                        onChange={(e) => handleHourlyBookingChange('hourlyRates', {
+                                          ...formData.hourlyBooking.hourlyRates,
+                                          eighteenHours: Number(e.target.value) / 100
+                                        })}
+                                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 text-gray-900 font-medium bg-white"
+                                      />
+                                      <span className="ml-1 text-xs font-medium text-gray-700">%</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <p className="text-xs text-gray-600 mt-2">Percentage of daily rate for each extension period</p>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

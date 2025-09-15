@@ -119,7 +119,7 @@ const KYCSubmissionContent: React.FC = () => {
       const response = await apiClient.submitKYC(formData);
       
       if (response.success) {
-        setSuccess('Host application submitted successfully! Please wait for verification.');
+        setSuccess('KYC documents submitted successfully! Please wait for verification.');
         // Refresh KYC status
         const statusResponse = await apiClient.getKYCStatus();
         if (statusResponse.success) {
@@ -127,11 +127,11 @@ const KYCSubmissionContent: React.FC = () => {
         }
         setActiveTab('status');
       } else {
-        setError(response.message || 'Failed to submit host application');
+        setError(response.message || 'Failed to submit KYC documents');
       }
     } catch (error: any) {
-      console.error('Error submitting host application:', error);
-      setError(error.message || 'Failed to submit host application');
+      console.error('Error submitting KYC documents:', error);
+      setError(error.message || 'Failed to submit KYC documents');
     } finally {
       setIsSubmitting(false);
     }
@@ -206,7 +206,7 @@ const KYCSubmissionContent: React.FC = () => {
   const getStatusDescription = (status: string) => {
     switch (status) {
       case 'verified':
-        return 'Your identity has been verified! You are now a host and can start creating listings.';
+        return 'Your identity has been verified! You can now access all platform features.';
       case 'pending':
         return 'Your documents are under review. This usually takes 1-3 business days.';
       case 'rejected':
@@ -214,7 +214,7 @@ const KYCSubmissionContent: React.FC = () => {
           ? `Your KYC was rejected: ${kycStatus.kyc.rejectionReason}`
           : 'Your KYC was rejected. Please submit new documents.';
       default:
-        return 'Submit your identity verification documents to become a host.';
+        return 'Submit your identity verification documents to complete KYC verification.';
     }
   };
 
@@ -248,9 +248,9 @@ const KYCSubmissionContent: React.FC = () => {
             <Shield className="w-6 h-6 text-purple-600" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Become a Host</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Identity Verification</h1>
             <p className="text-gray-600 mt-1">
-              Complete your identity verification to start hosting and earning
+              Complete your KYC verification to access all platform features
             </p>
           </div>
         </div>
@@ -260,7 +260,7 @@ const KYCSubmissionContent: React.FC = () => {
       <Card className="mb-8">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">Host Application Status</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Verification Status</h2>
             {kycStatus && getStatusBadge(kycStatus.kyc?.status || 'not_submitted')}
           </div>
           <p className="text-gray-600 mb-4">
@@ -272,18 +272,18 @@ const KYCSubmissionContent: React.FC = () => {
               <div className="flex items-center">
                 <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
                 <span className="text-green-800 font-medium">
-                  Your identity has been verified! You are now a host.
+                  Your identity has been verified! You can now access all platform features.
                 </span>
               </div>
               <Button
                 onClick={async () => {
                   // Force refresh user data to get updated role after KYC verification
                   await refreshUser(true);
-                  router.push('/host/dashboard');
+                  router.push('/user/profile');
                 }}
                 className="mt-3"
               >
-                Go to Host Dashboard
+                Go to Profile
               </Button>
             </div>
           )}
@@ -302,7 +302,7 @@ const KYCSubmissionContent: React.FC = () => {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Application Status
+              Verification Status
             </button>
             <button
               onClick={() => setActiveTab('submit')}
@@ -332,7 +332,7 @@ const KYCSubmissionContent: React.FC = () => {
       {activeTab === 'status' && (
         <Card>
           <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Status</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Verification Status</h3>
             
             {kycStatus?.kyc?.status === 'rejected' && kycStatus.kyc.rejectionReason && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
@@ -357,13 +357,13 @@ const KYCSubmissionContent: React.FC = () => {
                 <h4 className="font-medium text-gray-900 mb-2">Next Steps</h4>
                 <div className="space-y-2 text-sm text-gray-600">
                   {kycStatus?.kyc?.status === 'not_submitted' && (
-                    <p>Submit your identity verification documents to get started.</p>
+                    <p>Submit your identity verification documents to complete KYC verification.</p>
                   )}
                   {kycStatus?.kyc?.status === 'pending' && (
                     <p>Your documents are being reviewed. You'll receive an email notification once verified.</p>
                   )}
                   {kycStatus?.kyc?.status === 'verified' && (
-                    <p>Your identity is verified! You can now apply to become a host.</p>
+                    <p>Your identity is verified! You can now access all platform features.</p>
                   )}
                   {kycStatus?.kyc?.status === 'rejected' && (
                     <p>Please submit new documents after addressing the rejection reason.</p>
@@ -631,7 +631,7 @@ const KYCSubmissionContent: React.FC = () => {
                     ) : (
                       <>
                         <Save className="w-4 h-4 mr-2" />
-                        Submit Application
+                        Submit KYC Documents
                       </>
                     )}
                   </Button>
@@ -645,7 +645,7 @@ const KYCSubmissionContent: React.FC = () => {
       {activeTab === 'requirements' && (
         <Card>
           <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Host Application Requirements</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">KYC Verification Requirements</h3>
             
             {requirements && (
               <div className="space-y-6">

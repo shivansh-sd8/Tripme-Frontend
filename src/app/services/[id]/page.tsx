@@ -117,7 +117,7 @@ export default function ServiceDetailsPage() {
 
   const handleBook = () => {
     // Only allow booking if all selected dates are available
-    let current = new Date(dateRange.startDate);
+    const current = new Date(dateRange.startDate);
     const end = new Date(dateRange.endDate);
     while (current <= end) {
       if (!isDateAvailable(current)) {

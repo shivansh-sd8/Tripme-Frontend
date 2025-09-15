@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/core/store/auth-context';
+import { authService } from '@/core/services/auth.service';
 import { useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
@@ -74,9 +75,19 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { name: 'Coupons', href: '/admin/coupons', icon: Tag, badge: null },
   ];
 
-  const handleLogout = () => {
-    logout();
-    router.push('/auth/login');
+  const handleLogout = async () => {
+    try {
+      // Use admin-specific logout to clear admin tokens and invalidate session
+      await authService.adminLogout();
+      // Also call the regular logout to clear user state
+      logout();
+      router.push('/admin/login');
+    } catch (error) {
+      console.error('Admin logout error:', error);
+      // Even if logout fails, clear local state and redirect
+      logout();
+      router.push('/admin/login');
+    }
   };
 
   return (

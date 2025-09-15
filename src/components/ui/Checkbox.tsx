@@ -1,5 +1,5 @@
 import React, { useId } from 'react';
-import { cn } from '@/utils/utils';
+import { cn } from '@/shared/utils/pricingUtils';
 
 interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;

@@ -2,7 +2,7 @@ import React from 'react';
 import Image from 'next/image';
 import { Heart, Star, MapPin, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Stay } from '@/types';
-import { formatPrice } from '@/utils/utils';
+import { formatPrice } from '@/shared/utils/pricingUtils';
 import Card from '../ui/Card';
 
 interface StayCardProps {

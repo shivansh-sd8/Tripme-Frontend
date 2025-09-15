@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Playfair_Display, Poppins } from 'next/font/google';
 import '@/styles/globals.css';
 import { AuthProvider } from '@/core/store/auth-context';
+import { BookingProvider } from '@/core/store/booking-context';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { APP_CONFIG } from '@/shared/constants';
 import { ToastProvider } from '@/contexts/ToastContext';
@@ -87,9 +88,11 @@ export default function RootLayout({
         <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>
           <ErrorBoundary>
             <AuthProvider>
-              <ToastProvider>
-                {children}
-              </ToastProvider>
+              <BookingProvider>
+                <ToastProvider>
+                  {children}
+                </ToastProvider>
+              </BookingProvider>
             </AuthProvider>
           </ErrorBoundary>
         </GoogleOAuthProvider>
