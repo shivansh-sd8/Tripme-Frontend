@@ -297,7 +297,7 @@ const ProfileContent: React.FC = () => {
                 )}
                 
                 {/* Identity Verification Status */}
-                {user.isVerified || user.kyc?.status === 'verified' ? (
+                {user.kyc?.status === 'verified' ? (
                   <span className="inline-flex items-center gap-2 bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 text-sm font-semibold px-4 py-2 rounded-full border border-green-200 shadow-sm">
                     <Shield size={14} />
                     Identity Verified
@@ -450,7 +450,7 @@ const ProfileContent: React.FC = () => {
                 )}
                 
                 {/* Identity Verification Badge */}
-                {user.isVerified || user.kyc?.status === 'verified' ? (
+                {user.kyc?.status === 'verified' ? (
                   <span className="inline-flex items-center gap-2 bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 text-sm font-semibold px-4 py-2 rounded-full border border-green-200 shadow-sm">
                     <Shield size={14} />
                     Identity Verified
@@ -819,7 +819,7 @@ const ProfileContent: React.FC = () => {
                       </div>
                     </div>
                     <div>
-                      {user.isVerified || user.kyc?.status === 'verified' ? (
+                      {user.kyc?.status === 'verified' ? (
                         <span className="inline-flex items-center gap-2 bg-green-100 text-green-800 text-sm font-medium px-4 py-2 rounded-full">
                           <Shield size={16} />
                           Identity Verified
@@ -844,7 +844,7 @@ const ProfileContent: React.FC = () => {
                   </div>
                 </div>
 
-                {user.isVerified || user.kyc?.status === 'verified' ? (
+                {user.kyc?.status === 'verified' ? (
                   <div className="text-center py-12">
                     <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Shield size={32} className="text-green-600" />

@@ -181,76 +181,125 @@ export default function AdminPaymentsPage() {
 
   return (
     <AdminLayout>
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-800">Payment Management</h1>
-            <p className="text-slate-600 mt-2">Monitor all payments, platform fees, and host payouts</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* Enhanced Header */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                  Payment Management
+                </h1>
+                <p className="mt-2 text-lg text-gray-600">
+                  Monitor all payments, platform fees, and host payouts
+                </p>
+                <div className="mt-4 flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">
+                      Total: {formatCurrency(stats?.totalAmount || 0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">
+                      Platform Fees: {formatCurrency(stats?.platformFees || 0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">
+                      Pending: {stats?.pendingPayouts || 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="hidden md:block">
+                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                  <CreditCard className="w-10 h-10 text-white" />
+                </div>
+              </div>
+            </div>
           </div>
-          <Button onClick={exportPayments} className="flex items-center gap-2">
-            <Download className="w-4 h-4" />
-            Export
-          </Button>
-        </div>
 
-        {/* Stats Cards */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card>
-              <div className="p-6">
-                <h3 className="text-sm font-medium text-slate-600 mb-2">Total Revenue</h3>
-                <div className="text-2xl font-bold text-slate-800">{formatCurrency(stats.totalAmount)}</div>
-                <p className="text-xs text-slate-500">{stats.totalPayments} payments</p>
+          {/* Stats Cards */}
+          {stats && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:bg-white/90 hover:shadow-2xl transition-all duration-300">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-600 mb-2">Total Revenue</h3>
+                    <div className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalAmount)}</div>
+                    <p className="text-xs text-gray-500">{stats.totalPayments} payments</p>
+                  </div>
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                    <DollarSign className="w-6 h-6 text-white" />
+                  </div>
+                </div>
               </div>
-            </Card>
 
-            <Card>
-              <div className="p-6">
-                <h3 className="text-sm font-medium text-slate-600 mb-2">Platform Fees</h3>
-                <div className="text-2xl font-bold text-slate-800">{formatCurrency(stats.platformFees)}</div>
-                <p className="text-xs text-slate-500">Platform fee of total revenue</p>
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:bg-white/90 hover:shadow-2xl transition-all duration-300">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-600 mb-2">Platform Fees</h3>
+                    <div className="text-2xl font-bold text-gray-900">{formatCurrency(stats.platformFees)}</div>
+                    <p className="text-xs text-gray-500">Platform fee of total revenue</p>
+                  </div>
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center">
+                    <CreditCard className="w-6 h-6 text-white" />
+                  </div>
+                </div>
               </div>
-            </Card>
 
-            <Card>
-              <div className="p-6">
-                <h3 className="text-sm font-medium text-slate-600 mb-2">Pending Payouts</h3>
-                <div className="text-2xl font-bold text-slate-800">{stats.pendingPayouts}</div>
-                <p className="text-xs text-slate-500">Awaiting processing</p>
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:bg-white/90 hover:shadow-2xl transition-all duration-300">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-600 mb-2">Pending Payouts</h3>
+                    <div className="text-2xl font-bold text-gray-900">{stats.pendingPayouts}</div>
+                    <p className="text-xs text-gray-500">Awaiting processing</p>
+                  </div>
+                  <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center">
+                    <Clock className="w-6 h-6 text-white" />
+                  </div>
+                </div>
               </div>
-            </Card>
 
-            <Card>
-              <div className="p-6">
-                <h3 className="text-sm font-medium text-slate-600 mb-2">Total Refunds</h3>
-                <div className="text-2xl font-bold text-slate-800">{formatCurrency(stats.refundAmount)}</div>
-                <p className="text-xs text-slate-500">{stats.totalRefunds} refunds</p>
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:bg-white/90 hover:shadow-2xl transition-all duration-300">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-600 mb-2">Total Refunds</h3>
+                    <div className="text-2xl font-bold text-gray-900">{formatCurrency(stats.refundAmount)}</div>
+                    <p className="text-xs text-gray-500">{stats.totalRefunds} refunds</p>
+                  </div>
+                  <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-pink-600 rounded-xl flex items-center justify-center">
+                    <Receipt className="w-6 h-6 text-white" />
+                  </div>
+                </div>
               </div>
-            </Card>
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* Filters and Search */}
-        <Card>
-          <div className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4">
+          {/* Enhanced Filters */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+            <div className="flex flex-col lg:flex-row gap-6">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <Input
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <input
+                    type="text"
                     placeholder="Search by transaction ID, guest name, or host name..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-12 pr-4 py-3 w-full border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 backdrop-blur-sm text-gray-900"
                   />
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-4">
+                <Filter className="h-5 w-5 text-gray-400" />
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 bg-white"
+                  className="border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 backdrop-blur-sm text-gray-900"
                 >
                   <option value="">All Statuses</option>
                   <option value="completed">Completed</option>
@@ -259,111 +308,133 @@ export default function AdminPaymentsPage() {
                   <option value="refunded">Refunded</option>
                   <option value="partially_refunded">Partially Refunded</option>
                 </select>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Filter className="w-4 h-4" />
-                  Filters
+                <Button 
+                  onClick={exportPayments} 
+                  className="bg-white/50 backdrop-blur-sm border border-gray-200 text-gray-700 hover:bg-white/70 flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Export
                 </Button>
               </div>
             </div>
           </div>
-        </Card>
 
-        {/* Payments Table */}
-        <Card>
-          <div className="p-6 pb-0">
-            <h3 className="text-lg font-semibold text-slate-800">Payment Transactions</h3>
-          </div>
-          <div className="p-6 pt-4">
+          {/* Payments Grid */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">Payment Transactions</h3>
             {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading payments...</p>
+                </div>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-slate-200">
-                      <th className="text-left py-3 px-4 font-medium text-slate-700">Transaction</th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-700">Guest</th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-700">Host</th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-700">Amount</th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-700">Platform Fee</th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-700">Status</th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-700">Date</th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-700">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {payments.map((payment) => (
-                      <tr key={payment.id} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="py-3 px-4">
-                          <div>
-                            <div className="font-medium text-sm text-slate-800">{payment.transactionId}</div>
-                            <div className="text-xs text-slate-500">{payment.bookingId}</div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {payments.map((payment) => (
+                  <div key={payment.id} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:bg-white/90 hover:shadow-2xl transition-all duration-300">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900">Transaction #{payment.transactionId.slice(-8)}</h4>
+                        <p className="text-sm text-gray-600">{payment.bookingId}</p>
+                      </div>
+                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(payment.status)}`}>
+                        {getStatusIcon(payment.status)}
+                        {payment.status}
+                      </span>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Guest Info */}
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                          <Users className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{payment.guestName}</p>
+                          <p className="text-sm text-gray-600">{payment.guestEmail}</p>
+                        </div>
+                      </div>
+
+                      {/* Host Info */}
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+                          <Users className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{payment.hostName}</p>
+                          <p className="text-sm text-gray-600">{payment.hostEmail}</p>
+                        </div>
+                      </div>
+
+                      {/* Property/Service */}
+                      <div className="p-3 bg-gray-100/50 rounded-xl">
+                        <p className="text-sm font-medium text-gray-900">Property/Service</p>
+                        <p className="text-sm text-gray-600">{payment.listingTitle}</p>
+                      </div>
+
+                      {/* Amount Breakdown */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
+                          <div className="flex items-center space-x-2">
+                            <DollarSign className="w-5 h-5 text-green-600" />
+                            <span className="text-sm font-medium text-gray-900">Total Amount</span>
                           </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div>
-                            <div className="font-medium text-slate-800">{payment.guestName}</div>
-                            <div className="text-xs text-slate-500">{payment.guestEmail}</div>
+                          <div className="text-right">
+                            <span className="text-lg font-bold text-green-600">{formatCurrency(payment.amount)}</span>
+                            {payment.totalRefunded > 0 && (
+                              <div className="text-xs text-red-600">
+                                -{formatCurrency(payment.totalRefunded)}
+                              </div>
+                            )}
                           </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div>
-                            <div className="font-medium text-slate-800">{payment.hostName}</div>
-                            <div className="text-xs text-slate-500">{payment.hostEmail}</div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="p-2 bg-blue-50 rounded-lg">
+                            <p className="text-xs text-gray-600">Platform Fee</p>
+                            <p className="text-sm font-semibold text-blue-600">{formatCurrency(payment.platformFee)}</p>
                           </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="font-medium text-slate-800">{formatCurrency(payment.amount)}</div>
-                          {payment.totalRefunded > 0 && (
-                            <div className="text-xs text-red-600 font-medium">
-                              -{formatCurrency(payment.totalRefunded)}
-                            </div>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="font-medium text-slate-800">{formatCurrency(payment.platformFee)}</div>
-                          <div className="text-xs text-slate-500">
-                            Host: {formatCurrency(payment.hostEarning)}
+                          <div className="p-2 bg-purple-50 rounded-lg">
+                            <p className="text-xs text-gray-600">Host Earning</p>
+                            <p className="text-sm font-semibold text-purple-600">{formatCurrency(payment.hostEarning)}</p>
                           </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(payment.status)}`}>
-                            {getStatusIcon(payment.status)}
-                            {payment.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="text-sm text-slate-800">{formatDate(payment.paymentDate)}</div>
+                        </div>
+                      </div>
+
+                      {/* Date Info */}
+                      <div className="flex items-center space-x-3">
+                        <Clock className="w-5 h-5 text-gray-400" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{formatDate(payment.paymentDate)}</p>
                           {payment.bookingDates && (
-                            <div className="text-xs text-slate-500">
+                            <p className="text-xs text-gray-600">
                               {formatDate(payment.bookingDates.checkIn)} - {formatDate(payment.bookingDates.checkOut)}
-                            </div>
+                            </p>
                           )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePaymentClick(payment)}
-                            className="flex items-center gap-1"
-                          >
-                            <Eye className="w-3 h-3" />
-                            View
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="pt-2">
+                        <Button
+                          onClick={() => handlePaymentClick(payment)}
+                          className="w-full bg-purple-100 text-purple-700 hover:bg-purple-200 flex items-center justify-center space-x-2"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span>View Details</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-6">
-                <div className="text-sm text-slate-600">
+              <div className="flex items-center justify-between mt-8 p-4 bg-gray-100/50 rounded-xl">
+                <div className="text-sm text-gray-600">
                   Page {currentPage} of {totalPages}
                 </div>
                 <div className="flex gap-2">
@@ -372,6 +443,7 @@ export default function AdminPaymentsPage() {
                     size="sm"
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
+                    className="bg-white/50 backdrop-blur-sm border border-gray-200 text-gray-700 hover:bg-white/70"
                   >
                     Previous
                   </Button>
@@ -380,6 +452,7 @@ export default function AdminPaymentsPage() {
                     size="sm"
                     onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
+                    className="bg-white/50 backdrop-blur-sm border border-gray-200 text-gray-700 hover:bg-white/70"
                   >
                     Next
                   </Button>
@@ -387,7 +460,7 @@ export default function AdminPaymentsPage() {
               </div>
             )}
           </div>
-        </Card>
+        </div>
 
         {/* Payment Detail Modal */}
         <Modal

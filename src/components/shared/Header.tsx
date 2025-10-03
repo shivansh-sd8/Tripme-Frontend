@@ -13,9 +13,9 @@ import {
   Calendar, 
   MapPin,
   ChevronDown,
-  Building,
-  BellRing,
-  Globe,
+  Home,
+  Bell,
+  BookOpen,
   Star,
   Sparkles,
   Search,
@@ -41,14 +41,18 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle }: Head
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [internalSearchExpanded, setInternalSearchExpanded] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<'homes' | 'services'>('homes');
+  const [activeCategory, setActiveCategory] = useState<'homes' | 'services' | 'stories' | null>(null);
   
   // Set active category based on current route
   useEffect(() => {
     if (pathname === '/services') {
       setActiveCategory('services');
-    } else if (pathname === '/search' || pathname === '/') {
+    } else if (pathname === '/stories') {
+      setActiveCategory('stories');
+    } else if (pathname === '/search') {
       setActiveCategory('homes');
+    } else {
+      setActiveCategory(null); // Default state - nothing selected
     }
   }, [pathname]);
   
@@ -164,7 +168,7 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle }: Head
               <button
                 onClick={() => {
                   setActiveCategory('homes');
-                  router.push('/');
+                  router.push('/search');
                 }}
                 className={`flex items-center gap-3 px-6 py-3 rounded-full transition-all duration-200 group relative ${
                   activeCategory === 'homes' 
@@ -172,7 +176,7 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle }: Head
                     : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
                 }`}
               >
-                <Building size={22} className="group-hover:scale-110 transition-transform duration-200" />
+                <Home size={22} className="group-hover:scale-110 transition-transform duration-200" />
                 <span className="font-medium text-base">Homes</span>
               </button>
               <button
@@ -186,16 +190,23 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle }: Head
                     : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
                 }`}
               >
-                <BellRing size={22} className="group-hover:scale-110 transition-transform duration-200" />
+                <Bell size={22} className="group-hover:scale-110 transition-transform duration-200" />
                 <span className="font-medium text-base">Services</span>
               </button>
-              <Link 
-                href="/stories" 
-                className="flex items-center gap-3 px-6 py-3 rounded-full text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200 group relative"
+              <button
+                onClick={() => {
+                  setActiveCategory('stories');
+                  router.push('/stories');
+                }}
+                className={`flex items-center gap-3 px-6 py-3 rounded-full transition-all duration-200 group relative ${
+                  activeCategory === 'stories'
+                    ? 'text-purple-600 bg-purple-50'
+                    : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
+                }`}
               >
-                <Globe size={22} className="group-hover:scale-110 transition-transform duration-200" />
+                <BookOpen size={22} className="group-hover:scale-110 transition-transform duration-200" />
                 <span className="font-medium text-base">Stories</span>
-              </Link>
+              </button>
             </div>
           ) : (
             <div className="hidden lg:flex items-center transition-all duration-500 ease-in-out">
@@ -382,7 +393,7 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle }: Head
               <button
                 onClick={() => {
                   setActiveCategory('homes');
-                  router.push('/');
+                  router.push('/search');
                   setMobileMenuOpen(false);
                 }}
                 className={`flex items-center gap-3 px-4 py-3 rounded-2xl w-full text-left transition-all duration-200 ${
@@ -391,7 +402,7 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle }: Head
                     : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
                 }`}
               >
-                <Building size={20} />
+                <Home size={20} />
                 <span className="font-medium">Homes</span>
               </button>
               <button
@@ -406,17 +417,24 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle }: Head
                     : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
                 }`}
               >
-                <BellRing size={20} />
+                <Bell size={20} />
                 <span className="font-medium">Services</span>
               </button>
-              <Link 
-                href="/stories" 
-                className="flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200"
-                onClick={() => setMobileMenuOpen(false)}
+              <button
+                onClick={() => {
+                  setActiveCategory('stories');
+                  router.push('/stories');
+                  setMobileMenuOpen(false);
+                }}
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl w-full text-left transition-all duration-200 ${
+                  activeCategory === 'stories'
+                    ? 'text-purple-600 bg-purple-50'
+                    : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
+                }`}
               >
-                <Globe size={20} />
+                <BookOpen size={20} />
                 <span className="font-medium">Stories</span>
-              </Link>
+              </button>
               
               {isAuthenticated ? (
                 <>

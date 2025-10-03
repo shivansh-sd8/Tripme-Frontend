@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/core/store/auth-context';
 import { authService } from '@/core/services/auth.service';
 import { useRouter } from 'next/navigation';
+import { apiClient } from '@/infrastructure/api/clients/api-client';
 import { 
   LayoutDashboard, 
   Users, 
@@ -32,9 +33,22 @@ interface AdminLayoutProps {
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [kycPendingCount, setKycPendingCount] = useState(0);
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const router = useRouter();
+
+  // Fetch KYC pending count
+  const fetchKycPendingCount = async () => {
+    try {
+      const response = await apiClient.getAdminKYCVerifications({ status: 'pending' });
+      if (response.success && response.data) {
+        setKycPendingCount(response.data.kyc?.length || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching KYC pending count:', error);
+    }
+  };
 
   // Check if user is admin (including super-admin) - use useEffect to avoid setState during render
   useEffect(() => {
@@ -46,6 +60,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       router.push('/admin/login');
     } else {
       console.log('🔐 AdminLayout - User is admin, rendering dashboard');
+      // Fetch KYC count when user is admin
+      fetchKycPendingCount();
     }
   }, [user, router]);
 
@@ -67,7 +83,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { name: 'Hosts', href: '/admin/hosts', icon: UserCheck, badge: null },
     { name: 'Listings', href: '/admin/listings', icon: Home, badge: null },
     { name: 'Bookings', href: '/admin/bookings', icon: BookOpen, badge: null },
-    { name: 'KYC', href: '/admin/kyc', icon: Shield, badge: '3' },
+    { name: 'KYC', href: '/admin/kyc', icon: Shield, badge: kycPendingCount > 0 ? kycPendingCount.toString() : null },
     { name: 'Payments', href: '/admin/payments', icon: CreditCard, badge: null },
     { name: 'Reviews', href: '/admin/reviews', icon: Star, badge: null },
     { name: 'Analytics', href: '/admin/analytics', icon: BarChart3, badge: null },

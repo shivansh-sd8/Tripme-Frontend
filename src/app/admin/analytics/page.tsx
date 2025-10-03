@@ -4,7 +4,7 @@ import AdminLayout from '@/components/layouts/AdminLayout';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/core/store/auth-context';
-import { apiClient } from '@/lib/api';
+import { apiClient } from '@/infrastructure/api/clients/api-client';
 import { 
   BarChart3, 
   LineChart, 
@@ -37,7 +37,7 @@ export default function AdminAnalytics() {
   });
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin()) {
       fetchAnalyticsData();
     }
   }, [isAdmin, timeRange]);
@@ -45,7 +45,7 @@ export default function AdminAnalytics() {
   const fetchAnalyticsData = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get(`/admin/analytics?timeRange=${timeRange}`);
+      const response = await apiClient.getAdminAnalytics({ timeRange });
       if (response.success) {
         setAnalyticsData(response.data);
       }
@@ -59,8 +59,13 @@ export default function AdminAnalytics() {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+          <div className="max-w-7xl mx-auto flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-6"></div>
+              <p className="text-gray-600 text-lg">Loading analytics...</p>
+            </div>
+          </div>
         </div>
       </AdminLayout>
     );
@@ -68,36 +73,69 @@ export default function AdminAnalytics() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Detailed insights and performance metrics for TripMe platform
-            </p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* Enhanced Header */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                  Analytics Dashboard
+                </h1>
+                <p className="mt-2 text-lg text-gray-600">
+                  Detailed insights and performance metrics for TripMe platform
+                </p>
+                <div className="mt-4 flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">
+                      Revenue: ₹{analyticsData.revenue.total.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">
+                      Users: {analyticsData.users.total.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">
+                      Bookings: {analyticsData.bookings.total.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6 lg:mt-0 flex flex-col sm:flex-row gap-4">
+                <select 
+                  value={timeRange} 
+                  onChange={(e) => setTimeRange(e.target.value)}
+                  className="border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 backdrop-blur-sm text-gray-900"
+                >
+                  <option value="7d">Last 7 days</option>
+                  <option value="30d">Last 30 days</option>
+                  <option value="90d">Last 90 days</option>
+                  <option value="1y">Last year</option>
+                </select>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline"
+                    className="bg-white/50 backdrop-blur-sm border border-gray-200 text-gray-700 hover:bg-white/70"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Export
+                  </Button>
+                  <Button 
+                    onClick={fetchAnalyticsData}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Refresh
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="mt-4 sm:mt-0 flex space-x-3">
-            <select 
-              value={timeRange} 
-              onChange={(e) => setTimeRange(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            >
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
-              <option value="1y">Last year</option>
-            </select>
-            <Button variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
-            <Button>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
-            </Button>
-          </div>
-        </div>
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -319,6 +357,7 @@ export default function AdminAnalytics() {
             </div>
           </div>
         </Card>
+        </div>
       </div>
     </AdminLayout>
   );

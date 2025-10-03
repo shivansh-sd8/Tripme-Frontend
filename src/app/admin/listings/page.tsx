@@ -6,7 +6,6 @@ import {
   CheckCircle, 
   XCircle, 
   Eye, 
-  Edit,
   Search,
   Filter,
   Home
@@ -137,14 +136,10 @@ export default function AdminListings() {
     }
   };
 
-  const handleEdit = (listingId: string) => {
-    // TODO: Implement edit logic - could open an edit modal
-
-  };
-
   const handleView = (listingId: string) => {
-    // TODO: Implement view logic - could open a modal with detailed listing info
-
+    // Open property in new tab
+    const propertyUrl = `/rooms/${listingId}`;
+    window.open(propertyUrl, '_blank');
   };
 
   if (loading) {
@@ -159,59 +154,193 @@ export default function AdminListings() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Listings</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage property listings and their approval status.
-          </p>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <input
-                  type="text"
-                  placeholder="Search listings by title, host, or location..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
-                />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* Enhanced Header */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                  Property Listings
+                </h1>
+                <p className="mt-2 text-lg text-gray-600">
+                  Manage property listings and their approval status
+                </p>
+                <div className="mt-4 flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">
+                      {filteredListings.filter(l => l.status === 'published').length} Published
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">
+                      {filteredListings.filter(l => l.status === 'draft').length} Pending
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">
+                      {filteredListings.filter(l => l.status === 'suspended').length} Suspended
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="hidden md:block">
+                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                  <Home className="w-10 h-10 text-white" />
+                </div>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-gray-400" />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-              >
-                <option value="all">All Status</option>
-                <option value="published">Published</option>
-                <option value="draft">Draft</option>
-                <option value="suspended">Suspended</option>
-                <option value="inactive">Inactive</option>
-              </select>
+          </div>
+
+          {/* Enhanced Filters */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+            <div className="flex flex-col lg:flex-row gap-6">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <input
+                    type="text"
+                    placeholder="Search listings by title, host, or location..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-12 pr-4 py-3 w-full border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 backdrop-blur-sm text-gray-900 placeholder-gray-500"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-5 w-5 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700">Filter by status:</span>
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 backdrop-blur-sm text-gray-900 min-w-[150px]"
+                >
+                  <option value="all">All Status</option>
+                  <option value="published">Published</option>
+                  <option value="draft">Draft</option>
+                  <option value="suspended">Suspended</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Table */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Listing
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Host
-                  </th>
+          {/* Enhanced Listing Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {filteredListings.map((listing) => (
+              <div key={listing._id || listing.id} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] group">
+                {/* Property Header */}
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg group-hover:shadow-purple-500/25 transition-all duration-300">
+                    <Home className="w-8 h-8 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 group-hover:text-purple-600 transition-colors line-clamp-2">{listing.title}</h3>
+                    <p className="text-sm text-gray-500 capitalize">{listing.type}</p>
+                  </div>
+                  {getStatusBadge(listing.status)}
+                </div>
+
+                {/* Property Details */}
+                <div className="space-y-4 mb-6">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <span className="text-sm font-medium text-gray-600">Host</span>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-gray-900">{listing.host.name}</p>
+                      <p className="text-xs text-gray-500">{listing.host.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <span className="text-sm font-medium text-gray-600">Price</span>
+                    <span className="text-lg font-bold text-green-600">₹{listing.pricing.basePrice.toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <span className="text-sm font-medium text-gray-600">Location</span>
+                    <span className="text-sm font-semibold text-gray-900">{listing.location.city}, {listing.location.state}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <span className="text-sm font-medium text-gray-600">Created</span>
+                    <span className="text-sm font-semibold text-gray-900">{new Date(listing.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => handleView(listing._id || listing.id)}
+                    className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-3 rounded-xl font-medium hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                  >
+                    <Eye className="h-4 w-4" />
+                    View Property
+                  </button>
+                  {listing.status === 'draft' && (
+                    <>
+                      <button
+                        onClick={() => handleApprove(listing._id || listing.id)}
+                        className="p-3 bg-green-100 text-green-600 rounded-xl hover:bg-green-200 transition-colors shadow-md hover:shadow-lg"
+                        title="Approve Listing"
+                      >
+                        <CheckCircle className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleReject(listing._id || listing.id)}
+                        className="p-3 bg-red-100 text-red-600 rounded-xl hover:bg-red-200 transition-colors shadow-md hover:shadow-lg"
+                        title="Reject Listing"
+                      >
+                        <XCircle className="h-5 w-5" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Empty State */}
+          {filteredListings.length === 0 && (
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-12 text-center">
+              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Home className="w-12 h-12 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">No Listings Found</h3>
+              <p className="text-gray-500 mb-6">
+                {searchTerm || statusFilter !== 'all'
+                  ? 'Try adjusting your search or filter criteria.'
+                  : 'No property listings have been created yet.'
+                }
+              </p>
+              {(searchTerm || statusFilter !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                  }}
+                  className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-6 py-3 rounded-xl font-medium hover:from-purple-600 hover:to-indigo-700 transition-all duration-200"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+          )}
+
+        {/* Old Table - Remove this section */}
+        <div className="hidden">
+          <div className="bg-white shadow rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Listing
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Host
+                    </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Type
                   </th>
@@ -263,19 +392,12 @@ export default function AdminListings() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
-                                                  <button
-                            onClick={() => handleView(listing._id || listing.id)}
+                        <button
+                          onClick={() => handleView(listing._id || listing.id)}
                           className="text-purple-600 hover:text-purple-900"
                           title="View Details"
                         >
                           <Eye className="h-4 w-4" />
-                        </button>
-                                                  <button
-                            onClick={() => handleEdit(listing._id || listing.id)}
-                          className="text-blue-600 hover:text-blue-900"
-                          title="Edit"
-                        >
-                          <Edit className="h-4 w-4" />
                         </button>
                         {listing.status === 'draft' && (
                           <>
@@ -302,6 +424,8 @@ export default function AdminListings() {
               </tbody>
             </table>
           </div>
+        </div>
+        </div>
         </div>
       </div>
     </AdminLayout>

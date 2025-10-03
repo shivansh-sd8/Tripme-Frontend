@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/core/store/auth-context';
@@ -22,8 +22,32 @@ export default function AdminLoginPage() {
   });
   const [errors, setErrors] = useState<Partial<AdminLoginForm>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Check if admin is already logged in and redirect to dashboard
+  useEffect(() => {
+    const checkAuthStatus = () => {
+      const currentUser = authService.getCurrentUser();
+      const token = authService.getToken();
+      
+      // Check if user is already authenticated and is an admin
+      if (currentUser && token && (currentUser.role === 'admin' || currentUser.role === 'super-admin')) {
+        console.log('🔐 Admin already logged in, redirecting to dashboard...');
+        router.push('/admin/dashboard');
+        return;
+      }
+      
+      // If not authenticated, show the login form
+      setIsCheckingAuth(false);
+    };
+
+    // Small delay to ensure auth context is initialized
+    const timer = setTimeout(checkAuthStatus, 100);
+    
+    return () => clearTimeout(timer);
+  }, [router]);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<AdminLoginForm> = {};
@@ -99,6 +123,21 @@ export default function AdminLoginPage() {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
+
+  // Show loading screen while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <div className="mx-auto h-16 w-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-6 shadow-2xl">
+            <Shield className="h-8 w-8 text-white" />
+          </div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto mb-4"></div>
+          <p className="text-slate-300 text-lg">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

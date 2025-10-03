@@ -41,8 +41,13 @@ class ApiClient {
     };
 
     try {
+      console.log(`🔍 API Request: ${options.method || 'GET'} ${url}`);
+      console.log(`🔍 Token present: ${!!token}`);
+      
       const response = await fetch(url, config);
       const data = await response.json();
+
+      console.log(`🔍 API Response: ${response.status}`, data);
 
       if (!response.ok) {
         throw {

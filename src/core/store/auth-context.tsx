@@ -106,10 +106,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isRefreshing, user]);
 
-  const isAdmin = () => authService.isAdmin();
-  const isHost = () => authService.isHost();
-  const isGuest = () => authService.isGuest();
-
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
@@ -118,9 +114,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     updateUser,
     refreshUser,
-    isAdmin,
-    isHost,
-    isGuest,
+    isAdmin: () => authService.isAdmin(),
+    isHost: () => authService.isHost(),
+    isGuest: () => authService.isGuest(),
   };
 
   return (

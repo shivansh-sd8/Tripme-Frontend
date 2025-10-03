@@ -153,26 +153,11 @@ const BecomeHostContent: React.FC = () => {
   ];
 
   const isHost = isAuthenticated && user?.role === 'host';
-  const isKYCVerified = user?.isVerified || user?.kyc?.status === 'verified';
+  const isKYCVerified = user?.kyc?.status === 'verified';
   const isKYCPending = user?.kyc?.status === 'pending';
   const isKYCRejected = user?.kyc?.status === 'rejected';
   const isKYCNotSubmitted = !user?.kyc || user?.kyc?.status === 'not_submitted';
 
-  // Debug logging to check user KYC status
-  React.useEffect(() => {
-    if (user) {
-      console.log('🔍 Become-Host KYC Debug:', {
-        user: user,
-        kyc: user.kyc,
-        kycStatus: user.kyc?.status,
-        isVerified: user.isVerified,
-        isKYCVerified,
-        isKYCPending,
-        isKYCRejected,
-        isKYCNotSubmitted
-      });
-    }
-  }, [user, isKYCVerified, isKYCPending, isKYCRejected, isKYCNotSubmitted]);
 
   
 
@@ -558,18 +543,6 @@ const BecomeHostContent: React.FC = () => {
               </motion.div>
             )}
             
-            {/* Debug info - remove this after testing */}
-            {user && (
-              <div className="mt-4 p-4 bg-black/20 rounded-lg text-white text-sm">
-                <div>Debug Info:</div>
-                <div>isHost: {isHost ? 'true' : 'false'}</div>
-                <div>isKYCVerified: {isKYCVerified ? 'true' : 'false'}</div>
-                <div>isKYCPending: {isKYCPending ? 'true' : 'false'}</div>
-                <div>isKYCRejected: {isKYCRejected ? 'true' : 'false'}</div>
-                <div>user.isVerified: {user.isVerified ? 'true' : 'false'}</div>
-                <div>user.kyc?.status: {user.kyc?.status || 'undefined'}</div>
-              </div>
-            )}
             
             {/* Status message for non-verified users */}
             {!isHost && !success && !isKYCVerified && user && (

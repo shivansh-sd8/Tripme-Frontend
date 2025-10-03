@@ -314,14 +314,14 @@ export default function AdminDashboard() {
   };
 
   const StatCard = ({ title, value, change, icon: Icon, color }: any) => (
-    <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 hover:bg-slate-800/70 transition-all duration-300 group">
+    <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:bg-white/90 hover:shadow-2xl transition-all duration-300 group">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-slate-400 text-sm font-medium">{title}</p>
-          <p className="text-3xl font-bold text-white mt-2">{value}</p>
+          <p className="text-gray-600 text-sm font-medium">{title}</p>
+          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
           {change && (
             <div className={`flex items-center mt-2 text-sm ${
-              change > 0 ? 'text-green-400' : 'text-red-400'
+              change > 0 ? 'text-green-600' : 'text-red-600'
             }`}>
               {change > 0 ? <TrendingUpIcon className="h-4 w-4 mr-1" /> : <TrendingDownIcon className="h-4 w-4 mr-1" />}
               {Math.abs(change)}%
@@ -338,12 +338,12 @@ export default function AdminDashboard() {
   const QuickActionCard = ({ title, count, icon: Icon, color, onClick }: any) => (
     <button
       onClick={onClick}
-      className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 hover:bg-slate-800/70 hover:border-purple-500/50 transition-all duration-300 group text-left w-full"
+      className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:bg-white/90 hover:shadow-2xl hover:border-purple-300/50 transition-all duration-300 group text-left w-full"
     >
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-slate-400 text-sm font-medium">{title}</p>
-          <p className="text-2xl font-bold text-white mt-2">{count}</p>
+          <p className="text-gray-600 text-sm font-medium">{title}</p>
+          <p className="text-2xl font-bold text-gray-900 mt-2">{count}</p>
         </div>
         <div className={`p-3 rounded-xl ${color} group-hover:scale-110 transition-transform duration-300`}>
           <Icon className="h-6 w-6 text-white" />
@@ -355,10 +355,12 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-400 mx-auto mb-6"></div>
-            <p className="text-slate-300 text-lg">Loading dashboard...</p>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+          <div className="max-w-7xl mx-auto flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-6"></div>
+              <p className="text-gray-600 text-lg">Loading dashboard...</p>
+            </div>
           </div>
         </div>
       </AdminLayout>
@@ -367,20 +369,46 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-            <p className="text-slate-400 mt-2">Welcome back! Here's what's happening with your platform.</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* Enhanced Header */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                  Dashboard
+                </h1>
+                <p className="mt-2 text-lg text-gray-600">
+                  Welcome back! Here's what's happening with your platform.
+                </p>
+                <div className="mt-4 flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">
+                      Revenue: {formatCurrency(stats.revenue.total)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">
+                      Users: {formatNumber(stats.users.total)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">
+                      Bookings: {stats.bookings.total}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="hidden md:block">
+                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                  <BarChart3 className="w-10 h-10 text-white" />
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <button className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-medium transition-colors duration-200 flex items-center space-x-2">
-              <Plus className="h-5 w-5" />
-              <span>Quick Action</span>
-            </button>
-          </div>
-        </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -446,10 +474,10 @@ export default function AdminDashboard() {
           />
         </div>
 
-        {/* Quick Actions */}
-        <div>
-          <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Quick Actions */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Actions</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <QuickActionCard
               title="Pending KYC"
               count={quickActions.pendingKYCCount}
@@ -478,222 +506,223 @@ export default function AdminDashboard() {
               color="bg-gradient-to-br from-green-500 to-green-600"
               onClick={() => router.push('/admin/payments')}
             />
-          </div>
-        </div>
-
-        {/* Comprehensive Overview */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Users & Properties Overview */}
-          <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Users & Properties Overview</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-3 bg-slate-700/30 rounded-xl">
-                  <div className="text-2xl font-bold text-blue-400">{stats.users.total}</div>
-                  <div className="text-slate-400 text-sm">Total Users</div>
-                </div>
-                <div className="text-center p-3 bg-slate-700/30 rounded-xl">
-                  <div className="text-2xl font-bold text-green-400">{stats.users.newThisMonth}</div>
-                  <div className="text-slate-400 text-sm">New This Month</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-3 bg-slate-700/30 rounded-xl">
-                  <div className="text-2xl font-bold text-purple-400">{stats.users.totalHosts}</div>
-                  <div className="text-slate-400 text-sm">Total Hosts</div>
-                </div>
-                <div className="text-center p-3 bg-slate-700/30 rounded-xl">
-                  <div className="text-2xl font-bold text-emerald-400">{stats.users.activeHosts}</div>
-                  <div className="text-slate-400 text-sm">Active Hosts</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-3 bg-slate-700/30 rounded-xl">
-                  <div className="text-2xl font-bold text-orange-400">{stats.properties.total}</div>
-                  <div className="text-slate-400 text-sm">Total Properties</div>
-                </div>
-                <div className="text-center p-3 bg-slate-700/30 rounded-xl">
-                  <div className="text-2xl font-bold text-cyan-400">{stats.properties.active}</div>
-                  <div className="text-slate-400 text-sm">Active Properties</div>
-                </div>
-              </div>
             </div>
           </div>
 
-          {/* Bookings & Services Overview */}
-          <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Bookings & Services Overview</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-3 bg-slate-700/30 rounded-xl">
-                  <div className="text-2xl font-bold text-purple-400">{stats.bookings.total}</div>
-                  <div className="text-slate-400 text-sm">Total Bookings</div>
-                </div>
-                <div className="text-center p-3 bg-slate-700/30 rounded-xl">
-                  <div className="text-2xl font-bold text-green-400">{stats.bookings.thisMonth}</div>
-                  <div className="text-slate-400 text-sm">This Month</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center p-3 bg-slate-700/30 rounded-xl">
-                  <div className="text-xl font-bold text-yellow-400">{stats.bookings.pending}</div>
-                  <div className="text-slate-400 text-xs">Pending</div>
-                </div>
-                <div className="text-center p-3 bg-slate-700/30 rounded-xl">
-                  <div className="text-xl font-bold text-emerald-400">{stats.bookings.completed}</div>
-                  <div className="text-slate-400 text-xs">Completed</div>
-                </div>
-                <div className="text-center p-3 bg-slate-700/30 rounded-xl">
-                  <div className="text-xl font-bold text-red-400">{stats.bookings.cancelled}</div>
-                  <div className="text-slate-400 text-xs">Cancelled</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-3 bg-slate-700/30 rounded-xl">
-                  <div className="text-2xl font-bold text-rose-400">{stats.services.total}</div>
-                  <div className="text-slate-400 text-sm">Total Services</div>
-                </div>
-                <div className="text-center p-3 bg-slate-700/30 rounded-xl">
-                  <div className="text-2xl font-bold text-emerald-400">{stats.services.active}</div>
-                  <div className="text-slate-400 text-sm">Active Services</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Activities & System Health */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Recent Activities */}
-          <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Recent Activities</h3>
-            <div className="space-y-4">
-              {recentActivities.users.slice(0, 3).map((user, index) => (
-                <div key={index} className="flex items-center space-x-3 p-3 bg-slate-700/30 rounded-xl">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                    <span className="text-sm font-bold text-white">{user.name.charAt(0)}</span>
+          {/* Comprehensive Overview */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Users & Properties Overview */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Users & Properties Overview</h3>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-3 bg-gray-100/50 rounded-xl">
+                    <div className="text-2xl font-bold text-blue-600">{stats.users.total}</div>
+                    <div className="text-gray-600 text-sm">Total Users</div>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-white font-medium">{user.name}</p>
-                    <p className="text-slate-400 text-sm">{user.role} • {new Date(user.createdAt).toLocaleDateString()}</p>
+                  <div className="text-center p-3 bg-gray-100/50 rounded-xl">
+                    <div className="text-2xl font-bold text-green-600">{stats.users.newThisMonth}</div>
+                    <div className="text-gray-600 text-sm">New This Month</div>
                   </div>
-                  {user.kyc?.status === 'pending' && (
-                    <span className="px-2 py-1 text-xs bg-yellow-500/20 text-yellow-400 rounded-full">KYC Pending</span>
-                  )}
                 </div>
-              ))}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-3 bg-gray-100/50 rounded-xl">
+                    <div className="text-2xl font-bold text-purple-600">{stats.users.totalHosts}</div>
+                    <div className="text-gray-600 text-sm">Total Hosts</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-100/50 rounded-xl">
+                    <div className="text-2xl font-bold text-emerald-600">{stats.users.activeHosts}</div>
+                    <div className="text-gray-600 text-sm">Active Hosts</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-3 bg-gray-100/50 rounded-xl">
+                    <div className="text-2xl font-bold text-orange-600">{stats.properties.total}</div>
+                    <div className="text-gray-600 text-sm">Total Properties</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-100/50 rounded-xl">
+                    <div className="text-2xl font-bold text-cyan-600">{stats.properties.active}</div>
+                    <div className="text-gray-600 text-sm">Active Properties</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bookings & Services Overview */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Bookings & Services Overview</h3>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-3 bg-gray-100/50 rounded-xl">
+                    <div className="text-2xl font-bold text-purple-600">{stats.bookings.total}</div>
+                    <div className="text-gray-600 text-sm">Total Bookings</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-100/50 rounded-xl">
+                    <div className="text-2xl font-bold text-green-600">{stats.bookings.thisMonth}</div>
+                    <div className="text-gray-600 text-sm">This Month</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center p-3 bg-gray-100/50 rounded-xl">
+                    <div className="text-xl font-bold text-yellow-600">{stats.bookings.pending}</div>
+                    <div className="text-gray-600 text-xs">Pending</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-100/50 rounded-xl">
+                    <div className="text-xl font-bold text-emerald-600">{stats.bookings.completed}</div>
+                    <div className="text-gray-600 text-xs">Completed</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-100/50 rounded-xl">
+                    <div className="text-xl font-bold text-red-600">{stats.bookings.cancelled}</div>
+                    <div className="text-gray-600 text-xs">Cancelled</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-3 bg-gray-100/50 rounded-xl">
+                    <div className="text-2xl font-bold text-rose-600">{stats.services.total}</div>
+                    <div className="text-gray-600 text-sm">Total Services</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-100/50 rounded-xl">
+                    <div className="text-2xl font-bold text-emerald-600">{stats.services.active}</div>
+                    <div className="text-gray-600 text-sm">Active Services</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* System Health */}
-          <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">System Health</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-xl">
-                <div className="flex items-center space-x-3">
-                  <div className={`h-3 w-3 rounded-full ${systemHealth.database === 'connected' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  <span className="text-white">Database</span>
-                </div>
-                <span className="text-slate-400 text-sm capitalize">{systemHealth.database}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-xl">
-                <span className="text-white">Uptime</span>
-                <span className="text-slate-400 text-sm">{Math.floor(systemHealth.uptime / 3600)}h {Math.floor((systemHealth.uptime % 3600) / 60)}m</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-xl">
-                <span className="text-white">Memory Usage</span>
-                <span className="text-slate-400 text-sm">{Math.round(systemHealth.memoryUsage.heapUsed / 1024 / 1024)}MB</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Performance Metrics */}
-        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-6">Performance Metrics</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">{stats.reviews.averageRating}</div>
-              <div className="text-slate-400 text-sm mt-1">Average Rating</div>
-              <div className="flex items-center justify-center mt-2">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className={`h-4 w-4 ${i < Math.floor(stats.reviews.averageRating) ? 'text-yellow-400 fill-current' : 'text-slate-600'}`} />
+          {/* Recent Activities & System Health */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Recent Activities */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activities</h3>
+              <div className="space-y-4">
+                {recentActivities.users.slice(0, 3).map((user, index) => (
+                  <div key={index} className="flex items-center space-x-3 p-3 bg-gray-100/50 rounded-xl">
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                      <span className="text-sm font-bold text-white">{user.name.charAt(0)}</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-gray-900 font-medium">{user.name}</p>
+                      <p className="text-gray-600 text-sm">{user.role} • {new Date(user.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    {user.kyc?.status === 'pending' && (
+                      <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">KYC Pending</span>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">{stats.users.activeHosts}</div>
-              <div className="text-slate-400 text-sm mt-1">Active Hosts</div>
-              <div className="text-green-400 text-sm mt-1">+{stats.users.growthRate}% from last month</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">{formatCurrency(stats.revenue.thisMonth)}</div>
-              <div className="text-slate-400 text-sm mt-1">This Month Revenue</div>
-              <div className="text-green-400 text-sm mt-1">+{stats.revenue.growthRate}% from last month</div>
-            </div>
-          </div>
-        </div>
 
-        {/* Financial Breakdown */}
-        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-6">Financial Breakdown</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="text-center p-4 bg-slate-700/30 rounded-xl">
-              <div className="text-2xl font-bold text-green-400">{formatCurrency(stats.revenue.total)}</div>
-              <div className="text-slate-400 text-sm mt-1">Total Revenue</div>
-            </div>
-            <div className="text-center p-4 bg-slate-700/30 rounded-xl">
-              <div className="text-2xl font-bold text-blue-400">{formatCurrency(stats.revenue.platformFees)}</div>
-              <div className="text-slate-400 text-sm mt-1">Platform Fees</div>
-            </div>
-            <div className="text-center p-4 bg-slate-700/30 rounded-xl">
-              <div className="text-2xl font-bold text-emerald-400">{formatCurrency(stats.revenue.netRevenue)}</div>
-              <div className="text-slate-400 text-sm mt-1">Net Revenue</div>
-            </div>
-            <div className="text-center p-4 bg-slate-700/30 rounded-xl">
-              <div className="text-2xl font-bold text-cyan-400">{formatCurrency(stats.revenue.totalPayouts)}</div>
-              <div className="text-slate-400 text-sm mt-1">Total Payouts</div>
+            {/* System Health */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">System Health</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-gray-100/50 rounded-xl">
+                  <div className="flex items-center space-x-3">
+                    <div className={`h-3 w-3 rounded-full ${systemHealth.database === 'connected' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <span className="text-gray-900">Database</span>
+                  </div>
+                  <span className="text-gray-600 text-sm capitalize">{systemHealth.database}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-100/50 rounded-xl">
+                  <span className="text-gray-900">Uptime</span>
+                  <span className="text-gray-600 text-sm">{Math.floor(systemHealth.uptime / 3600)}h {Math.floor((systemHealth.uptime % 3600) / 60)}m</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-100/50 rounded-xl">
+                  <span className="text-gray-900">Memory Usage</span>
+                  <span className="text-gray-600 text-sm">{Math.round(systemHealth.memoryUsage.heapUsed / 1024 / 1024)}MB</span>
+                </div>
+              </div>
             </div>
           </div>
-          
-          {/* Revenue Composition Chart */}
-          <div className="mt-6 p-4 bg-slate-700/30 rounded-xl">
-            <h4 className="text-white font-medium mb-4">Revenue Composition</h4>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-300">Platform Fees</span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-24 bg-slate-600 rounded-full h-2">
-                    <div 
-                      className="bg-blue-400 h-2 rounded-full" 
-                      style={{ width: `${(stats.revenue.platformFees / stats.revenue.total) * 100}%` }}
-                    ></div>
-                  </div>
-                  <span className="text-slate-300 text-sm w-16 text-right">{formatCurrency(stats.revenue.platformFees)}</span>
+
+          {/* Performance Metrics */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">Performance Metrics</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-gray-900">{stats.reviews.averageRating}</div>
+                <div className="text-gray-600 text-sm mt-1">Average Rating</div>
+                <div className="flex items-center justify-center mt-2">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className={`h-4 w-4 ${i < Math.floor(stats.reviews.averageRating) ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} />
+                  ))}
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-300">Host Payouts</span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-24 bg-slate-600 rounded-full h-2">
-                    <div 
-                      className="bg-cyan-400 h-2 rounded-full" 
-                      style={{ width: `${(stats.revenue.totalPayouts / stats.revenue.total) * 100}%` }}
-                    ></div>
-                  </div>
-                  <span className="text-slate-300 text-sm w-16 text-right">{formatCurrency(stats.revenue.totalPayouts)}</span>
-                </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-gray-900">{stats.users.activeHosts}</div>
+                <div className="text-gray-600 text-sm mt-1">Active Hosts</div>
+                <div className="text-green-600 text-sm mt-1">+{stats.users.growthRate}% from last month</div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-300">Net Revenue</span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-24 bg-slate-600 rounded-full h-2">
-                    <div 
-                      className="bg-emerald-400 h-2 rounded-full" 
-                      style={{ width: `${(stats.revenue.netRevenue / stats.revenue.total) * 100}%` }}
-                    ></div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-gray-900">{formatCurrency(stats.revenue.thisMonth)}</div>
+                <div className="text-gray-600 text-sm mt-1">This Month Revenue</div>
+                <div className="text-green-600 text-sm mt-1">+{stats.revenue.growthRate}% from last month</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Financial Breakdown */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">Financial Breakdown</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="text-center p-4 bg-gray-100/50 rounded-xl">
+                <div className="text-2xl font-bold text-green-600">{formatCurrency(stats.revenue.total)}</div>
+                <div className="text-gray-600 text-sm mt-1">Total Revenue</div>
+              </div>
+              <div className="text-center p-4 bg-gray-100/50 rounded-xl">
+                <div className="text-2xl font-bold text-blue-600">{formatCurrency(stats.revenue.platformFees)}</div>
+                <div className="text-gray-600 text-sm mt-1">Platform Fees</div>
+              </div>
+              <div className="text-center p-4 bg-gray-100/50 rounded-xl">
+                <div className="text-2xl font-bold text-emerald-600">{formatCurrency(stats.revenue.netRevenue)}</div>
+                <div className="text-gray-600 text-sm mt-1">Net Revenue</div>
+              </div>
+              <div className="text-center p-4 bg-gray-100/50 rounded-xl">
+                <div className="text-2xl font-bold text-cyan-600">{formatCurrency(stats.revenue.totalPayouts)}</div>
+                <div className="text-gray-600 text-sm mt-1">Total Payouts</div>
+              </div>
+            </div>
+            
+            {/* Revenue Composition Chart */}
+            <div className="mt-6 p-4 bg-gray-100/50 rounded-xl">
+              <h4 className="text-gray-900 font-medium mb-4">Revenue Composition</h4>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-700">Platform Fees</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-24 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-500 h-2 rounded-full" 
+                        style={{ width: `${(stats.revenue.platformFees / stats.revenue.total) * 100}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-gray-700 text-sm w-16 text-right">{formatCurrency(stats.revenue.platformFees)}</span>
                   </div>
-                  <span className="text-slate-300 text-sm w-16 text-right">{formatCurrency(stats.revenue.netRevenue)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-700">Host Payouts</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-24 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-cyan-500 h-2 rounded-full" 
+                        style={{ width: `${(stats.revenue.totalPayouts / stats.revenue.total) * 100}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-gray-700 text-sm w-16 text-right">{formatCurrency(stats.revenue.totalPayouts)}</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-700">Net Revenue</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-24 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-emerald-500 h-2 rounded-full" 
+                        style={{ width: `${(stats.revenue.netRevenue / stats.revenue.total) * 100}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-gray-700 text-sm w-16 text-right">{formatCurrency(stats.revenue.netRevenue)}</span>
+                  </div>
                 </div>
               </div>
             </div>

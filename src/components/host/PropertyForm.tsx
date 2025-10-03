@@ -35,14 +35,15 @@ const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { 
 const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
 const useMapEvents = dynamic(() => import('react-leaflet').then(mod => mod.useMapEvents as any), { ssr: false });
 
-// Helper for marker icon (Leaflet default icon fix for Next.js)
-const markerIcon = new L.Icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
+// Custom property marker icon using home.png
+const propertyMarkerIcon = new L.Icon({
+  iconUrl: '/home.png',
+  iconSize: [48, 60],
+  iconAnchor: [24, 60],
+  popupAnchor: [0, -60],
   shadowUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png',
-  shadowSize: [41, 41],
+  shadowSize: [61, 61],
+  shadowAnchor: [18, 61],
 });
 
 const MAPBOX_TOKEN = 'pk.eyJ1Ijoic2hpdmFuc2gxODA5IiwiYSI6ImNtZTRhdmJyMTA5YTEya3F0cWN2c3RpdmcifQ.7l3-Hj7ihCHCwH656wq1oA';
@@ -547,7 +548,7 @@ const PropertyForm: React.FC = () => {
                 onChange={(e) => handleInputChange('title', e.target.value)}
                 placeholder="e.g., Cozy Mountain Cabin"
                 className={`w-full px-4 py-3 text-base border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
-                  validationMessages.title || fieldErrors.title ? 'border-red-300' : 'border-gray-200'
+                  validationMessages.title || fieldErrors.title ? 'border-red-300' : 'border-slate-300'
                 }`}
               />
               {(validationMessages.title || fieldErrors.title) && (
@@ -560,7 +561,7 @@ const PropertyForm: React.FC = () => {
               <select
                 value={formData.type}
                 onChange={(e) => handleInputChange('type', e.target.value)}
-                className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 bg-white text-gray-900"
+                className="w-full px-4 py-3 text-base border-2 border-slate-300 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 bg-white text-slate-900 placeholder-slate-500"
               >
                 {propertyTypes.map(type => (
                   <option key={type.value} value={type.value}>
@@ -577,7 +578,7 @@ const PropertyForm: React.FC = () => {
               <select
                 value={formData.style}
                 onChange={(e) => handleInputChange('style', e.target.value)}
-                className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 bg-white text-gray-900"
+                className="w-full px-4 py-3 text-base border-2 border-slate-300 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 bg-white text-slate-900 placeholder-slate-500"
               >
                 {propertyStyles.map(style => (
                   <option key={style.value} value={style.value}>
@@ -592,7 +593,7 @@ const PropertyForm: React.FC = () => {
               <select
                 value={formData.cancellationPolicy}
                 onChange={(e) => handleInputChange('cancellationPolicy', e.target.value)}
-                className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 bg-white text-gray-900"
+                className="w-full px-4 py-3 text-base border-2 border-slate-300 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 bg-white text-slate-900 placeholder-slate-500"
               >
                 <option value="flexible">Flexible - Full refund up to 24 hours before</option>
                 <option value="moderate">Moderate - Full refund up to 5 days before</option>
@@ -632,22 +633,22 @@ const PropertyForm: React.FC = () => {
         setCoordinates([e.latlng.lng, e.latlng.lat]);
       },
     });
-    return coordinates[0] !== 0 && coordinates[1] !== 0 ? (
-      <Marker
-        position={[coordinates[1], coordinates[0]]}
-        icon={markerIcon}
-        draggable={true}
-        eventHandlers={{
-          dragend: (e: any) => {
-            const marker = e.target;
-            const latlng = marker.getLatLng();
-            setCoordinates([latlng.lng, latlng.lat]);
-          },
-        }}
-      >
-        <Popup>Drag me to adjust the exact location</Popup>
-      </Marker>
-    ) : null;
+  return coordinates[0] !== 0 && coordinates[1] !== 0 ? (
+    <Marker
+      position={[coordinates[1], coordinates[0]]}
+      icon={propertyMarkerIcon}
+      draggable={true}
+      eventHandlers={{
+        dragend: (e: any) => {
+          const marker = e.target;
+          const latlng = marker.getLatLng();
+          setCoordinates([latlng.lng, latlng.lat]);
+        },
+      }}
+    >
+      <Popup>🏠 Drag me to adjust the exact property location</Popup>
+    </Marker>
+  ) : null;
   }
 
   // Map search box component
@@ -1300,7 +1301,7 @@ const PropertyForm: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       {/* Full-screen sidebar */}
-      <div className="flex h-screen mb-32">
+      <div className="flex min-h-screen">
         {/* Left Sidebar - Fixed width, full height */}
         <aside className="w-80 bg-white border-r border-gray-100 shadow-xl flex flex-col">
           {/* Sidebar Header */}
@@ -1419,7 +1420,7 @@ const PropertyForm: React.FC = () => {
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto pb-8">
           {/* Top Header Bar */}
           <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 py-4">
             <div className="flex items-center justify-between">
@@ -1450,7 +1451,7 @@ const PropertyForm: React.FC = () => {
           )}
 
           {/* Form Content */}
-          <div className="pl-2 pr-4 py-4">
+          <div className="px-8 py-6">
             <div className="w-full">
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="transition-all duration-300">

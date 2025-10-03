@@ -309,29 +309,36 @@ const KYCDocumentReviewModal: React.FC<KYCDocumentReviewModalProps> = ({
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <h4 className="text-sm font-medium text-gray-900 mb-2">Front Image</h4>
+                      <h4 className="text-sm font-medium text-gray-900 mb-2">Identity Document Image</h4>
                       <div className="border border-gray-200 rounded-lg p-2">
                         <img 
                           src={kycData.kycVerification.identityDocument.frontImage} 
-                          alt="Document Front"
-                          className="w-full h-32 object-cover rounded"
+                          alt="Identity Document"
+                          className="w-full h-48 object-contain rounded"
                           onError={(e) => {
                             e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDIwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjEwMCIgeT0iNTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk0QTRBQSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+Cjwvc3ZnPgo=';
                           }}
                         />
                       </div>
+                      <p className="text-xs text-gray-500 mt-1">Note: User submitted single image for identity document</p>
                     </div>
                     <div>
-                      <h4 className="text-sm font-medium text-gray-900 mb-2">Back Image</h4>
-                      <div className="border border-gray-200 rounded-lg p-2">
-                        <img 
-                          src={kycData.kycVerification.identityDocument.backImage} 
-                          alt="Document Back"
-                          className="w-full h-32 object-cover rounded"
-                          onError={(e) => {
-                            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDIwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjEwMCIgeT0iNTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk0QTRBQSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+Cjwvc3ZnPgo=';
-                          }}
-                        />
+                      <h4 className="text-sm font-medium text-gray-900 mb-2">Document Details</h4>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <div className="space-y-2">
+                          <div>
+                            <span className="text-xs text-gray-500">Document Type:</span>
+                            <p className="text-sm font-medium">{getDocumentTypeLabel(kycData.kycVerification.identityDocument.type)}</p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-gray-500">Document Number:</span>
+                            <p className="text-sm font-medium">{kycData.kycVerification.identityDocument.number}</p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-gray-500">Status:</span>
+                            <p className="text-sm font-medium">{getStatusBadge(kycData.kycVerification.status)}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -363,12 +370,12 @@ const KYCDocumentReviewModal: React.FC<KYCDocumentReviewModalProps> = ({
                   </div>
                   
                   <div>
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">Document Image</h4>
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">Address Proof Document</h4>
                     <div className="border border-gray-200 rounded-lg p-2">
                       <img 
                         src={kycData.kycVerification.addressProof.documentImage} 
                         alt="Address Proof"
-                        className="w-full h-32 object-cover rounded"
+                        className="w-full h-48 object-contain rounded"
                         onError={(e) => {
                           e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDIwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjEwMCIgeT0iNTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk0QTRBQSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+Cjwvc3ZnPgo=';
                         }}
@@ -386,17 +393,18 @@ const KYCDocumentReviewModal: React.FC<KYCDocumentReviewModalProps> = ({
                     Selfie with ID
                   </h3>
                   <div>
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">Selfie Image</h4>
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">Selfie with ID Document</h4>
                     <div className="border border-gray-200 rounded-lg p-2">
                       <img 
                         src={kycData.kycVerification.selfie} 
                         alt="Selfie with ID"
-                        className="w-full h-32 object-cover rounded"
+                        className="w-full h-48 object-contain rounded"
                         onError={(e) => {
                           e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDIwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjEwMCIgeT0iNTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk0QTRBQSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+Cjwvc3ZnPgo=';
                         }}
                       />
                     </div>
+                    <p className="text-xs text-gray-500 mt-1">User holding their ID document for verification</p>
                   </div>
                 </div>
               )}

@@ -9,7 +9,9 @@ import {
   Eye, 
   Download,
   Search,
-  Filter
+  Filter,
+  Shield,
+  X
 } from 'lucide-react';
 
 interface KYCVerification {
@@ -44,8 +46,8 @@ export default function AdminKYC() {
         const response = await apiClient.getAdminKYCVerifications();
         
         if (response.success && response.data) {
-          // The backend returns { kycApplications: [...], pagination: {...} }
-          setKycVerifications(response.data.kycApplications || []);
+          // The backend returns { kyc: [...], pagination: {...} }
+          setKycVerifications(response.data.kyc || []);
         } else {
           // Fallback to mock data if API fails
           console.warn('Admin KYC API failed, using fallback data');
@@ -233,160 +235,199 @@ export default function AdminKYC() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">KYC Verifications</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Review and approve identity verification documents.
-          </p>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <input
-                  type="text"
-                  placeholder="Search by name, email, or document number..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
-                />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* Enhanced Header */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                  KYC Verifications
+                </h1>
+                <p className="mt-2 text-lg text-gray-600">
+                  Review and approve identity verification documents
+                </p>
+                <div className="mt-4 flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">
+                      {filteredVerifications.filter(v => v.kyc?.status === 'pending').length} Pending
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">
+                      {filteredVerifications.filter(v => v.kyc?.status === 'verified').length} Verified
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">
+                      {filteredVerifications.filter(v => v.kyc?.status === 'rejected').length} Rejected
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="hidden md:block">
+                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                  <Shield className="w-10 h-10 text-white" />
+                </div>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-gray-400" />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-              >
-                <option value="all">All Status</option>
-                <option value="not_submitted">Not Submitted</option>
-                <option value="pending">Pending</option>
-                <option value="verified">Verified</option>
-                <option value="rejected">Rejected</option>
-              </select>
+          </div>
+
+          {/* Enhanced Filters */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+            <div className="flex flex-col lg:flex-row gap-6">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, email, or document number..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-12 pr-4 py-3 w-full border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 backdrop-blur-sm text-gray-900 placeholder-gray-500"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-5 w-5 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700">Filter by status:</span>
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 backdrop-blur-sm text-gray-900 min-w-[150px]"
+                >
+                  <option value="all">All Status</option>
+                  <option value="not_submitted">Not Submitted</option>
+                  <option value="pending">Pending Review</option>
+                  <option value="verified">Verified</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Table */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Document Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Document Number
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Submitted
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredVerifications.map((verification) => (
-                  <tr key={verification._id || verification.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-purple-500 flex items-center justify-center">
-                            <span className="text-sm font-medium text-white">
-                              {(verification.name || 'U').charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{verification.name || 'N/A'}</div>
-                          <div className="text-sm text-gray-500">{verification.email || 'N/A'}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+          {/* Enhanced KYC Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {filteredVerifications.map((verification) => (
+              <div key={verification._id || verification.id} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
+                {/* User Info Header */}
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                    <span className="text-xl font-bold text-white">
+                      {(verification.name || 'U').charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900">{verification.name || 'N/A'}</h3>
+                    <p className="text-sm text-gray-500">{verification.email || 'N/A'}</p>
+                  </div>
+                  {getStatusBadge(verification.kyc?.status || 'not_submitted')}
+                </div>
+
+                {/* Document Details */}
+                <div className="space-y-4 mb-6">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <span className="text-sm font-medium text-gray-600">Document Type</span>
+                    <span className="text-sm font-semibold text-gray-900">
                       {getDocumentTypeLabel(verification.kyc?.documentType || 'unknown')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <span className="text-sm font-medium text-gray-600">Document Number</span>
+                    <span className="text-sm font-semibold text-gray-900 font-mono">
                       {verification.kyc?.documentNumber || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(verification.kyc?.status || 'not_submitted')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <span className="text-sm font-medium text-gray-600">Submitted</span>
+                    <span className="text-sm font-semibold text-gray-900">
                       {new Date(verification.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        {/* Eye button - show only if documents exist */}
-                        {verification.kyc?.documentImage && (
-                          <button
-                            onClick={() => handleViewDocument(verification)}
-                            className="text-purple-600 hover:text-purple-900"
-                            title="View Document"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                        )}
-                        
-                        {/* Download button - show only if documents exist */}
-                        {verification.kyc?.documentImage && (
-                          <button
-                            onClick={() => handleDownloadDocument(verification)}
-                            className="text-blue-600 hover:text-blue-900"
-                            title="Download Document"
-                          >
-                            <Download className="h-4 w-4" />
-                          </button>
-                        )}
-                        
-                        {/* Show message when no documents available */}
-                        {!verification.kyc?.documentImage && (
-                          <span className="text-xs text-gray-400 italic">No documents</span>
-                        )}
-                        
-                        {/* Approve/Reject buttons - show only for pending status */}
-                        {verification.kyc?.status === 'pending' && (
-                          <>
-                            <button
-                              onClick={() => handleApprove(verification._id || verification.id)}
-                              className="text-green-600 hover:text-green-900"
-                              title="Approve"
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleReject(verification._id || verification.id)}
-                              className="text-red-600 hover:text-red-900"
-                              title="Reject"
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                    </span>
+                  </div>
+                </div>
 
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3">
+                  {verification.kyc?.documentImage ? (
+                    <button
+                      onClick={() => handleViewDocument(verification)}
+                      className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-3 rounded-xl font-medium hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                    >
+                      <Eye className="h-4 w-4" />
+                      View Details
+                    </button>
+                  ) : (
+                    <div className="flex-1 bg-gray-100 text-gray-500 px-4 py-3 rounded-xl font-medium text-center">
+                      No Documents
+                    </div>
+                  )}
+                  
+                  {verification.kyc?.documentImage && (
+                    <button
+                      onClick={() => handleDownloadDocument(verification)}
+                      className="p-3 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200 transition-colors shadow-md hover:shadow-lg"
+                      title="Download Documents"
+                    >
+                      <Download className="h-5 w-5" />
+                    </button>
+                  )}
+                  
+                  {verification.kyc?.status === 'pending' && (
+                    <>
+                      <button
+                        onClick={() => handleApprove(verification._id || verification.id)}
+                        className="p-3 bg-green-100 text-green-600 rounded-xl hover:bg-green-200 transition-colors shadow-md hover:shadow-lg"
+                        title="Approve"
+                      >
+                        <CheckCircle className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleReject(verification._id || verification.id)}
+                        className="p-3 bg-red-100 text-red-600 rounded-xl hover:bg-red-200 transition-colors shadow-md hover:shadow-lg"
+                        title="Reject"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Empty State */}
+          {filteredVerifications.length === 0 && (
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-12 text-center">
+              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Shield className="w-12 h-12 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">No KYC Verifications Found</h3>
+              <p className="text-gray-500 mb-6">
+                {searchTerm || statusFilter !== 'all' 
+                  ? 'Try adjusting your search or filter criteria.' 
+                  : 'No identity verification documents have been submitted yet.'
+                }
+              </p>
+              {(searchTerm || statusFilter !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                  }}
+                  className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-6 py-3 rounded-xl font-medium hover:from-purple-600 hover:to-indigo-700 transition-all duration-200"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+          )}
+
+        </div>
       </div>
 
       {/* KYC Document Review Modal */}
