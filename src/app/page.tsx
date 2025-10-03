@@ -200,12 +200,16 @@ export default function Home() {
 
   // Carousel navigation functions with circular behavior
   const nextCoupon = () => {
+    if (activeCoupons.length <= 3) return; // No navigation needed if 3 or fewer coupons
+    
     setCurrentCouponIndex((prev) => 
       prev + 3 >= activeCoupons.length ? 0 : prev + 3
     );
   };
 
   const prevCoupon = () => {
+    if (activeCoupons.length <= 3) return; // No navigation needed if 3 or fewer coupons
+    
     setCurrentCouponIndex((prev) => 
       prev - 3 < 0 ? Math.max(0, Math.floor((activeCoupons.length - 1) / 3) * 3) : prev - 3
     );
@@ -214,7 +218,19 @@ export default function Home() {
   // Get visible coupons for current page with circular behavior
   const getVisibleCoupons = () => {
     const coupons = [];
-    for (let i = 0; i < 3; i++) {
+    const maxVisible = Math.min(3, activeCoupons.length);
+    
+    if (activeCoupons.length === 0) {
+      return [];
+    }
+    
+    // If we have fewer than 3 coupons, just show what we have
+    if (activeCoupons.length <= 3) {
+      return activeCoupons;
+    }
+    
+    // If we have more than 3 coupons, use circular behavior
+    for (let i = 0; i < maxVisible; i++) {
       const index = (currentCouponIndex + i) % activeCoupons.length;
       coupons.push(activeCoupons[index]);
     }

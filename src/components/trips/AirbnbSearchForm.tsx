@@ -1060,70 +1060,8 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
               direction="horizontal"
               months={2}
               className="rounded-lg"
-              color="#3b82f6"
-              styles={{
-                day: {
-                  width: '48px',
-                  height: '48px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '50%',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  position: 'relative',
-                },
-                daySelected: {
-                  background: '#3b82f6 !important',
-                  color: '#ffffff !important',
-                  borderRadius: '50% !important',
-                  fontWeight: '600 !important',
-                },
-                dayStartOfRange: {
-                  background: '#3b82f6 !important',
-                  color: '#ffffff !important',
-                  borderRadius: '50% !important',
-                  fontWeight: '600 !important',
-                  border: 'none !important',
-                  boxShadow: 'none !important',
-                },
-                dayEndOfRange: {
-                  background: '#3b82f6 !important',
-                  color: '#ffffff !important',
-                  borderRadius: '50% !important',
-                  fontWeight: '600 !important',
-                  border: 'none !important',
-                  boxShadow: 'none !important',
-                },
-                dayInRange: {
-                  background: '#dbeafe !important',
-                  color: '#1e40af !important',
-                  borderRadius: '0 !important',
-                  fontWeight: '500 !important',
-                },
-                dayHovered: {
-                  background: '#f0f9ff !important',
-                  color: '#0369a1 !important',
-                  borderRadius: '50% !important',
-                },
-                dayPassive: {
-                  color: '#9ca3af !important',
-                },
-                dayToday: {
-                  color: '#3b82f6 !important',
-                  fontWeight: '600 !important',
-                },
-                daySelected: {
-                  background: '#3b82f6 !important',
-                  color: '#ffffff !important',
-                  borderRadius: '50% !important',
-                  fontWeight: '600 !important',
-                  border: 'none !important',
-                  boxShadow: 'none !important',
-                },
-              }}
+              editableDateInputs={false}
+              moveRangeOnFirstSelection={false}
             />
 
             {/* Date Flexibility Options */}

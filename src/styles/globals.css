@@ -408,7 +408,122 @@ body {
 .rdrDateDisplayWrapper {
   display: none !important;
 }
-/* Simple Calendar Styles - Using inline styles instead */
+/* Calendar Styles - Fixed for proper range selection */
+.rdrCalendarWrapper .rdrDay {
+  width: 48px !important;
+  height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  position: relative !important;
+  background: transparent !important;
+  color: #000000 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.rdrCalendarWrapper .rdrDayStartOfRange,
+.rdrCalendarWrapper .rdrDay.rdrDayStartOfRange {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  border-radius: 50% !important;
+  font-weight: 600 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.rdrCalendarWrapper .rdrDayEndOfRange,
+.rdrCalendarWrapper .rdrDay.rdrDayEndOfRange {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  border-radius: 50% !important;
+  font-weight: 600 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.rdrCalendarWrapper .rdrDayInRange,
+.rdrCalendarWrapper .rdrDay.rdrDayInRange {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+  border-radius: 0 !important;
+  font-weight: 500 !important;
+  border: none !important;
+  box-shadow: none !important;
+  position: relative !important;
+}
+
+/* Ensure continuous range styling */
+.rdrCalendarWrapper .rdrDayInRange:not(.rdrDayStartOfRange):not(.rdrDayEndOfRange) {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+  border-radius: 0 !important;
+  font-weight: 500 !important;
+  border: none !important;
+  box-shadow: none !important;
+  position: relative !important;
+}
+
+/* Override any conflicting range styles */
+.rdrCalendarWrapper .rdrDay[class*="rdrDayInRange"]:not([class*="rdrDayStartOfRange"]):not([class*="rdrDayEndOfRange"]) {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+  border-radius: 0 !important;
+  font-weight: 500 !important;
+  border: none !important;
+  box-shadow: none !important;
+  position: relative !important;
+}
+
+.rdrCalendarWrapper .rdrDay:not(.rdrDayPassive):hover {
+  background: #f0f9ff !important;
+  color: #0369a1 !important;
+  border-radius: 50% !important;
+}
+
+.rdrCalendarWrapper .rdrDayPassive {
+  color: #9ca3af !important;
+}
+
+.rdrCalendarWrapper .rdrDayToday {
+  color: #3b82f6 !important;
+  font-weight: 600 !important;
+}
+
+/* Force continuous range appearance */
+.rdrCalendarWrapper .rdrDayInRange {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+  border-radius: 0 !important;
+  font-weight: 500 !important;
+  border: none !important;
+  box-shadow: none !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Override react-date-range default range styling */
+.rdrCalendarWrapper .rdrDayInRange::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #dbeafe !important;
+  z-index: -1 !important;
+}
+
+/* Ensure start and end dates are on top of range */
+.rdrCalendarWrapper .rdrDayStartOfRange,
+.rdrCalendarWrapper .rdrDayEndOfRange {
+  z-index: 2 !important;
+}
 
 /* --- End custom calendar styles --- */
 
