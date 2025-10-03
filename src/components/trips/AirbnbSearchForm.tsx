@@ -11,231 +11,7 @@ import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import { cn } from '@/shared/utils/pricingUtils';
 
-// Custom CSS for Airbnb-style calendar
-const customCalendarStyles = `
-  .rdrCalendarWrapper {
-    font-size: 14px !important;
-    width: 100% !important;
-    max-width: 600px !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    font-family: Circular, -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif !important;
-  }
-  
-  .rdrDateRangeWrapper {
-    width: 100% !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-  }
-  
-  .rdrDefinedRangesWrapper {
-    display: none !important;
-  }
-  
-  .rdrDateRangePickerWrapper {
-    width: 100% !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-  }
-  
-  .rdrCalendarWrapper .rdrDateRangeWrapper {
-    width: 100% !important;
-  }
-  
-  .rdrMonth {
-    width: 50% !important;
-    padding: 16px !important;
-    border-right: 1px solid #e5e7eb !important;
-  }
-  
-  .rdrMonth:last-child {
-    border-right: none !important;
-  }
-  
-  .rdrMonthAndYearWrapper {
-    padding: 0 0 12px 0 !important;
-    font-size: 16px !important;
-    font-weight: 600 !important;
-    color: #222222 !important;
-    text-align: center !important;
-    margin-bottom: 0 !important;
-    position: relative !important;
-    line-height: 1.2 !important;
-  }
-  
-  .rdrMonthAndYearPickers select {
-    font-size: 16px !important;
-    padding: 4px 8px !important;
-    border: 1px solid #d1d5db !important;
-    border-radius: 6px !important;
-    background: white !important;
-  }
-  
-  .rdrWeekDays {
-    padding: 0 !important;
-    margin-bottom: 6px !important;
-    display: grid !important;
-    grid-template-columns: repeat(7, 1fr) !important;
-    gap: 0 !important;
-  }
-  
-  .rdrWeekDay {
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    color: #717171 !important;
-    padding: 8px 0 !important;
-    text-align: center !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.04em !important;
-    line-height: 1 !important;
-  }
-  
-  .rdrDays {
-    padding: 0 !important;
-    display: grid !important;
-    grid-template-columns: repeat(7, 1fr) !important;
-    gap: 0 !important;
-  }
-  
-  .rdrDay {
-    width: 36px !important;
-    height: 36px !important;
-    font-size: 14px !important;
-    margin: 0 !important;
-    border-radius: 50% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    position: relative !important;
-    background: transparent !important;
-    cursor: pointer !important;
-    font-weight: 400 !important;
-  }
-  
-  .rdrDay:hover {
-    background-color: #f7f7f7 !important;
-  }
-  
-  .rdrDay.rdrDayToday .rdrDayNumber {
-    color: #222222 !important;
-    font-weight: 400 !important;
-  }
-  
-  .rdrDay.rdrDayToday {
-    border: none !important;
-  }
-  
-  .rdrDay.rdrDayInRange {
-    background-color: #f7f7f7 !important;
-    color: #222222 !important;
-    border-radius: 0 !important;
-  }
-  
-  .rdrDay.rdrDayInRange:not(.rdrDayStartOfRange):not(.rdrDayEndOfRange) {
-    background-color: #f7f7f7 !important;
-    color: #222222 !important;
-    border-radius: 0 !important;
-  }
-  
-  .rdrDay.rdrDayStartOfRange,
-  .rdrDay.rdrDayEndOfRange {
-    background-color: #222222 !important;
-    color: white !important;
-    font-weight: 600 !important;
-    border-radius: 50% !important;
-  }
-  
-  .rdrDay.rdrDayStartOfRange:not(.rdrDayEndOfRange) {
-    background-color: #222222 !important;
-    color: white !important;
-  }
-  
-  .rdrDay.rdrDayEndOfRange:not(.rdrDayStartOfRange) {
-    background-color: #222222 !important;
-    color: white !important;
-  }
-  
-  .rdrDay.rdrDayStartOfRange {
-    border-radius: 50% !important;
-  }
-  
-  .rdrDay.rdrDayEndOfRange {
-    border-radius: 50% !important;
-  }
-  
-  .rdrDay.rdrDayStartOfRange.rdrDayEndOfRange {
-    border-radius: 50% !important;
-    background-color: #222222 !important;
-    color: white !important;
-  }
-  
-  .rdrDay.rdrDayInRange:not(.rdrDayStartOfRange):not(.rdrDayEndOfRange) {
-    border-radius: 0 !important;
-  }
-  
-  .rdrDay.rdrDayPassive {
-    color: #d1d5db !important;
-  }
-  
-  .rdrDay.rdrDayDisabled {
-    color: #d1d5db !important;
-    background-color: transparent !important;
-  }
-  
-  .rdrNextPrevButton {
-    width: 32px !important;
-    height: 32px !important;
-    border-radius: 50% !important;
-    background-color: transparent !important;
-    border: none !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    box-shadow: none !important;
-    color: #222222 !important;
-    font-size: 16px !important;
-    font-weight: 600 !important;
-  }
-  
-  .rdrNextPrevButton:hover {
-    background-color: #f7f7f7 !important;
-  }
-  
-  .rdrNextPrevButton i {
-    border: none !important;
-    width: 0 !important;
-    height: 0 !important;
-    border-left: 4px solid transparent !important;
-    border-right: 4px solid transparent !important;
-    border-top: 4px solid #222222 !important;
-  }
-  
-  .rdrPprevButton i {
-    border-top: 4px solid transparent !important;
-    border-bottom: 4px solid transparent !important;
-    border-right: 4px solid #222222 !important;
-    border-left: none !important;
-  }
-
-  /* Animation for overlays */
-  @keyframes slideDown {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .search-overlay {
-    animation: slideDown 0.2s ease-out;
-  }
-`;
+// Calendar styles are now handled in globals.css with custom-calendar class
 
 const MAPBOX_TOKEN = 'pk.eyJ1Ijoic2hpdmFuc2gxODA5IiwiYSI6ImNtZTRhdmJyMTA5YTEya3F0cWN2c3RpdmcifQ.7l3-Hj7ihCHCwH656wq1oA';
 const MAPBOX_API_URL = 'https://api.mapbox.com/geocoding/v5/mapbox.places';
@@ -426,6 +202,8 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
 
   const [dateFlexibility, setDateFlexibility] = useState<'exact' | '1' | '2' | '3' | '7' | '14'>('exact');
   const [recentSearches, setRecentSearches] = useState<Array<{ location: string; dates?: string }>>([]);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [searchInputValue, setSearchInputValue] = useState('');
   
   // Service options for Services category
   const serviceOptions = [
@@ -594,17 +372,191 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
     }, 400)
   ).current;
 
-  // Inject custom calendar styles
+  // Detect user's current location
+  const detectCurrentLocation = async () => {
+    console.log('🚀 detectCurrentLocation function called!');
+    
+    if (!navigator.geolocation) {
+      console.log('❌ Geolocation not supported');
+      alert('Geolocation is not supported by this browser.');
+      return;
+    }
+
+    console.log('🌍 Starting location detection...');
+    setIsDetectingLocation(true);
+
+    try {
+      // Check if we have permission (if supported by browser)
+      if (navigator.permissions) {
+        try {
+          const permission = await navigator.permissions.query({ name: 'geolocation' });
+          
+          if (permission.state === 'denied') {
+            alert('📍 Location access is denied!\n\nTo use the "Nearby" feature:\n1. Click the location icon in your browser\'s address bar\n2. Select "Allow" for location access\n3. Refresh the page and try again');
+            setIsDetectingLocation(false);
+            return;
+          }
+        } catch (permissionError) {
+          console.log('Permissions API not fully supported, proceeding with geolocation request');
+        }
+      }
+
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          resolve, 
+          (error) => {
+            console.error('Geolocation error:', error);
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                reject(new Error('Location access denied by user. Please allow location access and try again.'));
+                break;
+              case error.POSITION_UNAVAILABLE:
+                reject(new Error('Location information is unavailable. Please try again.'));
+                break;
+              case error.TIMEOUT:
+                reject(new Error('Location request timed out. Please try again.'));
+                break;
+              default:
+                reject(new Error('An unknown error occurred while retrieving location.'));
+                break;
+            }
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 15000, // Increased timeout
+            maximumAge: 300000 // 5 minutes
+          }
+        );
+      });
+
+      const { latitude, longitude } = position.coords;
+      
+      // Reverse geocode to get city name
+      const reverseGeocodeUrl = `${MAPBOX_API_URL}/${longitude},${latitude}.json` +
+        `?access_token=${MAPBOX_TOKEN}` +
+        `&types=place,locality,neighborhood,address,poi` +
+        `&limit=1`;
+
+      const response = await fetch(reverseGeocodeUrl);
+      const data = await response.json();
+
+      console.log('Reverse geocoding response:', data);
+
+      if (data.features && data.features.length > 0) {
+        const feature = data.features[0];
+        console.log('Selected feature:', feature);
+        
+        // Extract city name from the place_name or context
+        let cityName = 'Current Location';
+        
+        if (feature.place_name) {
+          // Try to extract just the city name from the full address
+          const parts = feature.place_name.split(', ');
+          if (parts.length > 0) {
+            // Take the first part, but prefer locality over neighborhood
+            cityName = parts[0];
+            
+            // If we have context, try to find a better city name
+            if (feature.context && feature.context.length > 0) {
+              const locality = feature.context.find((ctx: any) => 
+                ctx.id && (ctx.id.startsWith('place.') || ctx.id.startsWith('locality.'))
+              );
+              if (locality) {
+                cityName = locality.text;
+              }
+            }
+          }
+        } else if (feature.text) {
+          cityName = feature.text;
+        } else if (feature.context) {
+          // Look for locality or place in context
+          const locality = feature.context.find((ctx: any) => 
+            ctx.id && (ctx.id.startsWith('place.') || ctx.id.startsWith('locality.'))
+          );
+          if (locality) {
+            cityName = locality.text;
+          } else if (feature.context.length > 0) {
+            // Fallback to first context item
+            cityName = feature.context[0].text;
+          }
+        }
+        
+        console.log('Extracted city name:', cityName);
+        
+        // Ensure we have a valid city name
+        if (cityName && cityName !== 'Current Location' && cityName !== 'Nearby') {
+          setSelectedCity({
+            value: cityName,
+            label: cityName,
+            coordinates: [longitude, latitude],
+            type: 'current_location'
+          });
+          
+          console.log('✅ Location detected successfully:', cityName);
+        } else {
+          console.log('❌ Could not extract valid city name, using coordinates');
+          // Fallback: use coordinates as city name
+          const coordLabel = `Location (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`;
+          setSelectedCity({
+            value: coordLabel,
+            label: coordLabel,
+            coordinates: [longitude, latitude],
+            type: 'current_location'
+          });
+        }
+        
+        // Auto-focus on dates after location selection
+        setTimeout(() => {
+          setActiveField('checkin');
+        }, 100);
+      } else {
+        throw new Error('Could not determine location');
+      }
+    } catch (error) {
+      console.error('Error detecting location:', error);
+      
+      // Show specific error message based on the error type
+      if (error instanceof Error) {
+        if (error.message.includes('denied')) {
+          alert('📍 Location access denied!\n\nTo use the "Nearby" feature:\n1. Click the location icon in your browser\'s address bar\n2. Select "Allow" for location access\n3. Refresh the page and try again');
+        } else if (error.message.includes('timeout')) {
+          alert('⏱️ Location request timed out!\n\nPlease check your internet connection and try again.');
+        } else if (error.message.includes('unavailable')) {
+          alert('❌ Location unavailable!\n\nPlease ensure your device\'s location services are enabled and try again.');
+        } else {
+          alert(`❌ ${error.message}\n\nPlease try searching manually or check your browser settings.`);
+        }
+      } else {
+        alert('❌ Unable to detect your location. Please search manually.');
+      }
+    } finally {
+      setIsDetectingLocation(false);
+    }
+  };
+
+  // Custom calendar styles are now handled in globals.css
+
+  // Test function for debugging (can be called from browser console)
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const style = document.createElement('style');
-      style.textContent = customCalendarStyles;
-      document.head.appendChild(style);
-      return () => {
-        document.head.removeChild(style);
+      (window as any).testLocationDetection = detectCurrentLocation;
+      (window as any).testMapboxAPI = async (lat: number, lng: number) => {
+        const url = `${MAPBOX_API_URL}/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}&types=place,locality,neighborhood,address,poi&limit=1`;
+        console.log('Testing Mapbox API with URL:', url);
+        const response = await fetch(url);
+        const data = await response.json();
+        console.log('Mapbox API response:', data);
+        return data;
       };
     }
   }, []);
+
+  // Clear search input when dropdown opens
+  useEffect(() => {
+    if (activeField === 'where') {
+      setSearchInputValue('');
+    }
+  }, [activeField]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -921,15 +873,22 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
                   cacheOptions
                   loadOptions={debouncedLoadOptions}
                   defaultOptions={false}
-                  value={selectedCity}
+                  value={null} // Always null so it doesn't show selected value in input
+                  inputValue={searchInputValue}
+                  onInputChange={(newValue) => setSearchInputValue(newValue)}
                   onChange={option => {
                     const opt = option as { value: string; label: string; coordinates?: [number, number]; type?: string };
                     setSelectedCity({ value: opt.value, label: opt.label, coordinates: opt.coordinates, type: opt.type });
+                    setSearchInputValue(''); // Clear input after selection
                     setActiveField(null);
                     // Auto-focus on dates after location selection
                     setTimeout(() => {
                       setActiveField('checkin');
                     }, 100);
+                  }}
+                  onFocus={() => {
+                    // Clear input when focused
+                    setSearchInputValue('');
                   }}
                   placeholder="Search destinations"
                   styles={{
@@ -956,20 +915,36 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
                   type="button"
                   className="w-full flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left"
                   onClick={() => {
+                    if (dest.label === 'Nearby') {
+                      // For Nearby button, detect location instead of setting "Nearby"
+                      console.log('🔘 Dropdown Nearby button clicked!');
+                      detectCurrentLocation();
+                      setActiveField(null);
+                    } else {
+                      // For other destinations, use normal behavior
                     setSelectedCity({ value: dest.label, label: dest.label });
                     setActiveField(null);
                     // Auto-focus on dates after location selection
                     setTimeout(() => {
                       setActiveField('checkin');
                     }, 100);
+                    }
                   }}
                 >
                   <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-gray-100">
-                    {dest.icon}
+                    {dest.label === 'Nearby' && isDetectingLocation ? (
+                      <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      dest.icon
+                    )}
                   </div>
                   <div>
-                    <div className="font-semibold text-gray-900">{dest.label}</div>
-                    <div className="text-gray-500 text-sm">{dest.description}</div>
+                    <div className="font-semibold text-gray-900">
+                      {dest.label === 'Nearby' && isDetectingLocation ? 'Detecting location...' : dest.label}
+                    </div>
+                    <div className="text-gray-500 text-sm">
+                      {dest.label === 'Nearby' && isDetectingLocation ? 'Please wait while we find your location' : dest.description}
+                    </div>
                   </div>
                 </button>
               ))}
@@ -1013,10 +988,10 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
       {/* Date Picker Overlay */}
       {(activeField === 'checkin' || activeField === 'checkout') && (
         <div className={cn(
-          "absolute top-full mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 search-overlay w-[700px]",
+          "absolute top-full mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 search-overlay w-full max-h-[80vh] overflow-hidden",
           activeCategory === 'services' ? "left-0" : "left-0"
         )}>
-          <div className="p-3">
+          <div className="p-3 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center gap-0 mb-4">
               <button
                 type="button"
@@ -1080,12 +1055,75 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
                 }
               }}
               minDate={new Date()}
-              rangeColors={["#222222"]}
               showDateDisplay={false}
               showMonthAndYearPickers={true}
               direction="horizontal"
               months={2}
               className="rounded-lg"
+              color="#3b82f6"
+              styles={{
+                day: {
+                  width: '48px',
+                  height: '48px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '50%',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  position: 'relative',
+                },
+                daySelected: {
+                  background: '#3b82f6 !important',
+                  color: '#ffffff !important',
+                  borderRadius: '50% !important',
+                  fontWeight: '600 !important',
+                },
+                dayStartOfRange: {
+                  background: '#3b82f6 !important',
+                  color: '#ffffff !important',
+                  borderRadius: '50% !important',
+                  fontWeight: '600 !important',
+                  border: 'none !important',
+                  boxShadow: 'none !important',
+                },
+                dayEndOfRange: {
+                  background: '#3b82f6 !important',
+                  color: '#ffffff !important',
+                  borderRadius: '50% !important',
+                  fontWeight: '600 !important',
+                  border: 'none !important',
+                  boxShadow: 'none !important',
+                },
+                dayInRange: {
+                  background: '#dbeafe !important',
+                  color: '#1e40af !important',
+                  borderRadius: '0 !important',
+                  fontWeight: '500 !important',
+                },
+                dayHovered: {
+                  background: '#f0f9ff !important',
+                  color: '#0369a1 !important',
+                  borderRadius: '50% !important',
+                },
+                dayPassive: {
+                  color: '#9ca3af !important',
+                },
+                dayToday: {
+                  color: '#3b82f6 !important',
+                  fontWeight: '600 !important',
+                },
+                daySelected: {
+                  background: '#3b82f6 !important',
+                  color: '#ffffff !important',
+                  borderRadius: '50% !important',
+                  fontWeight: '600 !important',
+                  border: 'none !important',
+                  boxShadow: 'none !important',
+                },
+              }}
             />
 
             {/* Date Flexibility Options */}
@@ -1107,7 +1145,7 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
                     className={cn(
                       "px-4 py-2 text-sm rounded-full border transition-colors",
                       dateFlexibility === option.value
-                        ? "bg-gray-900 text-white border-gray-900"
+                        ? "bg-white text-black border-black"
                         : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"
                     )}
                   >
