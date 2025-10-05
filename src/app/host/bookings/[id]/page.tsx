@@ -841,7 +841,7 @@ export default function HostBookingDetailPage() {
                   <div className="space-y-2">
                     {/* Platform Fee */}
                     <div className="flex justify-between items-center py-1">
-                      <span className="text-sm text-gray-700">Platform Fee ({booking.pricingBreakdown?.customerBreakdown?.subtotal > 0 ? Math.round((booking.pricingBreakdown?.platformBreakdown?.platformFee || 0) / booking.pricingBreakdown?.customerBreakdown?.subtotal * 100) : 0}%)</span>
+                      <span className="text-sm text-gray-700">Platform Fee ({booking.pricingBreakdown?.hostBreakdown?.subtotal > 0 ? Math.round((booking.pricingBreakdown?.platformBreakdown?.platformFee || 0) / booking.pricingBreakdown?.hostBreakdown?.subtotal * 100) : 0}%)</span>
                       <span className="text-sm font-medium text-gray-900">
                         {formatCurrency(booking.pricingBreakdown?.hostBreakdown?.platformFee || booking.platformFee || 0)}
                       </span>

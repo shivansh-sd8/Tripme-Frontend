@@ -174,9 +174,9 @@ export default function AdminListings() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                     <span className="text-sm text-gray-600">
-                      {filteredListings.filter(l => l.status === 'draft').length} Pending
+                      {filteredListings.filter(l => l.status === 'draft' && l.approvalStatus === 'pending').length} Pending Approval
                     </span>
                   </div>
                   <div className="flex items-center gap-2">

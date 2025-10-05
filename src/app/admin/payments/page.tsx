@@ -7,6 +7,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
+import { apiClient } from '@/infrastructure/api/clients/api-client';
 import { 
   Search, 
   Filter, 
@@ -15,33 +16,54 @@ import {
   DollarSign, 
   CreditCard, 
   Clock,
-  Receipt
+  Receipt,
+  Users
 } from 'lucide-react';
 
 interface Payment {
+  _id: string;
   id: string;
-  transactionId: string;
-  hostName: string;
-  hostEmail: string;
-  guestName: string;
-  guestEmail: string;
-  listingTitle: string;
+  booking: {
+    _id: string;
+    listing?: string;
+    service?: string;
+    status: string;
+    checkIn: string;
+    checkOut: string;
+    totalAmount: number;
+    receiptId: string;
+  };
+  user: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  host: {
+    _id: string;
+    name: string;
+    email: string;
+  };
   amount: number;
-  platformFee: number;
-  hostEarning: number;
+  commission: {
+    platformFee: number;
+    hostEarning: number;
+    processingFee: number;
+  };
+  pricingBreakdown: {
+    platformBreakdown: {
+      platformRevenue: number;
+    };
+  };
   status: string;
-  paymentDate: string;
-  payout: any;
-  refunds: any[];
+  createdAt: string;
+  payout: {
+    status: string;
+    method: string;
+  };
   totalRefunded: number;
   netAmount: number;
   payoutAmount: number;
   paymentMethod: string;
-  bookingId: string;
-  bookingDates: {
-    checkIn: string;
-    checkOut: string;
-  } | null;
 }
 
 interface PaymentStats {
@@ -77,24 +99,19 @@ export default function AdminPaymentsPage() {
   const fetchPayments = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({
+      const params = {
         page: currentPage.toString(),
         limit: '10'
-      });
+      };
       
-      if (searchTerm) params.append('search', searchTerm);
-      if (statusFilter) params.append('status', statusFilter);
+      if (searchTerm) params.search = searchTerm;
+      if (statusFilter) params.status = statusFilter;
 
-      const response = await fetch(`/api/payments/admin/all?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPayments(data.data.payments || []);
-        setTotalPages(data.data.totalPages || 1);
+      const response = await apiClient.getAdminPayments(params);
+      
+      if (response.success && response.data) {
+        setPayments(response.data.payments || []);
+        setTotalPages(response.data.pagination?.pages || 1);
       }
     } catch (error) {
       console.error('Error fetching payments:', error);
@@ -105,15 +122,24 @@ export default function AdminPaymentsPage() {
 
   const fetchPaymentStats = async () => {
     try {
-      const response = await fetch('/api/payments/admin/stats', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data.data);
+      // Calculate stats from payments data
+      const response = await apiClient.getAdminPayments({ limit: '1000' });
+      
+      if (response.success && response.data) {
+        const payments = response.data.payments || [];
+        
+        const stats = {
+          totalPayments: payments.length,
+          totalAmount: payments.reduce((sum, payment) => sum + (payment.amount || 0), 0),
+          platformFees: payments.reduce((sum, payment) => sum + (payment.commission?.platformFee || 0), 0),
+          netRevenue: payments.reduce((sum, payment) => sum + (payment.pricingBreakdown?.platformBreakdown?.platformRevenue || 0), 0),
+          pendingPayouts: payments.filter(p => p.payout?.status === 'pending').length,
+          totalPayouts: payments.filter(p => p.payout?.status === 'completed').length,
+          totalRefunds: payments.reduce((sum, payment) => sum + (payment.totalRefunded || 0), 0),
+          refundAmount: payments.reduce((sum, payment) => sum + (payment.totalRefunded || 0), 0)
+        };
+        
+        setStats(stats);
       }
     } catch (error) {
       console.error('Error fetching payment stats:', error);
@@ -149,7 +175,8 @@ export default function AdminPaymentsPage() {
     }).format(amount || 0);
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-IN', {
       year: 'numeric',
       month: 'short',
@@ -332,11 +359,11 @@ export default function AdminPaymentsPage() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {payments.map((payment) => (
-                  <div key={payment.id} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:bg-white/90 hover:shadow-2xl transition-all duration-300">
+                  <div key={payment._id || payment.id} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:bg-white/90 hover:shadow-2xl transition-all duration-300">
                     <div className="flex items-start justify-between mb-4">
                       <div>
-                        <h4 className="text-lg font-semibold text-gray-900">Transaction #{payment.transactionId.slice(-8)}</h4>
-                        <p className="text-sm text-gray-600">{payment.bookingId}</p>
+                        <h4 className="text-lg font-semibold text-gray-900">Transaction #{payment._id?.slice(-8) || payment.id?.slice(-8) || 'N/A'}</h4>
+                        <p className="text-sm text-gray-600">{payment.booking?._id || payment.booking?.receiptId || 'N/A'}</p>
                       </div>
                       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(payment.status)}`}>
                         {getStatusIcon(payment.status)}
@@ -351,8 +378,8 @@ export default function AdminPaymentsPage() {
                           <Users className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{payment.guestName}</p>
-                          <p className="text-sm text-gray-600">{payment.guestEmail}</p>
+                          <p className="font-medium text-gray-900">{payment.user?.name || 'N/A'}</p>
+                          <p className="text-sm text-gray-600">{payment.user?.email || 'N/A'}</p>
                         </div>
                       </div>
 
@@ -362,15 +389,17 @@ export default function AdminPaymentsPage() {
                           <Users className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{payment.hostName}</p>
-                          <p className="text-sm text-gray-600">{payment.hostEmail}</p>
+                          <p className="font-medium text-gray-900">{payment.host?.name || 'N/A'}</p>
+                          <p className="text-sm text-gray-600">{payment.host?.email || 'N/A'}</p>
                         </div>
                       </div>
 
                       {/* Property/Service */}
                       <div className="p-3 bg-gray-100/50 rounded-xl">
                         <p className="text-sm font-medium text-gray-900">Property/Service</p>
-                        <p className="text-sm text-gray-600">{payment.listingTitle}</p>
+                        <p className="text-sm text-gray-600">
+                          {payment.booking?.listing || payment.booking?.service || 'N/A'}
+                        </p>
                       </div>
 
                       {/* Amount Breakdown */}
@@ -393,11 +422,11 @@ export default function AdminPaymentsPage() {
                         <div className="grid grid-cols-2 gap-2">
                           <div className="p-2 bg-blue-50 rounded-lg">
                             <p className="text-xs text-gray-600">Platform Fee</p>
-                            <p className="text-sm font-semibold text-blue-600">{formatCurrency(payment.platformFee)}</p>
+                            <p className="text-sm font-semibold text-blue-600">{formatCurrency(payment.commission?.platformFee || 0)}</p>
                           </div>
                           <div className="p-2 bg-purple-50 rounded-lg">
                             <p className="text-xs text-gray-600">Host Earning</p>
-                            <p className="text-sm font-semibold text-purple-600">{formatCurrency(payment.hostEarning)}</p>
+                            <p className="text-sm font-semibold text-purple-600">{formatCurrency(payment.commission?.hostEarning || 0)}</p>
                           </div>
                         </div>
                       </div>
@@ -406,10 +435,10 @@ export default function AdminPaymentsPage() {
                       <div className="flex items-center space-x-3">
                         <Clock className="w-5 h-5 text-gray-400" />
                         <div>
-                          <p className="text-sm font-medium text-gray-900">{formatDate(payment.paymentDate)}</p>
-                          {payment.bookingDates && (
+                          <p className="text-sm font-medium text-gray-900">{formatDate(payment.createdAt)}</p>
+                          {payment.booking?.checkIn && payment.booking?.checkOut && (
                             <p className="text-xs text-gray-600">
-                              {formatDate(payment.bookingDates.checkIn)} - {formatDate(payment.bookingDates.checkOut)}
+                              {formatDate(payment.booking.checkIn)} - {formatDate(payment.booking.checkOut)}
                             </p>
                           )}
                         </div>
@@ -517,11 +546,11 @@ export default function AdminPaymentsPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-slate-700">Platform Fee</span>
-                    <span className="font-medium text-slate-800">{formatCurrency(selectedPayment.platformFee)}</span>
+                    <span className="font-medium text-slate-800">{formatCurrency(selectedPayment.commission?.platformFee || 0)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-700">Host Earning</span>
-                    <span className="font-medium text-green-600">{formatCurrency(selectedPayment.hostEarning)}</span>
+                    <span className="font-medium text-green-600">{formatCurrency(selectedPayment.commission?.hostEarning || 0)}</span>
                   </div>
                   {selectedPayment.totalRefunded > 0 && (
                     <div className="flex justify-between text-red-600">

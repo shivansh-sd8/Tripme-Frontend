@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Calendar, MapPin, Users, Clock, CheckCircle, Clock4 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Calendar, MapPin, Users, Clock, CheckCircle, Clock4, X } from 'lucide-react';
 import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
 import { apiClient } from '@/infrastructure/api/clients/api-client';
@@ -80,11 +80,13 @@ const formatPrice = (amount: number, currency: string = 'INR') => {
 
 export default function BookingsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isAuthenticated } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
 
   useEffect(() => {
@@ -94,6 +96,18 @@ export default function BookingsPage() {
     }
     fetchBookings();
   }, [isAuthenticated, router]);
+
+  // Check for success parameter
+  useEffect(() => {
+    if (searchParams.get('success') === 'true') {
+      setShowSuccessMessage(true);
+      // Auto-hide success message after 5 seconds
+      const timer = setTimeout(() => {
+        setShowSuccessMessage(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
 
   const fetchBookings = async () => {
     try {
@@ -140,6 +154,27 @@ export default function BookingsPage() {
             <h1 className="text-3xl font-bold text-gray-900 mb-3">My Bookings</h1>
             <p className="text-gray-600 text-lg">Manage your upcoming and past trips</p>
           </div>
+
+          {/* Success Message */}
+          {showSuccessMessage && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center">
+                <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
+                <div>
+                  <h3 className="text-sm font-medium text-green-800">Booking Confirmed!</h3>
+                  <p className="text-sm text-green-700 mt-1">
+                    Your booking has been successfully created and payment processed.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowSuccessMessage(false)}
+                  className="ml-auto text-green-600 hover:text-green-800"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Tabs */}
           <div className="flex space-x-1 bg-white p-1 rounded-xl shadow-sm border border-gray-200 mb-10">

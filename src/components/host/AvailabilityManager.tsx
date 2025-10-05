@@ -4,11 +4,12 @@ import { DateRange } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import { format } from 'date-fns';
+import { availabilityCalendarStyles } from '@/styles/calendars';
 import Button from '../ui/Button';
 import Card from '../ui/Card';
 import { apiClient } from '@/infrastructure/api/clients/api-client';
 import { useRouter } from 'next/navigation';
-import { Calendar, Clock, CheckCircle, XCircle, Plus, Trash2, Save, AlertTriangle, Wrench, Pause, Eye } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, XCircle, Plus, Trash2, Save, AlertTriangle, Wrench, Pause, Eye, ExternalLink } from 'lucide-react';
 
 type TargetType = 'listing' | 'service';
 
@@ -80,8 +81,10 @@ const STATUS_OPTIONS = [
 export default function AvailabilityManager({ targetType, targetId }: AvailabilityManagerProps) {
   const router = useRouter();
   const [range, setRange] = useState<{ startDate: Date; endDate: Date }>({ startDate: new Date(), endDate: new Date() });
-  const [selectionType, setSelectionType] = useState<'range' | 'single'>('range');
+  const [selectionType, setSelectionType] = useState<'range' | 'single'>('single');
   const [singleDate, setSingleDate] = useState<Date>(new Date());
+  const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<'available' | 'unavailable' | 'booked' | 'maintenance' | 'on-hold'>('available');
   const [reason, setReason] = useState<string>('');
   const [selections, setSelections] = useState<SelectionItem[]>([]);
@@ -98,7 +101,21 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
 
   const onDateRangeChange = (ranges: any) => {
     const { selection } = ranges;
-    setRange({ startDate: selection.startDate, endDate: selection.endDate });
+    if (selectionType === 'single') {
+      // For single date selection, set both start and end to the same date
+      setRange({ startDate: selection.startDate, endDate: selection.startDate });
+      setSingleDate(selection.startDate);
+    } else {
+      // For range selection, use the actual range
+      setRange({ startDate: selection.startDate, endDate: selection.endDate });
+    }
+    
+    // Track if we're in the middle of selecting
+    if (selection.startDate && !selection.endDate) {
+      setIsSelecting(true);
+    } else if (selection.startDate && selection.endDate) {
+      setIsSelecting(false);
+    }
   };
 
   // Load current availability from backend
@@ -257,7 +274,10 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
     setSaving(true);
     setError(null);
     setSuccess(null);
+    
     try {
+      console.log('🚀 Saving availability for:', { targetType, targetId, selections });
+      
       if (targetType === 'listing') {
         const payload = selections.map(s => {
           // Map frontend status back to backend status
@@ -282,13 +302,19 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
               backendStatus = 'blocked';
           }
           
-          return {
+          const mapped = {
             date: format(s.date, 'yyyy-MM-dd'),
             status: backendStatus,
             reason: s.reason
           };
+          console.log('📅 Mapping selection:', { frontend: s.status, backend: backendStatus, date: mapped.date });
+          return mapped;
         });
-        await apiClient.bulkUpdateAvailability(targetId, { updates: payload });
+        
+        console.log('📤 Sending to backend:', { updates: payload });
+        const response = await apiClient.bulkUpdateAvailability(targetId, { updates: payload });
+        console.log('✅ Backend response:', response);
+        
       } else {
         const availableSlots = selections.map(s => {
           const start = new Date(format(s.date, 'yyyy-MM-dd') + 'T00:00:00');
@@ -316,20 +342,27 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
               backendStatus = 'blocked';
           }
           
-          return { 
+          const mapped = { 
             startTime: start, 
             endTime: end, 
             isAvailable: s.status === 'available',
             status: backendStatus,
             reason: s.reason
           };
+          console.log('🛠️ Mapping service slot:', { frontend: s.status, backend: backendStatus, date: format(s.date, 'yyyy-MM-dd') });
+          return mapped;
         });
-        await apiClient.updateServiceAvailability(targetId, availableSlots as any);
+        
+        console.log('📤 Sending service availability to backend:', availableSlots);
+        const response = await apiClient.updateServiceAvailability(targetId, availableSlots as any);
+        console.log('✅ Service backend response:', response);
       }
+      
       setSuccess('Availability updated successfully! 🎉');
       // Refresh the data
       setTimeout(() => window.location.reload(), 1500);
     } catch (e: any) {
+      console.error('❌ Error saving availability:', e);
       setError(e?.message || 'Failed to save availability');
     } finally {
       setSaving(false);
@@ -354,13 +387,28 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                 Set your {targetType === 'listing' ? 'property' : 'service'} availability calendar
               </p>
             </div>
-            <Button 
-              onClick={() => router.back()} 
-              variant="outline"
-              className="px-6 py-3 text-slate-700 border-slate-300 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200"
-            >
-              ← Back
-            </Button>
+            <div className="flex gap-3">
+              <Button 
+                onClick={() => {
+                  if (targetType === 'listing') {
+                    router.push(`/rooms/${targetId}`);
+                  } else {
+                    router.push(`/services/${targetId}`);
+                  }
+                }}
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                View {targetType === 'listing' ? 'Property' : 'Service'}
+              </Button>
+              <Button 
+                onClick={() => router.back()} 
+                variant="outline"
+                className="px-6 py-3 text-slate-700 border-slate-300 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200"
+              >
+                ← Back
+              </Button>
+            </div>
           </div>
 
           {/* Status Messages */}
@@ -627,7 +675,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
 
           {/* Calendar - Right Side */}
           <div className="xl:col-span-8 order-2 xl:order-none">
-            <Card className="p-8 rounded-2xl shadow-2xl border-0 bg-white/90 backdrop-blur-sm min-h-[700px]">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
               <div className="text-center mb-6">
                 <h3 className="text-2xl font-bold text-slate-800 mb-2">Availability Calendar</h3>
                 <p className="text-slate-600">Select dates to manage your availability</p>
@@ -637,8 +685,6 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
               <div className="mb-6">
                 <div className="flex flex-wrap justify-center gap-3 mb-4">
                   {STATUS_OPTIONS.map((option) => {
-                    const Icon = option.icon;
-                    
                     // Get proper color classes for each status
                     const getStatusColorClasses = (statusValue: string) => {
                       switch (statusValue) {
@@ -657,27 +703,9 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                       }
                     };
                     
-                    const getIconColorClasses = (statusValue: string) => {
-                      switch (statusValue) {
-                        case 'available':
-                          return 'text-emerald-500';
-                        case 'unavailable':
-                          return 'text-red-500';
-                        case 'booked':
-                          return 'text-purple-500';
-                        case 'maintenance':
-                          return 'text-orange-500';
-                        case 'on-hold':
-                          return 'text-yellow-500';
-                        default:
-                          return 'text-slate-500';
-                      }
-                    };
-                    
                     return (
                       <div key={option.value} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-200 shadow-sm">
-                        <div className={`w-3 h-3 rounded-full ${getStatusColorClasses(option.value)}`}></div>
-                        <Icon className={`w-4 h-4 ${getIconColorClasses(option.value)}`} />
+                        <div className={`w-4 h-4 rounded-full ${getStatusColorClasses(option.value)}`}></div>
                         <span className="text-sm font-medium text-slate-700">{option.label}</span>
                       </div>
                     );
@@ -701,144 +729,108 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                 </div>
               </div>
               
-              <DateRange
-                ranges={[{ startDate: range.startDate, endDate: range.endDate, key: 'selection' }]}
-                onChange={onDateRangeChange}
-                minDate={new Date()}
-                showDateDisplay={false}
-                months={1}
-                direction="horizontal"
-                dayContentRenderer={(date: Date) => {
-                  const ds = format(date, 'yyyy-MM-dd');
-                  const meta = dayMeta[ds];
-                  const status = meta?.status || 'unavailable'; // Default to unavailable if no status
-                  const isSelected = selections.some(s => format(s.date, 'yyyy-MM-dd') === ds);
-                  const statusConfig = getStatusConfig(status);
-                  const isExpired = date < new Date(new Date().setHours(0, 0, 0, 0));
-                  const isToday = format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
-                  const canModify = !isExpired && status !== 'booked'; // Cannot modify booked dates
-                  
-                  // Get proper background and text colors based on status
-                  const getStatusClasses = () => {
-                    if (isSelected) {
-                      return 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white ring-2 ring-blue-300 shadow-lg';
-                    }
-                    
-                    switch (status) {
-                      case 'available':
-                        return 'bg-emerald-50 text-emerald-700 ring-2 ring-emerald-200';
-                      case 'unavailable':
-                        return 'bg-red-50 text-red-700 ring-2 ring-red-200';
-                      case 'booked':
-                        return 'bg-purple-50 text-purple-700 ring-2 ring-purple-200';
-                      case 'maintenance':
-                        return 'bg-orange-50 text-orange-700 ring-2 ring-orange-200';
-                      case 'on-hold':
-                        return 'bg-yellow-50 text-yellow-700 ring-2 ring-yellow-200';
-                      default:
-                        return 'bg-red-50 text-red-700 ring-2 ring-red-200';
-                    }
-                  };
-                  
-                  return (
-                    <div 
-                      className={`
-                        relative w-16 h-16 mx-auto flex flex-col items-center justify-center rounded-xl p-2 
-                        transition-all duration-200
-                        ${isExpired 
-                          ? 'bg-slate-100 text-slate-400 ring-1 ring-slate-200 cursor-not-allowed opacity-60' 
-                          : !canModify
-                            ? 'cursor-not-allowed opacity-80'
-                            : isSelected 
-                              ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white ring-2 ring-blue-300 shadow-lg hover:scale-105 cursor-pointer' 
-                              : `${getStatusClasses()} hover:scale-105 cursor-pointer`
-                        }
-                        ${isToday ? 'ring-2 ring-blue-400 ring-offset-2' : ''}
-                      `}
-                      onClick={() => {
-                        if (canModify) {
-                          // Toggle selection for this date
-                          if (isSelected) {
-                            removeSelection(ds);
-                          } else {
-                            // Add this date with current status
-                            const newDate = new Date(date);
-                            setSelections(prev => {
-                              const dedup = new Map(prev.map(item => [format(item.date, 'yyyy-MM-dd'), item]));
-                              dedup.set(ds, { 
-                                date: newDate, 
-                                status: selectedStatus,
-                                reason: reason.trim() || undefined
-                              });
-                              return Array.from(dedup.values());
-                            });
-                          }
-                        }
-                      }}
-                      title={
-                        isExpired 
-                          ? 'Date has expired' 
-                          : status === 'booked'
-                            ? `${ds} - Booked (Cannot modify)`
-                            : `${ds} - ${statusConfig.label}${isToday ? ' (Today)' : ''}`
-                      }
-                    >
-                      {/* Date Number */}
-                      <span className={`text-sm leading-tight font-bold ${isSelected ? 'text-white' : ''}`}>
-                        {date.getDate()}
-                      </span>
-                      
-                      {/* Status Indicator */}
-                      {!isExpired && (
-                        <div className="flex items-center justify-center mt-1">
-                          {status === 'available' && (
-                            <CheckCircle className="w-3 h-3 text-emerald-500" />
-                          )}
-                          {status === 'unavailable' && (
-                            <XCircle className="w-3 h-3 text-red-500" />
-                          )}
-                          {status === 'booked' && (
-                            <Eye className="w-3 h-3 text-purple-500" />
-                          )}
-                          {status === 'maintenance' && (
-                            <Wrench className="w-3 h-3 text-orange-500" />
-                          )}
-                          {status === 'on-hold' && (
-                            <Pause className="w-3 h-3 text-yellow-500" />
-                          )}
-                        </div>
-                      )}
-                      
-                      {/* Selection Badge */}
-                      {isSelected && (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
-                          <CheckCircle className="w-3 h-3 text-white" />
-                        </div>
-                      )}
-                      
-                      {/* Today Indicator */}
-                      {isToday && !isSelected && (
-                        <div className="absolute -top-1 -left-1 w-3 h-3 bg-blue-500 rounded-full"></div>
-                      )}
-                      
-                      {/* Booked Indicator */}
-                      {status === 'booked' && !isSelected && (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
-                          <Eye className="w-3 h-3 text-white" />
-                        </div>
-                      )}
-                      
-                      {/* Expired Overlay */}
-                      {isExpired && (
-                        <div className="absolute inset-0 bg-slate-200/50 rounded-xl flex items-center justify-center">
-                          <XCircle className="w-4 h-4 text-slate-400" />
-                        </div>
-                      )}
-                    </div>
-                  );
-                }}
-              />
-            </Card>
+              <div className={availabilityCalendarStyles.availabilityCalendarWrapper}>
+                <DateRange
+                  ranges={[{ startDate: range.startDate, endDate: range.endDate, key: 'selection' }]}
+                  onChange={onDateRangeChange}
+                  minDate={new Date()}
+                  showDateDisplay={false}
+                  months={1}
+                  direction="horizontal"
+                  moveRangeOnFirstSelection={true}
+                  editableDateInputs={false}
+                  rangeColors={['#3b82f6']}
+                   dayContentRenderer={(date: Date) => {
+                     const ds = format(date, 'yyyy-MM-dd');
+                     const meta = dayMeta[ds];
+                     const status = meta?.status || 'unavailable';
+                     const isExpired = date < new Date(new Date().setHours(0, 0, 0, 0));
+                     
+                     // Check if this date is in the current selection range
+                     const isInRange = date >= range.startDate && date <= range.endDate;
+                     const isStartDate = format(date, 'yyyy-MM-dd') === format(range.startDate, 'yyyy-MM-dd');
+                     const isEndDate = format(date, 'yyyy-MM-dd') === format(range.endDate, 'yyyy-MM-dd');
+                     
+                     // Check if this date is in the hover preview range (when selecting)
+                     let isInHoverRange = false;
+                     let isHoverStart = false;
+                     let isHoverEnd = false;
+                     
+                     if (isSelecting && hoveredDate && range.startDate) {
+                       const startDate = range.startDate < hoveredDate ? range.startDate : hoveredDate;
+                       const endDate = range.startDate < hoveredDate ? hoveredDate : range.startDate;
+                       isInHoverRange = date >= startDate && date <= endDate;
+                       isHoverStart = format(date, 'yyyy-MM-dd') === format(startDate, 'yyyy-MM-dd');
+                       isHoverEnd = format(date, 'yyyy-MM-dd') === format(endDate, 'yyyy-MM-dd');
+                     }
+                     
+                     // Get status color classes - prioritize selection colors
+                     const getStatusColorClasses = () => {
+                       if (isExpired) {
+                         return 'bg-slate-100 text-slate-400';
+                       }
+                       
+                       // If date is in hover preview range (while selecting), use preview colors
+                       if (isInHoverRange) {
+                         if (isHoverStart || isHoverEnd) {
+                           return 'bg-blue-400 text-white border-2 border-blue-500 shadow-lg';
+                         } else {
+                           return 'bg-blue-50 text-blue-700 border border-blue-200';
+                         }
+                       }
+                       
+                       // If date is in final selection range, use selection colors
+                       if (isInRange) {
+                         if (isStartDate || isEndDate) {
+                           return 'bg-blue-500 text-white border-2 border-blue-600';
+                         } else {
+                           return 'bg-blue-100 text-blue-800 border border-blue-300';
+                         }
+                       }
+                       
+                       // Otherwise use status colors
+                       switch (status) {
+                         case 'available':
+                           return 'bg-emerald-500 text-white';
+                         case 'unavailable':
+                           return 'bg-red-500 text-white';
+                         case 'booked':
+                           return 'bg-purple-500 text-white';
+                         case 'maintenance':
+                           return 'bg-orange-500 text-white';
+                         case 'on-hold':
+                           return 'bg-yellow-500 text-white';
+                         default:
+                           return 'bg-red-500 text-white';
+                       }
+                     };
+                     
+                     return (
+                       <div 
+                         className={`
+                           w-full h-full flex items-center justify-center rounded-full
+                           ${getStatusColorClasses()}
+                         `}
+                         onMouseEnter={() => {
+                           if (isSelecting && range.startDate) {
+                             setHoveredDate(date);
+                           }
+                         }}
+                         onMouseLeave={() => {
+                           if (isSelecting) {
+                             setHoveredDate(null);
+                           }
+                         }}
+                       >
+                         <span className="text-sm font-bold">
+                           {date.getDate()}
+                         </span>
+                       </div>
+                     );
+                   }}
+                />
+              </div>
+            </div>
           </div>
         </div>
 

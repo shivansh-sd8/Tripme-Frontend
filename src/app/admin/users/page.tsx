@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import { useAuth } from '@/core/store/auth-context';
 import { apiClient } from '@/infrastructure/api/clients/api-client';
@@ -39,6 +40,7 @@ interface User {
 }
 
 export default function AdminUsersPage() {
+  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -217,8 +219,8 @@ export default function AdminUsersPage() {
       
       switch (action) {
         case 'view':
-          // Redirect to user profile page
-          window.open(`/admin/users/${userId}`, '_blank');
+          // Navigate to user profile page in the same tab
+          router.push(`/admin/users/${userId}`);
           break;
         case 'suspend':
           if (confirm('Are you sure you want to suspend this user?')) {

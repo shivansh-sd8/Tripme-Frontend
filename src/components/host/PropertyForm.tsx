@@ -14,7 +14,30 @@ import {
   XCircle,
   FileText,
   Upload,
-  AlertCircle
+  AlertCircle,
+  Wifi,
+  Tv,
+  ChefHat,
+  Droplets,
+  Snowflake,
+  Flame,
+  Monitor,
+  Waves,
+  Car,
+  Dumbbell,
+  Coffee,
+  Bell,
+  Stethoscope,
+  Package,
+  Mountain,
+  Building2,
+  Trees,
+  PawPrint,
+  Cigarette,
+  CalendarDays,
+  Shield,
+  Accessibility,
+  ArrowUpDown
 } from 'lucide-react';
 import Button from '../ui/Button';
 import Card from '../ui/Card';
@@ -146,6 +169,7 @@ const PropertyForm: React.FC = () => {
     type: 'apartment' as Property['type'],
     propertyType: 'standard' as Property['propertyType'],
     style: 'modern' as Property['style'],
+    placeType: 'entire' as Property['placeType'],
     location: {
       type: 'Point' as const,
       coordinates: [0, 0] as [number, number],
@@ -215,17 +239,67 @@ const PropertyForm: React.FC = () => {
     { value: 'tropical', label: 'Tropical' }
   ];
 
+  const placeTypes = [
+    { value: 'entire', label: 'Entire place', description: 'Guests have the whole place to themselves' },
+    { value: 'room', label: 'A room', description: 'Guests have a private room and shared common areas' },
+    { value: 'shared', label: 'A shared room', description: 'Guests sleep in a room or common area that may be shared with others' }
+  ];
+
   const amenitiesList = [
     'wifi', 'tv', 'kitchen', 'washer', 'dryer', 'ac', 'heating', 'workspace',
     'pool', 'hot-tub', 'parking', 'gym', 'breakfast', 'smoke-alarm',
     'carbon-monoxide-alarm', 'first-aid-kit', 'fire-extinguisher', 'essentials'
   ];
 
+  // Icon mapping for amenities
+  const getAmenityIcon = (amenity: string) => {
+    const iconMap: Record<string, any> = {
+      'wifi': <Wifi className="w-5 h-5" />,
+      'tv': <Tv className="w-5 h-5" />,
+      'kitchen': <ChefHat className="w-5 h-5" />,
+      'washer': <Droplets className="w-5 h-5" />,
+      'dryer': <Droplets className="w-5 h-5" />,
+      'ac': <Snowflake className="w-5 h-5" />,
+      'heating': <Flame className="w-5 h-5" />,
+      'workspace': <Monitor className="w-5 h-5" />,
+      'pool': <Waves className="w-5 h-5" />,
+      'hot-tub': <Waves className="w-5 h-5" />,
+      'parking': <Car className="w-5 h-5" />,
+      'gym': <Dumbbell className="w-5 h-5" />,
+      'breakfast': <Coffee className="w-5 h-5" />,
+      'smoke-alarm': <Bell className="w-5 h-5" />,
+      'carbon-monoxide-alarm': <Bell className="w-5 h-5" />,
+      'first-aid-kit': <Stethoscope className="w-5 h-5" />,
+      'fire-extinguisher': <Flame className="w-5 h-5" />,
+      'essentials': <Package className="w-5 h-5" />
+    };
+    return iconMap[amenity] || <CheckCircle className="w-5 h-5" />;
+  };
+
   const featuresList = [
     'ocean-view', 'mountain-view', 'city-view', 'garden', 'balcony', 'terrace',
     'fireplace', 'elevator', 'wheelchair-accessible', 'pet-friendly',
     'smoking-allowed', 'long-term-stays'
   ];
+
+  // Icon mapping for features
+  const getFeatureIcon = (feature: string) => {
+    const iconMap: Record<string, any> = {
+      'ocean-view': <Waves className="w-5 h-5" />,
+      'mountain-view': <Mountain className="w-5 h-5" />,
+      'city-view': <Building2 className="w-5 h-5" />,
+      'garden': <Trees className="w-5 h-5" />,
+      'balcony': <Home className="w-5 h-5" />,
+      'terrace': <Home className="w-5 h-5" />,
+      'fireplace': <Flame className="w-5 h-5" />,
+      'elevator': <ArrowUpDown className="w-5 h-5" />,
+      'wheelchair-accessible': <Accessibility className="w-5 h-5" />,
+      'pet-friendly': <PawPrint className="w-5 h-5" />,
+      'smoking-allowed': <Cigarette className="w-5 h-5" />,
+      'long-term-stays': <CalendarDays className="w-5 h-5" />
+    };
+    return iconMap[feature] || <CheckCircle className="w-5 h-5" />;
+  };
 
   const houseRulesList = [
     'no-smoking', 'no-pets', 'no-parties', 'no-loud-music', 'no-shoes', 'no-unregistered-guests'
@@ -463,6 +537,9 @@ const PropertyForm: React.FC = () => {
                formData.title.length >= 10 &&
                formData.description.length >= 50;
       case 2:
+        // Place Type: placeType is required
+        return formData.placeType && formData.placeType !== '';
+      case 3:
         // Location: city, state, address, postalCode are required and valid
         return formData.location.city && 
                formData.location.state && 
@@ -476,13 +553,13 @@ const PropertyForm: React.FC = () => {
                formData.location.city.length >= 2 &&
                formData.location.state.length >= 2 &&
                formData.location.postalCode.length >= 3;
-      case 3:
+      case 4:
         // Pricing: basePrice is required and valid
         return formData.pricing.basePrice > 0 && 
                !validationMessages.basePrice &&
                formData.pricing.basePrice >= 1 &&
                formData.pricing.basePrice <= 10000;
-      case 4:
+      case 5:
         // Capacity: maxGuests, bedrooms, bathrooms, beds are required and valid
         return formData.maxGuests > 0 && 
                formData.bedrooms > 0 && 
@@ -496,10 +573,10 @@ const PropertyForm: React.FC = () => {
                formData.bedrooms >= 0 && formData.bedrooms <= 20 &&
                formData.bathrooms >= 0 && formData.bathrooms <= 20 &&
                formData.beds >= 1 && formData.beds <= 50;
-      case 5:
+      case 6:
         // Amenities: optional, but at least one should be selected for better listing
         return formData.amenities.length > 0 || formData.features.length > 0;
-      case 6:
+      case 7:
         // Images: at least one image is required
         return formData.images.length > 0;
       default:
@@ -570,6 +647,7 @@ const PropertyForm: React.FC = () => {
                 ))}
               </select>
             </div>
+            
           </div>
           
           <div className="space-y-4">
@@ -725,6 +803,37 @@ const PropertyForm: React.FC = () => {
     <div className="pl-4 pr-6 py-6">
       <div className="space-y-6">
         <div className="text-center mb-6">
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">What type of place will guests have?</h3>
+          <p className="text-gray-700 text-base">Help guests understand what they're booking</p>
+        </div>
+        
+        <div className="space-y-4">
+          {placeTypes.map(placeType => (
+            <label key={placeType.value} className="flex items-start space-x-4 p-6 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all duration-200">
+              <input
+                type="radio"
+                name="placeType"
+                value={placeType.value}
+                checked={formData.placeType === placeType.value}
+                onChange={(e) => handleInputChange('placeType', e.target.value)}
+                className="mt-1 w-5 h-5 text-purple-600 border-gray-300 focus:ring-purple-500"
+              />
+              <div className="flex-1">
+                <div className="font-semibold text-gray-900 text-lg mb-2">{placeType.label}</div>
+                <div className="text-gray-600">{placeType.description}</div>
+              </div>
+            </label>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderStep3 = () => (
+    <div className="pl-4 pr-6 py-6">
+      <div className="space-y-6">
+        <div className="text-center mb-6">
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">Location</h3>
           <p className="text-gray-700 text-base">Where is your property located?</p>
         </div>
         
@@ -877,10 +986,11 @@ const PropertyForm: React.FC = () => {
     </div>
   );
 
-  const renderStep3 = () => (
+  const renderStep4 = () => (
     <div className="pl-4 pr-6 py-6">
       <div className="space-y-6">
         <div className="text-center mb-6">
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">Pricing</h3>
           <p className="text-gray-700 text-base">Set your rates and fees</p>
         </div>
         
@@ -1067,7 +1177,7 @@ const PropertyForm: React.FC = () => {
     </div>
   );
 
-  const renderStep4 = () => (
+  const renderStep5 = () => (
     <div className="pl-4 pr-6 py-6">
       <div className="space-y-6">
         <div className="text-center mb-6">
@@ -1175,7 +1285,7 @@ const PropertyForm: React.FC = () => {
     </div>
   );
 
-  const renderStep5 = () => (
+  const renderStep6 = () => (
     <div className="pl-4 pr-6 py-6">
       <div className="space-y-6">
         <div className="text-center mb-6">
@@ -1195,9 +1305,14 @@ const PropertyForm: React.FC = () => {
                     onChange={() => handleArrayToggle('amenities', amenity)}
                     className="w-5 h-5 rounded border-2 border-gray-300 text-purple-600 focus:ring-4 focus:ring-purple-100 focus:ring-offset-0"
                   />
-                  <span className="text-base text-gray-900 capitalize font-medium">
-                    {amenity.replace('-', ' ')}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-purple-600">
+                      {getAmenityIcon(amenity)}
+                    </span>
+                    <span className="text-base text-gray-900 capitalize font-medium">
+                      {amenity.replace('-', ' ')}
+                    </span>
+                  </div>
                 </label>
               ))}
             </div>
@@ -1214,9 +1329,14 @@ const PropertyForm: React.FC = () => {
                     onChange={() => handleArrayToggle('features', feature)}
                     className="w-5 h-5 rounded border-2 border-gray-300 text-purple-600 focus:ring-4 focus:ring-purple-100 focus:ring-offset-0"
                   />
-                  <span className="text-base text-gray-900 capitalize font-medium">
-                    {feature.replace('-', ' ')}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-purple-600">
+                      {getFeatureIcon(feature)}
+                    </span>
+                    <span className="text-base text-gray-900 capitalize font-medium">
+                      {feature.replace('-', ' ')}
+                    </span>
+                  </div>
                 </label>
               ))}
             </div>
@@ -1245,7 +1365,8 @@ const PropertyForm: React.FC = () => {
     </div>
   );
 
-  const renderStep6 = () => (
+
+  const renderStep7 = () => (
     <div className="pl-4 pr-6 py-6">
       <div className="space-y-6">
         <div className="text-center mb-6">
@@ -1268,11 +1389,12 @@ const PropertyForm: React.FC = () => {
 
   const steps = [
     { number: 1, title: 'Basic Info', icon: <Home size={20} /> },
-    { number: 2, title: 'Location', icon: <MapPin size={20} /> },
-    { number: 3, title: 'Pricing', icon: <span className="font-bold text-purple-600">₹</span> },
-    { number: 4, title: 'Capacity', icon: <Users size={20} /> },
-    { number: 5, title: 'Amenities', icon: <CheckCircle size={20} /> },
-    { number: 6, title: 'Images', icon: <Camera size={20} /> }
+    { number: 2, title: 'Place Type', icon: <Home size={20} /> },
+    { number: 3, title: 'Location', icon: <MapPin size={20} /> },
+    { number: 4, title: 'Pricing', icon: <span className="font-bold text-purple-600">₹</span> },
+    { number: 5, title: 'Capacity', icon: <Users size={20} /> },
+    { number: 6, title: 'Amenities', icon: <CheckCircle size={20} /> },
+    { number: 7, title: 'Images', icon: <Camera size={20} /> }
   ];
 
   // Success message
@@ -1461,6 +1583,7 @@ const PropertyForm: React.FC = () => {
                   {step === 4 && renderStep4()}
                   {step === 5 && renderStep5()}
                   {step === 6 && renderStep6()}
+                  {step === 7 && renderStep7()}
                 </div>
               </div>
 

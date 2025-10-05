@@ -142,14 +142,16 @@ const KYCDocumentReviewModal: React.FC<KYCDocumentReviewModalProps> = ({
 
   const getDocumentTypeLabel = (type: string) => {
     switch (type) {
-      case 'passport':
-        return 'Passport';
-      case 'national-id':
-        return 'National ID Card';
-      case 'drivers-license':
-        return 'Driver\'s License';
       case 'aadhar-card':
         return 'Aadhar Card';
+      case 'pan-card':
+        return 'PAN Card';
+      case 'voter-id':
+        return 'Voter ID Card';
+      case 'passport':
+        return 'Passport';
+      case 'drivers-license':
+        return 'Driver\'s License';
       default:
         return type;
     }
@@ -165,6 +167,10 @@ const KYCDocumentReviewModal: React.FC<KYCDocumentReviewModalProps> = ({
         return 'Rental Agreement';
       case 'property-tax':
         return 'Property Tax Receipt';
+      case 'aadhar-address':
+        return 'Aadhar Card (Address)';
+      case 'voter-id-address':
+        return 'Voter ID (Address)';
       default:
         return type;
     }
@@ -309,35 +315,98 @@ const KYCDocumentReviewModal: React.FC<KYCDocumentReviewModalProps> = ({
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <h4 className="text-sm font-medium text-gray-900 mb-2">Identity Document Image</h4>
-                      <div className="border border-gray-200 rounded-lg p-2">
+                      <h4 className="text-sm font-medium text-gray-900 mb-2">Identity Document - Front</h4>
+                      <div className="border border-gray-200 rounded-lg p-2 relative group">
                         <img 
                           src={kycData.kycVerification.identityDocument.frontImage} 
-                          alt="Identity Document"
-                          className="w-full h-48 object-contain rounded"
+                          alt="Identity Document Front"
+                          className="w-full h-48 object-contain rounded cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => window.open(kycData.kycVerification.identityDocument.frontImage, '_blank')}
                           onError={(e) => {
                             e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDIwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjEwMCIgeT0iNTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk0QTRBQSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+Cjwvc3ZnPgo=';
                           }}
                         />
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => window.open(kycData.kycVerification.identityDocument.frontImage, '_blank')}
+                            className="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all"
+                            title="View Full Size"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = kycData.kycVerification.identityDocument.frontImage;
+                              link.download = `identity_front_${kycData.user.name}_${kycData.kycVerification.identityDocument.type}.jpg`;
+                              link.click();
+                            }}
+                            className="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all"
+                            title="Download"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">Note: User submitted single image for identity document</p>
+                      <p className="text-xs text-gray-500 mt-1">Click to view full size</p>
                     </div>
                     <div>
-                      <h4 className="text-sm font-medium text-gray-900 mb-2">Document Details</h4>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <div className="space-y-2">
-                          <div>
-                            <span className="text-xs text-gray-500">Document Type:</span>
-                            <p className="text-sm font-medium">{getDocumentTypeLabel(kycData.kycVerification.identityDocument.type)}</p>
-                          </div>
-                          <div>
-                            <span className="text-xs text-gray-500">Document Number:</span>
-                            <p className="text-sm font-medium">{kycData.kycVerification.identityDocument.number}</p>
-                          </div>
-                          <div>
-                            <span className="text-xs text-gray-500">Status:</span>
-                            <p className="text-sm font-medium">{getStatusBadge(kycData.kycVerification.status)}</p>
-                          </div>
+                      <h4 className="text-sm font-medium text-gray-900 mb-2">Identity Document - Back</h4>
+                      <div className="border border-gray-200 rounded-lg p-2 relative group">
+                        <img 
+                          src={kycData.kycVerification.identityDocument.backImage} 
+                          alt="Identity Document Back"
+                          className="w-full h-48 object-contain rounded cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => window.open(kycData.kycVerification.identityDocument.backImage, '_blank')}
+                          onError={(e) => {
+                            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDIwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjEwMCIgeT0iNTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk0QTRBQSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+Cjwvc3ZnPgo=';
+                          }}
+                        />
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => window.open(kycData.kycVerification.identityDocument.backImage, '_blank')}
+                            className="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all"
+                            title="View Full Size"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = kycData.kycVerification.identityDocument.backImage;
+                              link.download = `identity_back_${kycData.user.name}_${kycData.kycVerification.identityDocument.type}.jpg`;
+                              link.click();
+                            }}
+                            className="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all"
+                            title="Download"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Click to view full size</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">Document Details</h4>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-xs text-gray-500">Document Type:</span>
+                          <p className="text-sm font-medium">{getDocumentTypeLabel(kycData.kycVerification.identityDocument.type)}</p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-gray-500">Document Number:</span>
+                          <p className="text-sm font-medium">{kycData.kycVerification.identityDocument.number}</p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-gray-500">Status:</span>
+                          <p className="text-sm font-medium">{getStatusBadge(kycData.kycVerification.status)}</p>
                         </div>
                       </div>
                     </div>
@@ -371,16 +440,41 @@ const KYCDocumentReviewModal: React.FC<KYCDocumentReviewModalProps> = ({
                   
                   <div>
                     <h4 className="text-sm font-medium text-gray-900 mb-2">Address Proof Document</h4>
-                    <div className="border border-gray-200 rounded-lg p-2">
+                    <div className="border border-gray-200 rounded-lg p-2 relative group">
                       <img 
                         src={kycData.kycVerification.addressProof.documentImage} 
                         alt="Address Proof"
-                        className="w-full h-48 object-contain rounded"
+                        className="w-full h-48 object-contain rounded cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => window.open(kycData.kycVerification.addressProof.documentImage, '_blank')}
                         onError={(e) => {
                           e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDIwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjEwMCIgeT0iNTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk0QTRBQSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+Cjwvc3ZnPgo=';
                         }}
                       />
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => window.open(kycData.kycVerification.addressProof.documentImage, '_blank')}
+                          className="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all"
+                          title="View Full Size"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = kycData.kycVerification.addressProof.documentImage;
+                            link.download = `address_proof_${kycData.user.name}_${kycData.kycVerification.addressProof.type}.jpg`;
+                            link.click();
+                          }}
+                          className="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all"
+                          title="Download"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
+                    <p className="text-xs text-gray-500 mt-1">Click to view full size</p>
                   </div>
                 </div>
               )}
@@ -394,17 +488,41 @@ const KYCDocumentReviewModal: React.FC<KYCDocumentReviewModalProps> = ({
                   </h3>
                   <div>
                     <h4 className="text-sm font-medium text-gray-900 mb-2">Selfie with ID Document</h4>
-                    <div className="border border-gray-200 rounded-lg p-2">
+                    <div className="border border-gray-200 rounded-lg p-2 relative group">
                       <img 
                         src={kycData.kycVerification.selfie} 
                         alt="Selfie with ID"
-                        className="w-full h-48 object-contain rounded"
+                        className="w-full h-48 object-contain rounded cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => window.open(kycData.kycVerification.selfie, '_blank')}
                         onError={(e) => {
                           e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDIwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjEwMCIgeT0iNTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk0QTRBQSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+Cjwvc3ZnPgo=';
                         }}
                       />
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => window.open(kycData.kycVerification.selfie, '_blank')}
+                          className="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all"
+                          title="View Full Size"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = kycData.kycVerification.selfie;
+                            link.download = `selfie_${kycData.user.name}_with_id.jpg`;
+                            link.click();
+                          }}
+                          className="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all"
+                          title="Download"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">User holding their ID document for verification</p>
+                    <p className="text-xs text-gray-500 mt-1">User holding their ID document for verification. Click to view full size.</p>
                   </div>
                 </div>
               )}

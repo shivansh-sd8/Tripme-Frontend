@@ -54,6 +54,8 @@ import { apiClient } from '@/infrastructure/api/clients/api-client';
 interface HostListing extends Omit<Property, 'createdAt' | 'updatedAt' | 'images'> {
   _id: string;
   status: 'draft' | 'published' | 'suspended' | 'deleted';
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  isPublished?: boolean;
   createdAt: string;
   updatedAt: string;
   bookingCount?: number;
@@ -438,15 +440,31 @@ const HostListingsContent: React.FC = () => {
       }
       
       if (response.success) {
-        setListings(prev => prev.map(listing => 
-          listing._id === listingId 
-            ? { 
-                ...listing, 
-                status: newStatus as any,
-                isDraft: newStatus === 'draft' // Update isDraft flag as well
-              }
-            : listing
-        ));
+        // Use the updated listing data from the backend response
+        const updatedListing = response.data?.listing;
+        if (updatedListing) {
+          setListings(prev => prev.map(listing => 
+            listing._id === listingId 
+              ? { 
+                  ...listing, 
+                  ...updatedListing,
+                  _id: listingId // Ensure ID is preserved
+                }
+              : listing
+          ));
+        } else {
+          // Fallback to manual update if response doesn't include listing data
+          setListings(prev => prev.map(listing => 
+            listing._id === listingId 
+              ? { 
+                  ...listing, 
+                  status: newStatus as any,
+                  approvalStatus: newStatus === 'published' ? 'pending' : listing.approvalStatus,
+                  isDraft: newStatus === 'draft'
+                }
+              : listing
+          ));
+        }
       } else {
         alert('Failed to update listing status');
       }
@@ -456,8 +474,58 @@ const HostListingsContent: React.FC = () => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
+  const handlePublishApproved = async (listingId: string) => {
+    try {
+      const response = await apiClient.publishApprovedListing(listingId);
+      
+      if (response.success) {
+        // Use the updated listing data from the backend response
+        const updatedListing = response.data?.listing;
+        if (updatedListing) {
+          setListings(prev => prev.map(listing => 
+            listing._id === listingId 
+              ? { 
+                  ...listing, 
+                  ...updatedListing,
+                  _id: listingId // Ensure ID is preserved
+                }
+              : listing
+          ));
+        } else {
+          // Fallback to manual update
+          setListings(prev => prev.map(listing => 
+            listing._id === listingId 
+              ? { 
+                  ...listing, 
+                  status: 'published',
+                  isPublished: true
+                }
+              : listing
+          ));
+        }
+      } else {
+        alert('Failed to publish listing');
+      }
+    } catch (err: any) {
+      console.error('Error publishing approved listing:', err);
+      alert(err?.message || 'Failed to publish listing');
+    }
+  };
+
+  const getStatusIcon = (listing: HostListing) => {
+    // Handle approval workflow
+    if (listing.status === 'draft' && listing.approvalStatus === 'pending') {
+      return <Clock className="w-4 h-4 text-blue-500" />;
+    }
+    if (listing.status === 'draft' && listing.approvalStatus === 'rejected') {
+      return <XCircle className="w-4 h-4 text-red-500" />;
+    }
+    if (listing.status === 'draft' && !listing.approvalStatus) {
+      return <Clock className="w-4 h-4 text-yellow-500" />;
+    }
+    
+    // Handle regular status
+    switch (listing.status) {
       case 'published':
         return <CheckCircle className="w-4 h-4 text-green-500" />;
       case 'draft':
@@ -471,8 +539,48 @@ const HostListingsContent: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
+  const getDisplayStatus = (listing: HostListing) => {
+    // Handle approval workflow
+    if (listing.status === 'draft' && listing.approvalStatus === 'pending') {
+      return 'Pending Approval';
+    }
+    if (listing.status === 'draft' && listing.approvalStatus === 'rejected') {
+      return 'Rejected';
+    }
+    if (listing.status === 'draft' && listing.approvalStatus === 'approved' && !listing.isPublished) {
+      return 'Approved - Ready to Publish';
+    }
+    if (listing.status === 'draft' && !listing.approvalStatus) {
+      return 'Draft';
+    }
+    if (listing.status === 'published' && listing.isPublished) {
+      return 'Published';
+    }
+    
+    // Handle regular status
+    return listing.status.charAt(0).toUpperCase() + listing.status.slice(1);
+  };
+
+  const getStatusColor = (listing: HostListing) => {
+    // Handle approval workflow
+    if (listing.status === 'draft' && listing.approvalStatus === 'pending') {
+      return 'bg-blue-100 text-blue-800';
+    }
+    if (listing.status === 'draft' && listing.approvalStatus === 'rejected') {
+      return 'bg-red-100 text-red-800';
+    }
+    if (listing.status === 'draft' && listing.approvalStatus === 'approved' && !listing.isPublished) {
+      return 'bg-green-100 text-green-800';
+    }
+    if (listing.status === 'draft' && !listing.approvalStatus) {
+      return 'bg-yellow-100 text-yellow-800';
+    }
+    if (listing.status === 'published' && listing.isPublished) {
+      return 'bg-emerald-100 text-emerald-800';
+    }
+    
+    // Handle regular status
+    switch (listing.status) {
       case 'published':
         return 'bg-green-100 text-green-800';
       case 'draft':
@@ -629,12 +737,25 @@ const HostListingsContent: React.FC = () => {
             <Card className="p-6 bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-500 hover:scale-105">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-600">Drafts</p>
-                  <p className="text-3xl font-bold text-amber-600">
-                    {listings.filter(l => l.status === 'draft').length}
+                  <p className="text-sm font-medium text-gray-600">Draft Properties</p>
+                  <p className="text-3xl font-bold text-yellow-600">
+                    {listings.filter(l => l.status === 'draft' && !l.approvalStatus).length}
                   </p>
                 </div>
-                <div className="w-16 h-16 bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-transform duration-300">
+                <div className="w-16 h-16 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-transform duration-300">
+                  <Clock className="w-8 h-8 text-white" />
+                </div>
+              </div>
+            </Card>
+            <Card className="p-6 bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-500 hover:scale-105">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">Pending Approval</p>
+                  <p className="text-3xl font-bold text-blue-600">
+                    {listings.filter(l => l.status === 'draft' && l.approvalStatus === 'pending').length}
+                  </p>
+                </div>
+                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-transform duration-300">
                   <Clock className="w-8 h-8 text-white" />
                 </div>
               </div>
@@ -740,8 +861,8 @@ const HostListingsContent: React.FC = () => {
                     className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                   />
                   <div className="absolute top-3 right-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(listing.status)}`}>
-                      {listing.status.charAt(0).toUpperCase() + listing.status.slice(1)}
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(listing)}`}>
+                      {getDisplayStatus(listing)}
                     </span>
                   </div>
                   <div className="absolute top-3 left-3">
@@ -840,7 +961,7 @@ const HostListingsContent: React.FC = () => {
                   </div>
 
                   {/* Status Actions */}
-                  {listing.status === 'draft' && (
+                  {listing.status === 'draft' && !listing.approvalStatus && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -848,10 +969,65 @@ const HostListingsContent: React.FC = () => {
                       onClick={() => handleStatusChange(listing._id, 'published')}
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
-                      Publish Listing
+                      Submit for Approval
                     </Button>
                   )}
-                  {listing.status === 'published' && (
+                  {listing.status === 'draft' && listing.approvalStatus === 'pending' && (
+                    <div className="w-full mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center text-blue-700">
+                        <Clock className="w-4 h-4 mr-2" />
+                        <span className="text-sm font-medium">Submitted for Approval</span>
+                      </div>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Your listing is under review by our admin team
+                      </p>
+                    </div>
+                  )}
+                  {listing.status === 'draft' && listing.approvalStatus === 'approved' && !listing.isPublished && (
+                    <div className="w-full mt-3 space-y-2">
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center text-green-700">
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          <span className="text-sm font-medium">Approved by Admin</span>
+                        </div>
+                        <p className="text-xs text-green-600 mt-1">
+                          Your listing is approved and ready to publish
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full bg-gradient-to-r from-emerald-50 to-emerald-100 border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-medium rounded-lg transition-all duration-200 hover:scale-105"
+                        onClick={() => handlePublishApproved(listing._id)}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Publish Listing
+                      </Button>
+                    </div>
+                  )}
+                  {listing.status === 'draft' && listing.approvalStatus === 'rejected' && (
+                    <div className="w-full mt-3 space-y-2">
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-center text-red-700">
+                          <XCircle className="w-4 h-4 mr-2" />
+                          <span className="text-sm font-medium">Listing Rejected</span>
+                        </div>
+                        <p className="text-xs text-red-600 mt-1">
+                          Please review and resubmit your listing
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full bg-gradient-to-r from-emerald-50 to-emerald-100 border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-medium rounded-lg transition-all duration-200 hover:scale-105"
+                        onClick={() => handleStatusChange(listing._id, 'published')}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Resubmit for Approval
+                      </Button>
+                    </div>
+                  )}
+                  {listing.status === 'published' && listing.isPublished && (
                     <Button
                       variant="outline"
                       size="sm"

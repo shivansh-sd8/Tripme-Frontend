@@ -75,14 +75,16 @@ export default function AdminKYC() {
 
   const getDocumentTypeLabel = (type: string) => {
     switch (type) {
+      case 'aadhar-card':
+        return 'Aadhar Card';
+      case 'pan-card':
+        return 'PAN Card';
+      case 'voter-id':
+        return 'Voter ID Card';
       case 'passport':
         return 'Passport';
-      case 'driving_license':
-        return 'Driving License';
-      case 'aadhar':
-        return 'Aadhar Card';
-      case 'pan':
-        return 'PAN Card';
+      case 'drivers-license':
+        return 'Driver\'s License';
       default:
         return type;
     }

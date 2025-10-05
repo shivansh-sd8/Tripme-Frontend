@@ -1,0 +1,249 @@
+/* Search Calendar Specific Styles */
+.searchCalendarWrapper {
+  background: #fff !important;
+  border-radius: 1.25rem !important;
+  box-shadow: 0 8px 32px rgba(80, 80, 120, 0.10) !important;
+  border: none !important;
+  padding: 1rem 1.25rem 1.25rem 1.25rem !important;
+  font-size: 16px !important;
+  width: 100% !important;
+  max-height: 80vh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.searchCalendarWrapper * {
+  box-sizing: border-box !important;
+}
+
+/* Custom scrollbar for search calendar */
+.searchCalendarWrapper::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.searchCalendarWrapper::-webkit-scrollbar-track {
+  background: #f1f5f9 !important;
+  border-radius: 3px !important;
+}
+
+.searchCalendarWrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+  border-radius: 3px !important;
+}
+
+.searchCalendarWrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
+}
+
+.searchCalendarWrapper .rdrMonths, 
+.searchCalendarWrapper .rdrMonthsHorizontal {
+  width: 100% !important;
+}
+
+.searchCalendarWrapper .rdrMonth {
+  background: #fff !important;
+  border-radius: 1.25rem !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0.5rem !important;
+  width: 50% !important;
+  flex: 1 !important;
+}
+
+.searchCalendarWrapper .rdrMonthAndYearWrapper {
+  background: #fff !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600;
+  color: #7c3aed !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.searchCalendarWrapper .rdrWeekDays {
+  background: #fff !important;
+  color: #a1a1aa !important;
+  font-weight: 500;
+  border-radius: 0.5rem !important;
+}
+
+.searchCalendarWrapper .rdrWeekDay {
+  color: #a1a1aa !important;
+  font-weight: 500;
+  font-size: 1rem !important;
+}
+
+.searchCalendarWrapper .rdrDays {
+  padding: 0 6px !important;
+}
+
+.searchCalendarWrapper .rdrDay {
+  width: 48px !important;
+  height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  position: relative !important;
+  background: transparent !important;
+  color: #000000 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.searchCalendarWrapper .rdrDayNumber {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: inherit !important;
+}
+
+.searchCalendarWrapper .rdrDayNumber span {
+  color: inherit !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  padding: 0.25rem !important;
+  border-radius: 50% !important;
+  line-height: 1.2 !important;
+}
+
+/* Range selection styles */
+.searchCalendarWrapper .rdrDayStartOfRange,
+.searchCalendarWrapper .rdrDay.rdrDayStartOfRange {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  border-radius: 50% !important;
+  font-weight: 600 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.searchCalendarWrapper .rdrDayEndOfRange,
+.searchCalendarWrapper .rdrDay.rdrDayEndOfRange {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  border-radius: 50% !important;
+  font-weight: 600 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.searchCalendarWrapper .rdrDayInRange,
+.searchCalendarWrapper .rdrDay.rdrDayInRange {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+  border-radius: 0 !important;
+  font-weight: 500 !important;
+  border: none !important;
+  box-shadow: none !important;
+  position: relative !important;
+}
+
+/* Continuous range styling */
+.searchCalendarWrapper .rdrDayInRange:not(.rdrDayStartOfRange):not(.rdrDayEndOfRange) {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+  border-radius: 0 !important;
+  font-weight: 500 !important;
+  border: none !important;
+  box-shadow: none !important;
+  position: relative !important;
+}
+
+.searchCalendarWrapper .rdrDay[class*="rdrDayInRange"]:not([class*="rdrDayStartOfRange"]):not([class*="rdrDayEndOfRange"]) {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+  border-radius: 0 !important;
+  font-weight: 500 !important;
+  border: none !important;
+  box-shadow: none !important;
+  position: relative !important;
+}
+
+/* Hover states */
+.searchCalendarWrapper .rdrDay:not(.rdrDayPassive):hover {
+  background: #f0f9ff !important;
+  color: #0369a1 !important;
+  border-radius: 50% !important;
+}
+
+.searchCalendarWrapper .rdrDayPassive {
+  color: #9ca3af !important;
+}
+
+.searchCalendarWrapper .rdrDayToday {
+  color: #3b82f6 !important;
+  font-weight: 600 !important;
+}
+
+.searchCalendarWrapper .rdrDayToday .rdrDayNumber span {
+  border-bottom: 2px solid #0ea5e9 !important;
+  color: #0369a1 !important;
+  background: transparent !important;
+}
+
+/* Preview states */
+.searchCalendarWrapper .rdrDayStartPreview, 
+.searchCalendarWrapper .rdrDayEndPreview, 
+.searchCalendarWrapper .rdrDayInPreview, 
+.searchCalendarWrapper .rdrDayPreview {
+  background: rgba(16, 185, 129, 0.15) !important;
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.35) !important;
+  border-radius: 0.75rem !important;
+}
+
+.searchCalendarWrapper .rdrDay:not(.rdrDayPassive):hover .rdrDayNumber span {
+  background: #f0f9ff !important;
+  color: #0369a1 !important;
+}
+
+/* Navigation buttons */
+.searchCalendarWrapper .rdrNextPrevButton {
+  background: transparent !important;
+  color: #0369a1 !important;
+  border-radius: 8px !important;
+  width: 32px !important;
+  height: 32px !important;
+  margin: 0 0.5rem !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.searchCalendarWrapper .rdrNextPrevButton:hover {
+  background: #f0f9ff !important;
+  color: #0ea5e9 !important;
+}
+
+.searchCalendarWrapper .rdrDateDisplayWrapper {
+  display: none !important;
+}
+
+/* Force continuous range appearance */
+.searchCalendarWrapper .rdrDayInRange {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+  border-radius: 0 !important;
+  font-weight: 500 !important;
+  border: none !important;
+  box-shadow: none !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.searchCalendarWrapper .rdrDayInRange::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #dbeafe !important;
+  z-index: -1 !important;
+}
+
+.searchCalendarWrapper .rdrDayStartOfRange,
+.searchCalendarWrapper .rdrDayEndOfRange {
+  z-index: 2 !important;
+}

@@ -196,7 +196,7 @@ export default function HostBookingDetailPage() {
   const fetchBookingDetails = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.getBookingById(id as string);
+      const response = await apiClient.getBooking(id as string);
       
       if (response.success) {
         setBooking(response.data.booking);

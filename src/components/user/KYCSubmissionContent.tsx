@@ -430,10 +430,10 @@ const KYCSubmissionContent: React.FC = () => {
                     <select
                       value={formData.identityDocument}
                       onChange={(e) => handleInputChange('identityDocument', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 text-gray-900 bg-white"
                       required
                     >
-                      <option value="">Select document type</option>
+                      <option value="" className="text-gray-500">Select document type</option>
                       {requirements?.identityDocuments.map((doc) => (
                         <option key={doc.type} value={doc.type}>
                           {doc.name}
@@ -451,6 +451,7 @@ const KYCSubmissionContent: React.FC = () => {
                       value={formData.documentNumber}
                       onChange={(e) => handleInputChange('documentNumber', e.target.value)}
                       placeholder="Enter document number"
+                      className="text-gray-900 placeholder-gray-500"
                       required
                     />
                   </div>
@@ -483,7 +484,7 @@ const KYCSubmissionContent: React.FC = () => {
                           }
                         }
                       }}
-                      className="mt-2"
+                      className="mt-2 text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
                       required
                       disabled={uploadingDocument}
                     />
@@ -508,10 +509,10 @@ const KYCSubmissionContent: React.FC = () => {
                   <select
                     value={formData.addressProof}
                     onChange={(e) => handleInputChange('addressProof', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 text-gray-900 bg-white"
                     required
                   >
-                    <option value="">Select address proof type</option>
+                    <option value="" className="text-gray-500">Select address proof type</option>
                     {requirements?.addressProofs.map((proof) => (
                       <option key={proof.type} value={proof.type}>
                         {proof.name}
@@ -547,7 +548,7 @@ const KYCSubmissionContent: React.FC = () => {
                           }
                         }
                       }}
-                      className="mt-2"
+                      className="mt-2 text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
                       required
                       disabled={uploadingAddressProof}
                     />
@@ -592,7 +593,7 @@ const KYCSubmissionContent: React.FC = () => {
                           }
                         }
                       }}
-                      className="mt-2"
+                      className="mt-2 text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
                       required
                       disabled={uploadingSelfie}
                     />

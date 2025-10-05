@@ -13,6 +13,8 @@ import { calculatePricingBreakdown, fetchPlatformFeeRate, toTwoDecimals, calcula
 import { formatCurrency, PRICING_CONSTANTS } from "@/shared/constants/pricing.constants";
 import { addDays, format, differenceInDays } from 'date-fns';
 import { createPortal } from 'react-dom';
+import PropertyAvailabilityCalendar from "@/components/rooms/PropertyAvailabilityCalendar";
+import PropertyMap from "@/components/rooms/PropertyMap";
 import { 
   Calendar, 
   MapPin, 
@@ -698,11 +700,11 @@ export default function PropertyDetailsPage() {
 
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       <Header />
       
       {/* Main Content */}
-      <main className="pt-40">
+      <main className="pt-40 font-['Inter',system-ui,-apple-system,sans-serif]">
         {/* Image Gallery */}
         <div className="relative">
           <div className="grid grid-cols-4 gap-2 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -732,14 +734,24 @@ export default function PropertyDetailsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             {/* Left Column - Main Content */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-8">
               {/* Header Section */}
               <div className="mb-8">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2 font-display">
+                    <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-2 font-['Inter',system-ui,-apple-system,sans-serif] tracking-tight">
                       {property.title}
                     </h1>
+                    
+                    {/* Place Type Badge */}
+                    <div className="mb-4">
+                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-100 to-cyan-100 border border-blue-200 rounded-full text-blue-700 font-semibold text-sm">
+                        <Home className="w-4 h-4" />
+                        {property.placeType === 'entire' ? 'Entire place' : 
+                         property.placeType === 'room' ? 'A room' : 
+                         property.placeType === 'shared' ? 'A shared room' : 'Entire place'}
+                      </div>
+                    </div>
                     
                     {/* Your Property Badge */}
                     {isOwnProperty && (
@@ -806,12 +818,12 @@ export default function PropertyDetailsPage() {
               </div>
 
               {/* Overview Section */}
-              <div className="mb-12">
+              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
                     <Home className="w-5 h-5 text-white" />
                 </div>
-                  <h2 className="text-2xl font-bold text-gray-900 font-display">About this place</h2>
+                  <h2 className="text-3xl font-bold text-gray-900 font-['Inter',system-ui,-apple-system,sans-serif] tracking-tight">About this place</h2>
               </div>
                     <div className="text-gray-700 leading-relaxed">
                       {showFullDescription ? (
@@ -846,12 +858,12 @@ export default function PropertyDetailsPage() {
                   </div>
 
               {/* Amenities Section */}
-              <div className="mb-12">
+              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl flex items-center justify-center">
                     <CheckCircle className="w-5 h-5 text-white" />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900 font-display">What this place offers</h2>
+                  <h2 className="text-3xl font-bold text-gray-900 font-['Inter',system-ui,-apple-system,sans-serif] tracking-tight">What this place offers</h2>
                 </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {(showAllAmenities ? property.amenities : property.amenities?.slice(0, 8))?.map((amenity: string) => (
@@ -871,14 +883,25 @@ export default function PropertyDetailsPage() {
                     )}
                   </div>
 
+              {/* Availability Calendar Section */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
+                <PropertyAvailabilityCalendar 
+                  propertyId={id as string}
+                  onDateSelect={(date) => {
+                    console.log('Selected date:', date);
+                    // You can add logic here to update booking dates
+                  }}
+                />
+              </div>
+
               {/* Reviews Section */}
-              <div className="mb-12">
+              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
                     <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center">
                       <Star className="w-5 h-5 text-white" />
                     </div>
-                      <h2 className="text-2xl font-bold text-gray-900 font-display">Reviews</h2>
+                      <h2 className="text-3xl font-bold text-gray-900 font-['Inter',system-ui,-apple-system,sans-serif] tracking-tight">Reviews</h2>
                   </div>
                       <div className="flex items-center gap-2">
                         <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
@@ -893,26 +916,23 @@ export default function PropertyDetailsPage() {
                     </div>
                   </div>
 
-              {/* Location Section */}
+              {/* Location Section with Map */}
               <div className="mb-12">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
-                    <MapPin className="w-5 h-5 text-white" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900 font-display">Location</h2>
-                </div>
-                    <div className="bg-gray-100 rounded-2xl p-6 mb-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <MapPin className="w-5 h-5 text-gray-600" />
-                        <span className="font-medium text-gray-900">
-                          {property.location?.address}, {property.location?.city}, {property.location?.state}
-                        </span>
-                      </div>
-                      <p className="text-gray-600 text-sm">
-                        {property.location?.city} is known for its vibrant culture, delicious food, and beautiful architecture.
-                      </p>
-                    </div>
-                  </div>
+                {console.log('Property location data:', {
+                  location: property.location,
+                  coordinates: property.location?.coordinates,
+                  address: property.location?.address,
+                  city: property.location?.city,
+                  state: property.location?.state
+                })}
+                <PropertyMap
+                  address={property.location?.address || 'Address not specified'}
+                  city={property.location?.city || 'City not specified'}
+                  state={property.location?.state || 'State not specified'}
+                  country={property.location?.country || 'India'}
+                  coordinates={property.location?.coordinates}
+                />
+              </div>
 
               {/* Host Section */}
               <div className="mb-12">

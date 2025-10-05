@@ -10,8 +10,7 @@ import { createPortal } from 'react-dom';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import { cn } from '@/shared/utils/pricingUtils';
-
-// Calendar styles are now handled in globals.css with custom-calendar class
+import { searchCalendarStyles } from '@/styles/calendars';
 
 const MAPBOX_TOKEN = 'pk.eyJ1Ijoic2hpdmFuc2gxODA5IiwiYSI6ImNtZTRhdmJyMTA5YTEya3F0cWN2c3RpdmcifQ.7l3-Hj7ihCHCwH656wq1oA';
 const MAPBOX_API_URL = 'https://api.mapbox.com/geocoding/v5/mapbox.places';
@@ -1059,7 +1058,7 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
               showMonthAndYearPickers={true}
               direction="horizontal"
               months={2}
-              className="rounded-lg"
+              className={`${searchCalendarStyles.searchCalendarWrapper} rounded-lg`}
               editableDateInputs={false}
               moveRangeOnFirstSelection={false}
             />

@@ -187,6 +187,20 @@ class ApiClient {
     });
   }
 
+  // Service availability methods
+  async getServiceAvailability(serviceId: string): Promise<ApiResponse<any>> {
+    return this.request(`/services/${serviceId}/availability`, {
+      method: 'GET',
+    });
+  }
+
+  async updateServiceAvailability(serviceId: string, availableSlots: any[]): Promise<ApiResponse<any>> {
+    return this.request(`/services/${serviceId}/availability`, {
+      method: 'PUT',
+      body: JSON.stringify({ availableSlots }),
+    });
+  }
+
   async deleteAvailability(listingId: string, availabilityId: string): Promise<ApiResponse<any>> {
     return this.request(`/availability/${listingId}/${availabilityId}`, {
       method: 'DELETE',
@@ -238,6 +252,12 @@ class ApiClient {
 
   async publishListing(listingId: string): Promise<ApiResponse<any>> {
     return this.request(`/listings/${listingId}/publish`, {
+      method: 'POST',
+    });
+  }
+
+  async publishApprovedListing(listingId: string): Promise<ApiResponse<any>> {
+    return this.request(`/listings/${listingId}/publish-approved`, {
       method: 'POST',
     });
   }
@@ -717,6 +737,10 @@ class ApiClient {
   async getAdminPayments(params?: any): Promise<ApiResponse<PaginatedResponse<any>>> {
     const queryParams = params ? `?${new URLSearchParams(params).toString()}` : '';
     return this.request(`/admin/payments${queryParams}`);
+  }
+
+  async getPropertyAvailability(propertyId: string): Promise<ApiResponse<any>> {
+    return this.request(`/availability/${propertyId}`);
   }
 
   async processManualPayout(paymentId: string, amount: number): Promise<ApiResponse<any>> {

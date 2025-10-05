@@ -803,6 +803,7 @@ export default function BookingPage() {
       total: pricing.totalAmount,
       nights,
       subtotal: pricing.subtotal,
+      hostSubtotal: pricing.hostSubtotal, // Added host subtotal for correct percentage calculation
       discountAmount: pricing.discountAmount
     };
     
@@ -1067,8 +1068,8 @@ export default function BookingPage() {
         // Clear booking context data
         clearBookingData();
         
-        // Show success message and redirect to booking details page
-        router.push(`/bookings/${response.data.booking._id}?success=true`);
+        // Show success message and redirect to bookings page
+        router.push('/bookings?success=true');
       } else {
         throw new Error(response.message || 'Failed to process payment and create booking');
       }

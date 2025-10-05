@@ -1,0 +1,382 @@
+/* Availability Calendar Specific Styles */
+.availabilityCalendarWrapper {
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 1rem !important;
+  font-size: 14px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.availabilityCalendarWrapper * {
+  box-sizing: border-box !important;
+}
+
+/* Target the actual react-date-range generated classes */
+.availabilityCalendarWrapper :global(.rdrCalendarWrapper) {
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 0 !important;
+  font-size: 14px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrMonth) {
+  width: 100% !important;
+  background: transparent !important;
+  border-radius: 0.75rem !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0.5rem !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrDays) {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  gap: 12px !important;
+  padding: 1rem !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrDay) {
+  width: 48px !important;
+  height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  position: relative !important;
+  background: transparent !important;
+  color: #374151 !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin: 6px !important;
+}
+
+/* Override react-date-range default styles with higher specificity */
+.availabilityCalendarWrapper :global(.rdrCalendarWrapper .rdrDay) {
+  border-radius: 50% !important;
+  width: 48px !important;
+  height: 48px !important;
+  margin: 6px !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrCalendarWrapper .rdrDay .rdrDayNumber) {
+  border-radius: 50% !important;
+}
+
+/* Force circular shape for all date states */
+.availabilityCalendarWrapper :global(.rdrDay) {
+  border-radius: 50% !important;
+  width: 48px !important;
+  height: 48px !important;
+  margin: 6px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrDayNumber) {
+  border-radius: 50% !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrDayNumber span) {
+  border-radius: 50% !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Override any rectangular styling */
+.availabilityCalendarWrapper :global(.rdrDay) * {
+  border-radius: 50% !important;
+}
+
+/* Force perfect circularity for all date elements */
+.availabilityCalendarWrapper :global(.rdrDay) {
+  border-radius: 50% !important;
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  max-width: 48px !important;
+  max-height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 6px !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrDayNumber) {
+  border-radius: 50% !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrDayNumber span) {
+  border-radius: 50% !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Override any padding that might cause oval shapes */
+.availabilityCalendarWrapper :global(.rdrDayNumber span) {
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50% !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrDayNumber) {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: inherit !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrDayNumber span) {
+  color: inherit !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  line-height: 1.2 !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrDayToday .rdrDayNumber span) {
+  border: 2px solid #3b82f6 !important;
+  color: #3b82f6 !important;
+  background: transparent !important;
+  font-weight: 600 !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrDay:not(.rdrDayPassive):hover) {
+  transform: scale(1.1) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
+  filter: brightness(0.8) !important;
+  opacity: 0.9 !important;
+  border: none !important;
+  outline: none !important;
+}
+
+/* Ensure no blue borders on hover for any state */
+.availabilityCalendarWrapper :global(.rdrDay:hover),
+.availabilityCalendarWrapper :global(.rdrDay:focus),
+.availabilityCalendarWrapper :global(.rdrDay:active) {
+  border: none !important;
+  outline: none !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrDayPassive) {
+  color: #9ca3af !important;
+  cursor: not-allowed !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrWeekDays) {
+  margin-bottom: 16px !important;
+  padding: 0 0.5rem !important;
+  display: flex !important;
+  justify-content: space-between !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrWeekDay) {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #6b7280 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  width: 48px !important;
+  text-align: center !important;
+  margin: 6px !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrNextPrevButton) {
+  background: #f9fafb !important;
+  color: #374151 !important;
+  border-radius: 6px !important;
+  width: 28px !important;
+  height: 28px !important;
+  margin: 0 0.25rem !important;
+  border: 1px solid #e5e7eb !important;
+  transition: all 0.2s ease !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrNextPrevButton:hover) {
+  background: #e5e7eb !important;
+  color: #1f2937 !important;
+  border-color: #d1d5db !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrMonthAndYearWrapper) {
+  background: transparent !important;
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  padding: 0.5rem 0 !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrMonthAndYearPickers select) {
+  background: transparent !important;
+  color: #1f2937 !important;
+  border: none !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+}
+
+/* Status-specific styling for availability calendar */
+.availabilityCalendarWrapper :global(.rdrDay[data-status="available"]) {
+  background: #dcfce7 !important;
+  color: #166534 !important;
+  border-radius: 50% !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrDay[data-status="unavailable"]) {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border-radius: 50% !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrDay[data-status="booked"]) {
+  background: #f3e8ff !important;
+  color: #7c3aed !important;
+  border-radius: 50% !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrDay[data-status="maintenance"]) {
+  background: #fef3c7 !important;
+  color: #d97706 !important;
+  border-radius: 50% !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrDay[data-status="on-hold"]) {
+  background: #fef3c7 !important;
+  color: #d97706 !important;
+  border-radius: 50% !important;
+}
+
+/* Additional overrides for react-date-range default styles */
+.availabilityCalendarWrapper :global(.rdrCalendarWrapper .rdrDay[data-status="available"]) {
+  border-radius: 50% !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrCalendarWrapper .rdrDay[data-status="unavailable"]) {
+  border-radius: 50% !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrCalendarWrapper .rdrDay[data-status="booked"]) {
+  border-radius: 50% !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrCalendarWrapper .rdrDay[data-status="maintenance"]) {
+  border-radius: 50% !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrCalendarWrapper .rdrDay[data-status="on-hold"]) {
+  border-radius: 50% !important;
+}
+
+/* Selection states for availability calendar */
+.availabilityCalendarWrapper :global(.rdrDay[data-selected="true"]) {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  border-radius: 50% !important;
+  font-weight: 600 !important;
+  box-shadow: 0 0 0 2px #1d4ed8 !important;
+}
+
+/* Additional overrides for selection states */
+.availabilityCalendarWrapper :global(.rdrCalendarWrapper .rdrDay[data-selected="true"]) {
+  border-radius: 50% !important;
+}
+
+/* Range selection styling - keep circular but show range effect */
+.availabilityCalendarWrapper :global(.rdrDayStartOfRange) {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 0 2px #1d4ed8 !important;
+  z-index: 3 !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrDayEndOfRange) {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 0 2px #1d4ed8 !important;
+  z-index: 3 !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrDayInRange) {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+  border-radius: 50% !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+/* Add connecting line between range dates */
+.availabilityCalendarWrapper :global(.rdrDayInRange::before) {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -6px;
+  right: -6px;
+  height: 3px;
+  background: #3b82f6;
+  transform: translateY(-50%);
+  z-index: 1;
+  border-radius: 2px;
+}
+
+.availabilityCalendarWrapper :global(.rdrDayStartOfRange::before),
+.availabilityCalendarWrapper :global(.rdrDayEndOfRange::before) {
+  display: none !important;
+}
+
+/* Preview states - remove blue dotted border */
+.availabilityCalendarWrapper :global(.rdrDayStartPreview),
+.availabilityCalendarWrapper :global(.rdrDayEndPreview),
+.availabilityCalendarWrapper :global(.rdrDayInPreview),
+.availabilityCalendarWrapper :global(.rdrDayPreview) {
+  background: transparent !important;
+  color: inherit !important;
+  border-radius: 50% !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.availabilityCalendarWrapper :global(.rdrDay[data-selected="true"] .rdrDayNumber span) {
+  background: transparent !important;
+  color: #ffffff !important;
+  border: none !important;
+}

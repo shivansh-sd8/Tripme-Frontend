@@ -13,7 +13,30 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
-  Calendar
+  Calendar,
+  Wifi,
+  Tv,
+  ChefHat,
+  Droplets,
+  Snowflake,
+  Flame,
+  Monitor,
+  Waves,
+  Car,
+  Dumbbell,
+  Coffee,
+  Bell,
+  Stethoscope,
+  Package,
+  Mountain,
+  Building2,
+  Trees,
+  PawPrint,
+  Cigarette,
+  CalendarDays,
+  Shield,
+  Accessibility,
+  ArrowUpDown
 } from 'lucide-react';
 import Button from '../ui/Button';
 import Card from '../ui/Card';
@@ -164,6 +187,7 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
     type: 'apartment' as Property['type'],
     propertyType: 'standard' as Property['propertyType'],
     style: 'modern' as Property['style'],
+    placeType: 'entire' as Property['placeType'],
     location: {
       type: 'Point' as const,
       coordinates: [0, 0] as [number, number],
@@ -229,17 +253,67 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
     { value: 'tropical', label: 'Tropical' }
   ];
 
+  const placeTypes = [
+    { value: 'entire', label: 'Entire place', description: 'Guests have the whole place to themselves' },
+    { value: 'room', label: 'A room', description: 'Guests have a private room and shared common areas' },
+    { value: 'shared', label: 'A shared room', description: 'Guests sleep in a room or common area that may be shared with others' }
+  ];
+
   const amenitiesList = [
     'wifi', 'tv', 'kitchen', 'washer', 'dryer', 'ac', 'heating', 'workspace',
     'pool', 'hot-tub', 'parking', 'gym', 'breakfast', 'smoke-alarm',
     'carbon-monoxide-alarm', 'first-aid-kit', 'fire-extinguisher', 'essentials'
   ];
 
+  // Icon mapping for amenities
+  const getAmenityIcon = (amenity: string) => {
+    const iconMap: Record<string, any> = {
+      'wifi': <Wifi className="w-5 h-5" />,
+      'tv': <Tv className="w-5 h-5" />,
+      'kitchen': <ChefHat className="w-5 h-5" />,
+      'washer': <Droplets className="w-5 h-5" />,
+      'dryer': <Droplets className="w-5 h-5" />,
+      'ac': <Snowflake className="w-5 h-5" />,
+      'heating': <Flame className="w-5 h-5" />,
+      'workspace': <Monitor className="w-5 h-5" />,
+      'pool': <Waves className="w-5 h-5" />,
+      'hot-tub': <Waves className="w-5 h-5" />,
+      'parking': <Car className="w-5 h-5" />,
+      'gym': <Dumbbell className="w-5 h-5" />,
+      'breakfast': <Coffee className="w-5 h-5" />,
+      'smoke-alarm': <Bell className="w-5 h-5" />,
+      'carbon-monoxide-alarm': <Bell className="w-5 h-5" />,
+      'first-aid-kit': <Stethoscope className="w-5 h-5" />,
+      'fire-extinguisher': <Flame className="w-5 h-5" />,
+      'essentials': <Package className="w-5 h-5" />
+    };
+    return iconMap[amenity] || <CheckCircle className="w-5 h-5" />;
+  };
+
   const featuresList = [
     'ocean-view', 'mountain-view', 'city-view', 'garden', 'balcony', 'terrace',
     'fireplace', 'elevator', 'wheelchair-accessible', 'pet-friendly',
     'smoking-allowed', 'long-term-stays'
   ];
+
+  // Icon mapping for features
+  const getFeatureIcon = (feature: string) => {
+    const iconMap: Record<string, any> = {
+      'ocean-view': <Waves className="w-5 h-5" />,
+      'mountain-view': <Mountain className="w-5 h-5" />,
+      'city-view': <Building2 className="w-5 h-5" />,
+      'garden': <Trees className="w-5 h-5" />,
+      'balcony': <Home className="w-5 h-5" />,
+      'terrace': <Home className="w-5 h-5" />,
+      'fireplace': <Flame className="w-5 h-5" />,
+      'elevator': <ArrowUpDown className="w-5 h-5" />,
+      'wheelchair-accessible': <Accessibility className="w-5 h-5" />,
+      'pet-friendly': <PawPrint className="w-5 h-5" />,
+      'smoking-allowed': <Cigarette className="w-5 h-5" />,
+      'long-term-stays': <CalendarDays className="w-5 h-5" />
+    };
+    return iconMap[feature] || <CheckCircle className="w-5 h-5" />;
+  };
 
   const houseRulesList = [
     'no-smoking', 'no-pets', 'no-parties', 'no-loud-music', 'no-shoes', 'no-unregistered-guests'
@@ -752,6 +826,28 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
                                 ))}
                               </select>
                             </div>
+                            
+                            <div>
+                              <label className="block text-lg font-semibold text-slate-800 mb-3">What type of place will guests have?</label>
+                              <div className="space-y-3">
+                                {placeTypes.map(placeType => (
+                                  <label key={placeType.value} className="flex items-start space-x-3 p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all duration-200">
+                                    <input
+                                      type="radio"
+                                      name="placeType"
+                                      value={placeType.value}
+                                      checked={formData.placeType === placeType.value}
+                                      onChange={(e) => handleInputChange('placeType', e.target.value)}
+                                      className="mt-1 w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
+                                    />
+                                    <div className="flex-1">
+                                      <div className="font-medium text-gray-900">{placeType.label}</div>
+                                      <div className="text-sm text-gray-600 mt-1">{placeType.description}</div>
+                                    </div>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
                           </div>
                         </div>
                         
@@ -1085,9 +1181,14 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
                                 onChange={(e) => handleArrayToggle('amenities', amenity)}
                                 className="w-5 h-5 text-blue-600 border-slate-300 rounded focus:ring-blue-500 focus:ring-2"
                               />
-                              <span className="text-slate-700 font-medium capitalize">
-                                {amenity.replace('-', ' ')}
-                              </span>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-blue-600">
+                                  {getAmenityIcon(amenity)}
+                                </span>
+                                <span className="text-slate-700 font-medium capitalize">
+                                  {amenity.replace('-', ' ')}
+                                </span>
+                              </div>
                             </label>
                           ))}
                         </div>

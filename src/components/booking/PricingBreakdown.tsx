@@ -19,6 +19,7 @@ interface PricingBreakdownProps {
     // Calculated properties
     platformFee?: number;
     subtotal?: number;
+    hostSubtotal?: number;
     gst?: number;
     processingFee?: number;
     total?: number;
@@ -51,6 +52,7 @@ export default function PricingBreakdown({
     // Calculated properties
     platformFee: passedPlatformFee,
     subtotal: passedSubtotal,
+    hostSubtotal: passedHostSubtotal,
     gst: passedGst,
     processingFee: passedProcessingFee,
     total: passedTotal,
@@ -60,11 +62,13 @@ export default function PricingBreakdown({
   // Calculate pricing breakdown
   const baseAmount = basePrice * nights;
   const extraGuestCost = extraGuestPrice * extraGuests * nights;
-  const hostFees = cleaningFee + serviceFee + securityDeposit;
-  const calculatedSubtotal = baseAmount + extraGuestCost + hostFees + hourlyExtension - discountAmount;
+  const hostFees = cleaningFee + serviceFee; // Exclude security deposit from host fees
+  const calculatedHostSubtotal = baseAmount + extraGuestCost + hostFees + hourlyExtension - discountAmount;
+  const calculatedSubtotal = calculatedHostSubtotal + securityDeposit; // Include security deposit in total subtotal
   
   // Use passed values if available, otherwise calculate
   const subtotal = passedSubtotal ?? calculatedSubtotal;
+  const hostSubtotal = passedHostSubtotal ?? calculatedHostSubtotal;
   
   // If platformFee is not provided, use fallback calculation
   const platformFee = passedPlatformFee ?? toTwoDecimals(subtotal * PRICING_CONSTANTS.PLATFORM_FEE_RATE * 100) / 100;
@@ -174,7 +178,7 @@ export default function PricingBreakdown({
             {showDetailedBreakdown && (
               <div className="mt-3 space-y-2 border-t border-gray-200 pt-3">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-600">TripMe Service Fee ({subtotal > 0 ? toTwoDecimals((platformFee / subtotal) * 100) : 0}%)</span>
+                  <span className="text-gray-600">TripMe Service Fee ({hostSubtotal > 0 ? toTwoDecimals((platformFee / hostSubtotal) * 100) : 0}%)</span>
                   <span className="text-gray-900">{formatPrice(platformFee)}</span>
                 </div>
                 
@@ -196,7 +200,7 @@ export default function PricingBreakdown({
       {/* Host Earning (only for host view) */}
       {showHostEarning && variant === 'host' && (
         <div className="flex justify-between items-center py-2">
-          <span className="text-gray-600">TripMe Service Fee ({subtotal > 0 ? toTwoDecimals((platformFee / subtotal) * 100) : 0}%)</span>
+          <span className="text-gray-600">TripMe Service Fee ({hostSubtotal > 0 ? toTwoDecimals((platformFee / hostSubtotal) * 100) : 0}%)</span>
           <span className="text-gray-900">-{formatPrice(platformFee)}</span>
         </div>
       )}

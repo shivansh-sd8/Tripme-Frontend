@@ -55,8 +55,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     console.log('🔐 AdminLayout - User:', user);
     console.log('🔐 AdminLayout - User role:', user?.role);
     
-    if (!user || (user.role !== 'admin' && user.role !== 'super-admin')) {
-      console.log('🔐 AdminLayout - Redirecting to admin login');
+    // Check if user is admin or super-admin
+    const isAdminUser = user && (user.role === 'admin' || user.role === 'super-admin');
+    
+    if (!isAdminUser) {
+      console.log('🔐 AdminLayout - User is not admin, redirecting to admin login');
       router.push('/admin/login');
     } else {
       console.log('🔐 AdminLayout - User is admin, rendering dashboard');
@@ -66,7 +69,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   }, [user, router]);
 
   // Don't render if user is not admin
-  if (!user || (user.role !== 'admin' && user.role !== 'super-admin')) {
+  const isAdminUser = user && (user.role === 'admin' || user.role === 'super-admin');
+  if (!isAdminUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <div className="text-center">

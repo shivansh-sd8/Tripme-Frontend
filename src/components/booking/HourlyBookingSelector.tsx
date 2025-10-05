@@ -141,7 +141,7 @@ const HourlyBookingSelector: React.FC<HourlyBookingSelectorProps> = ({
       };
     }
 
-    // Note: Platform fee rate is now dynamic and fetched from backend
+    // Note: Platform fee rate should be passed as a prop from parent component
     // This is a fallback value - the actual rate should come from the backend
     const platformFeeRate = 0.15; // Fallback rate (will be overridden by dynamic rate)
     const platformFee = (dailyTotal + hourlyTotal) * platformFeeRate;

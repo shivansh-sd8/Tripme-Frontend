@@ -118,6 +118,7 @@ export interface Property {
   type: 'villa' | 'apartment' | 'hostel' | 'house' | 'cottage' | 'cabin' | 'treehouse' | 'boat';
   propertyType: 'premium' | 'standard' | 'budget' | 'luxury';
   style: 'modern' | 'traditional' | 'minimalist' | 'rustic' | 'industrial' | 'scandinavian' | 'mediterranean' | 'tropical';
+  placeType: 'entire' | 'room' | 'shared';
   images: PropertyImage[];
   // For backward compatibility with StayCard component
   imageUrls?: string[];

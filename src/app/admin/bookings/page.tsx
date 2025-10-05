@@ -103,8 +103,26 @@ export default function AdminBookings() {
   };
 
   const handleView = (bookingId: string) => {
-    // TODO: Implement view logic - could open a modal with detailed booking info
-
+    const booking = bookings.find(b => b._id === bookingId || b.id === bookingId);
+    if (booking) {
+      // Create a detailed view modal or redirect to detailed page
+      const details = `
+Booking Details:
+- ID: ${booking._id || booking.id}
+- User: ${booking.user?.name} (${booking.user?.email})
+- Host: ${booking.host?.name} (${booking.host?.email})
+- Property: ${booking.listing?.title || booking.service?.title || 'N/A'}
+- Check-in: ${new Date(booking.checkIn).toLocaleDateString()}
+- Check-out: ${new Date(booking.checkOut).toLocaleDateString()}
+- Guests: ${booking.guests?.adults || 0} adults, ${booking.guests?.children || 0} children
+- Status: ${booking.status}
+- Total Amount: ₹${(booking.totalAmount || 0).toLocaleString()}
+- Payment Status: ${booking.paymentStatus || 'N/A'}
+- Created: ${new Date(booking.createdAt).toLocaleDateString()}
+${booking.refundAmount ? `- Refunded: ₹${booking.refundAmount.toLocaleString()}` : ''}
+      `;
+      alert(details);
+    }
   };
 
   const handleRefund = async (bookingId: string) => {
