@@ -12,8 +12,8 @@ import 'react-date-range/dist/theme/default.css';
 import { cn } from '@/shared/utils/pricingUtils';
 import { searchCalendarStyles } from '@/styles/calendars';
 
-const MAPBOX_TOKEN = 'pk.eyJ1Ijoic2hpdmFuc2gxODA5IiwiYSI6ImNtZTRhdmJyMTA5YTEya3F0cWN2c3RpdmcifQ.7l3-Hj7ihCHCwH656wq1oA';
-const MAPBOX_API_URL = 'https://api.mapbox.com/geocoding/v5/mapbox.places';
+// Google Maps API configuration
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyB9JgH59f8fK3xzaBfFB6T19u4qGEUeLOM';
 
 const formatDate = (date: Date) => format(date, 'dd MMM');
 
@@ -124,25 +124,116 @@ const customSelectStyles = {
   }),
 };
 
-async function fetchPlacesMapbox(inputValue: string) {
-  if (!inputValue || inputValue.length < 2) return [];
+// Ensure Google Maps script is loaded
+function loadGoogleMapsScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // Check if already loaded
+    if (window.google && window.google.maps && window.google.maps.places) {
+      console.log('✅ Google Maps already loaded');
+      resolve();
+      return;
+    }
 
-  const url = `${MAPBOX_API_URL}/${encodeURIComponent(inputValue)}.json` +
-              `?access_token=${MAPBOX_TOKEN}` +
-              `&types=place,region,locality,poi` +
-              `&country=IN` +
-              `&limit=10`;
+    // Check if script is already being loaded
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (existingScript) {
+      console.log('⏳ Google Maps script already loading, waiting...');
+      existingScript.addEventListener('load', () => {
+        console.log('✅ Google Maps loaded (existing script)');
+        resolve();
+      });
+      existingScript.addEventListener('error', () => {
+        console.error('❌ Failed to load Google Maps (existing script)');
+        reject(new Error('Failed to load Google Maps'));
+      });
+      return;
+    }
 
-  const res = await fetch(url);
-  const data = await res.json();
+    // Load the script
+    console.log('🔄 Loading Google Maps script...');
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
 
-  return (data.features || []).map((feature: any) => ({
-    value: feature.text,
-    label: feature.place_name,
-    coordinates: feature.center,
-    type: feature.place_type?.[0] || 'unknown',
-    context: feature.context || [],
-  }));
+    script.onload = () => {
+      console.log('✅ Google Maps loaded successfully');
+      resolve();
+    };
+
+    script.onerror = () => {
+      console.error('❌ Failed to load Google Maps script');
+      reject(new Error('Failed to load Google Maps'));
+    };
+
+    document.head.appendChild(script);
+  });
+}
+
+// Google Maps Places Autocomplete using JavaScript API
+async function fetchPlacesGoogle(inputValue: string): Promise<any[]> {
+  if (!inputValue || inputValue.length < 2) {
+    console.log('⚠️ Input too short:', inputValue);
+    return [];
+  }
+
+  try {
+    // Ensure Google Maps is loaded
+    await loadGoogleMapsScript();
+
+    return new Promise((resolve) => {
+      // Double check after loading
+      if (!window.google || !window.google.maps || !window.google.maps.places) {
+        console.error('❌ Google Maps JavaScript API not loaded after script load');
+        resolve([]);
+        return;
+      }
+
+      console.log('🔍 Fetching places for:', inputValue);
+
+      // Use AutocompleteService from Google Maps JavaScript API
+      const service = new window.google.maps.places.AutocompleteService();
+      
+      service.getPlacePredictions(
+        {
+          input: inputValue,
+          componentRestrictions: { country: 'in' },
+          types: ['geocode'] // Match the working PropertyForm - includes all address types
+        },
+        (predictions, status) => {
+          console.log('📍 Google Places API status:', status);
+          console.log('📍 Predictions:', predictions);
+
+          if (status !== window.google.maps.places.PlacesServiceStatus.OK) {
+            console.log('⚠️ Google Places API returned non-OK status:', status);
+            resolve([]);
+            return;
+          }
+
+          if (!predictions || predictions.length === 0) {
+            console.log('⚠️ No predictions returned');
+            resolve([]);
+            return;
+          }
+
+          // Map predictions to our format
+          const options = predictions.map((prediction: any) => ({
+            value: prediction.structured_formatting?.main_text || prediction.description,
+            label: prediction.description,
+            placeId: prediction.place_id,
+            type: prediction.types?.[0] || 'locality',
+            coordinates: null, // Will be fetched when user selects
+          }));
+
+          console.log('✅ Mapped options:', options.length, 'results');
+          resolve(options);
+        }
+      );
+    });
+  } catch (error) {
+    console.error('❌ Error in fetchPlacesGoogle:', error);
+    return [];
+  }
 }
 
 // Debounce utility
@@ -367,7 +458,7 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
   // Debounced loadOptions for react-select/async
   const debouncedLoadOptions = useRef(
     debounce((inputValue: string, callback: (options: any[]) => void) => {
-      fetchPlacesMapbox(inputValue).then(callback);
+      fetchPlacesGoogle(inputValue).then(callback);
     }, 400)
   ).current;
 
@@ -430,53 +521,45 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
 
       const { latitude, longitude } = position.coords;
       
-      // Reverse geocode to get city name
-      const reverseGeocodeUrl = `${MAPBOX_API_URL}/${longitude},${latitude}.json` +
-        `?access_token=${MAPBOX_TOKEN}` +
-        `&types=place,locality,neighborhood,address,poi` +
-        `&limit=1`;
+      // Reverse geocode to get city name using Google Maps Geocoding API
+      const reverseGeocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}&result_type=locality|sublocality|administrative_area_level_2`;
 
       const response = await fetch(reverseGeocodeUrl);
       const data = await response.json();
 
-      console.log('Reverse geocoding response:', data);
+      console.log('Google Reverse geocoding response:', data);
 
-      if (data.features && data.features.length > 0) {
-        const feature = data.features[0];
-        console.log('Selected feature:', feature);
+      if (data.results && data.results.length > 0) {
+        const result = data.results[0];
+        console.log('Selected result:', result);
         
-        // Extract city name from the place_name or context
+        // Extract city name from Google Maps address components
         let cityName = 'Current Location';
         
-        if (feature.place_name) {
-          // Try to extract just the city name from the full address
-          const parts = feature.place_name.split(', ');
-          if (parts.length > 0) {
-            // Take the first part, but prefer locality over neighborhood
-            cityName = parts[0];
-            
-            // If we have context, try to find a better city name
-            if (feature.context && feature.context.length > 0) {
-              const locality = feature.context.find((ctx: any) => 
-                ctx.id && (ctx.id.startsWith('place.') || ctx.id.startsWith('locality.'))
-              );
-              if (locality) {
-                cityName = locality.text;
+        if (result.address_components) {
+          // Find locality (city name) from address components
+          const locality = result.address_components.find((component: any) => 
+            component.types.includes('locality')
+          );
+          
+          if (locality) {
+            cityName = locality.long_name;
+          } else {
+            // Fallback: try sublocality or administrative_area_level_2
+            const sublocality = result.address_components.find((component: any) => 
+              component.types.includes('sublocality') || 
+              component.types.includes('sublocality_level_1') ||
+              component.types.includes('administrative_area_level_2')
+            );
+            if (sublocality) {
+              cityName = sublocality.long_name;
+            } else {
+              // Last fallback: use formatted_address first part
+              const addressParts = result.formatted_address.split(', ');
+              if (addressParts.length > 0) {
+                cityName = addressParts[0];
               }
             }
-          }
-        } else if (feature.text) {
-          cityName = feature.text;
-        } else if (feature.context) {
-          // Look for locality or place in context
-          const locality = feature.context.find((ctx: any) => 
-            ctx.id && (ctx.id.startsWith('place.') || ctx.id.startsWith('locality.'))
-          );
-          if (locality) {
-            cityName = locality.text;
-          } else if (feature.context.length > 0) {
-            // Fallback to first context item
-            cityName = feature.context[0].text;
           }
         }
         
@@ -535,16 +618,89 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
 
   // Custom calendar styles are now handled in globals.css
 
+  // Load Google Maps JavaScript API
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Check if already loaded
+    if (window.google && window.google.maps && window.google.maps.places) {
+      console.log('✅ Google Maps already loaded');
+      return;
+    }
+
+    // Check if script tag already exists
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (existingScript) {
+      console.log('⏳ Google Maps script already added, waiting for load...');
+      return;
+    }
+
+    // Load the script
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    
+    script.onload = () => {
+      console.log('✅ Google Maps JavaScript API loaded successfully');
+    };
+
+    script.onerror = () => {
+      console.error('❌ Failed to load Google Maps JavaScript API');
+    };
+
+    document.head.appendChild(script);
+  }, []);
+
+  // Function to get coordinates for a city name
+  const getCityCoordinates = async (cityName: string): Promise<[number, number] | null> => {
+    if (!window.google?.maps?.places?.PlacesService) {
+      console.log('Google Places API not available, skipping coordinate lookup');
+      return null;
+    }
+
+    try {
+      const service = new window.google.maps.places.PlacesService(document.createElement('div'));
+      
+      return new Promise((resolve) => {
+        service.textSearch({
+          query: cityName,
+          fields: ['geometry', 'formatted_address']
+        }, (results, status) => {
+          if (status === window.google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+            const place = results[0];
+            if (place.geometry?.location) {
+              const lat = place.geometry.location.lat();
+              const lng = place.geometry.location.lng();
+              console.log(`📍 Found coordinates for ${cityName}:`, [lng, lat]);
+              resolve([lng, lat]);
+            } else {
+              resolve(null);
+            }
+          } else {
+            console.log(`❌ Could not find coordinates for ${cityName}`);
+            resolve(null);
+          }
+        });
+      });
+    } catch (error) {
+      console.error('Error getting coordinates:', error);
+      return null;
+    }
+  };
+
   // Test function for debugging (can be called from browser console)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).testLocationDetection = detectCurrentLocation;
-      (window as any).testMapboxAPI = async (lat: number, lng: number) => {
-        const url = `${MAPBOX_API_URL}/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}&types=place,locality,neighborhood,address,poi&limit=1`;
-        console.log('Testing Mapbox API with URL:', url);
+      (window as any).getCityCoordinates = getCityCoordinates;
+      // Google Maps API test function (for debugging)
+      (window as any).testGoogleMapsAPI = async (lat: number, lng: number) => {
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GOOGLE_MAPS_API_KEY}`;
+        console.log('Testing Google Maps API with URL:', url);
         const response = await fetch(url);
         const data = await response.json();
-        console.log('Mapbox API response:', data);
+        console.log('Google Maps API response:', data);
         return data;
       };
     }
@@ -557,7 +713,7 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
     }
   }, [activeField]);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCity) return;
     
@@ -594,11 +750,27 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
     if (selectedCity) {
       params.append('city', selectedCity.value);
       
-      // If coordinates are available, also add them for more precise search
-      if (selectedCity.coordinates && selectedCity.coordinates.length === 2) {
-        params.append('location[coordinates][0]', String(selectedCity.coordinates[0]));
-        params.append('location[coordinates][1]', String(selectedCity.coordinates[1]));
-        params.append('location[radius]', '50000'); // 50km default radius
+      let coordinates = selectedCity.coordinates;
+      
+      // If coordinates are not available, try to get them
+      if (!coordinates || coordinates.length !== 2) {
+        console.log('📍 No coordinates found for', selectedCity.value, '- attempting to get them...');
+        coordinates = await getCityCoordinates(selectedCity.value);
+        
+        // Update selectedCity with coordinates if found
+        if (coordinates) {
+          setSelectedCity(prev => prev ? { ...prev, coordinates } : null);
+        }
+      }
+      
+      // If coordinates are available, also add them for more precise geospatial search
+      if (coordinates && coordinates.length === 2) {
+        params.append('lng', String(coordinates[0])); // Longitude
+        params.append('lat', String(coordinates[1])); // Latitude
+        params.append('radius', '10000'); // 10km initial radius (in meters)
+        console.log('✅ Adding coordinates to URL:', coordinates);
+      } else {
+        console.log('❌ No coordinates available for', selectedCity.value);
       }
     }
 
@@ -875,9 +1047,42 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
                   value={null} // Always null so it doesn't show selected value in input
                   inputValue={searchInputValue}
                   onInputChange={(newValue) => setSearchInputValue(newValue)}
-                  onChange={option => {
-                    const opt = option as { value: string; label: string; coordinates?: [number, number]; type?: string };
-                    setSelectedCity({ value: opt.value, label: opt.label, coordinates: opt.coordinates, type: opt.type });
+                  onChange={async (option) => {
+                    const opt = option as { value: string; label: string; coordinates?: [number, number]; type?: string; placeId?: string };
+                    
+                    // If we have a placeId, fetch coordinates from Google Places
+                    if (opt.placeId && window.google && window.google.maps) {
+                      const service = new window.google.maps.places.PlacesService(
+                        document.createElement('div')
+                      );
+                      
+                      service.getDetails(
+                        {
+                          placeId: opt.placeId,
+                          fields: ['geometry', 'formatted_address', 'name']
+                        },
+                        (place, status) => {
+                          if (status === window.google.maps.places.PlacesServiceStatus.OK && place && place.geometry) {
+                            const lat = place.geometry.location?.lat();
+                            const lng = place.geometry.location?.lng();
+                            
+                            setSelectedCity({
+                              value: opt.value,
+                              label: opt.label,
+                              coordinates: lng && lat ? [lng, lat] : undefined,
+                              type: opt.type
+                            });
+                          } else {
+                            // Fallback: set without coordinates
+                            setSelectedCity({ value: opt.value, label: opt.label, type: opt.type });
+                          }
+                        }
+                      );
+                    } else {
+                      // No placeId, just set the city
+                      setSelectedCity({ value: opt.value, label: opt.label, coordinates: opt.coordinates, type: opt.type });
+                    }
+                    
                     setSearchInputValue(''); // Clear input after selection
                     setActiveField(null);
                     // Auto-focus on dates after location selection

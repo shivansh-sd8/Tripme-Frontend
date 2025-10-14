@@ -268,7 +268,7 @@ body {
    This ensures no CSS conflicts and maintains production-grade code organization.
 */
 
-/* Ensure react-select dropdown (Mapbox suggestions) is always on top */
+/* Ensure react-select dropdown (Google Maps suggestions) is always on top */
 .react-select__menu, .Select__menu {
   z-index: 9999 !important;
 }

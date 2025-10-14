@@ -27,9 +27,9 @@ const StayCard: React.FC<StayCardProps> = ({
   };
 
   // Example badge logic (customize as needed)
-  const badge = stay.tags.includes('superhost')
+  const badge = stay.tags?.includes('superhost')
     ? 'Superhost'
-    : stay.tags.includes('favourite')
+    : stay.tags?.includes('favourite')
     ? 'Guest favourite'
     : null;
 

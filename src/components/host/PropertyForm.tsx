@@ -46,31 +46,8 @@ import ImageUpload from '../ui/ImageUpload';
 import { Property, PropertyPricing, Location } from '@/types';
 import { PROPERTY_TYPE_OPTIONS } from '@/config/constants';
 import { apiClient } from '@/infrastructure/api/clients/api-client';
-import dynamic from 'next/dynamic';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import { useRef, useCallback } from 'react';
-
-// Dynamically import MapContainer and related components to avoid SSR issues
-const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
-const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
-const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
-const useMapEvents = dynamic(() => import('react-leaflet').then(mod => mod.useMapEvents as any), { ssr: false });
-
-// Custom property marker icon using home.png
-const propertyMarkerIcon = new L.Icon({
-  iconUrl: '/home.png',
-  iconSize: [48, 60],
-  iconAnchor: [24, 60],
-  popupAnchor: [0, -60],
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png',
-  shadowSize: [61, 61],
-  shadowAnchor: [18, 61],
-});
-
-const MAPBOX_TOKEN = 'pk.eyJ1Ijoic2hpdmFuc2gxODA5IiwiYSI6ImNtZTRhdmJyMTA5YTEya3F0cWN2c3RpdmcifQ.7l3-Hj7ihCHCwH656wq1oA';
-const MAPBOX_API_URL = 'https://api.mapbox.com/geocoding/v5/mapbox.places';
+import GooglePlacesAutocomplete from '../shared/GooglePlacesAutocomplete';
+import GoogleMapDisplay from '../shared/GoogleMapDisplay';
 
 // Validation rules matching backend
 const VALIDATION_RULES = {
@@ -703,101 +680,22 @@ const PropertyForm: React.FC = () => {
     </div>
   );
 
-  // Add a component for map click events and draggable marker
-  function LocationMarker({ setCoordinates, coordinates }: { setCoordinates: (coords: [number, number]) => void, coordinates: [number, number] }) {
-    // @ts-expect-error dynamic import typing
-    useMapEvents({
-      click(e: any) {
-        setCoordinates([e.latlng.lng, e.latlng.lat]);
-      },
-    });
-  return coordinates[0] !== 0 && coordinates[1] !== 0 ? (
-    <Marker
-      position={[coordinates[1], coordinates[0]]}
-      icon={propertyMarkerIcon}
-      draggable={true}
-      eventHandlers={{
-        dragend: (e: any) => {
-          const marker = e.target;
-          const latlng = marker.getLatLng();
-          setCoordinates([latlng.lng, latlng.lat]);
-        },
-      }}
-    >
-      <Popup>🏠 Drag me to adjust the exact property location</Popup>
-    </Marker>
-  ) : null;
-  }
-
-  // Map search box component
-  function MapSearchBox({ onSelect }: { onSelect: (coords: [number, number], address: string) => void }) {
-    const [query, setQuery] = React.useState('');
-    const [results, setResults] = React.useState<any[]>([]);
-    const [loading, setLoading] = React.useState(false);
-    const [showDropdown, setShowDropdown] = React.useState(false);
-    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-    const fetchSuggestions = useCallback(async (input: string) => {
-      if (!input || input.length < 2) {
-        setResults([]);
-        return;
-      }
-      setLoading(true);
-      try {
-        const url = `${MAPBOX_API_URL}/${encodeURIComponent(input)}.json?access_token=${MAPBOX_TOKEN}&autocomplete=true&limit=5&country=IN`;
-        const res = await fetch(url);
-        const data = await res.json();
-        setResults((data.features || []).map((feature: any) => ({
-          label: feature.place_name,
-          coordinates: feature.center,
-        })));
-      } catch (e) {
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
-    }, []);
-
-    const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      setQuery(value);
-      setShowDropdown(true);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => fetchSuggestions(value), 400);
-    };
-
-    return (
-      <div className="relative mb-4">
-        <input
-          type="text"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-800"
-          placeholder="Search address or place on map..."
-          value={query}
-          onChange={handleInput}
-          onFocus={() => setShowDropdown(true)}
-          autoComplete="off"
-        />
-        {showDropdown && results.length > 0 && (
-          <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto animate-fade-in">
-            {results.map((result, idx) => (
-              <button
-                key={idx}
-                type="button"
-                className="w-full text-left px-4 py-3 hover:bg-indigo-50 focus:bg-indigo-100 rounded-xl transition-all text-gray-900 font-medium"
-                onClick={() => {
-                  onSelect([result.coordinates[0], result.coordinates[1]], result.label);
-                  setQuery(result.label);
-                  setShowDropdown(false);
-                }}
-              >
-                {result.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
+  // Helper function to handle Google Places selection
+  const handlePlaceSelection = (place: {
+    address: string;
+    city: string;
+    state: string;
+    country: string;
+    postalCode: string;
+    coordinates: [number, number];
+  }) => {
+    handleLocationChange('address', place.address);
+    handleLocationChange('city', place.city);
+    handleLocationChange('state', place.state);
+    handleLocationChange('country', place.country || 'India');
+    handleLocationChange('postalCode', place.postalCode);
+    handleLocationChange('coordinates', place.coordinates);
+  };
 
   const renderStep2 = () => (
     <div className="pl-4 pr-6 py-6">
@@ -857,54 +755,83 @@ const PropertyForm: React.FC = () => {
           )}
         </div>
 
-        {/* Map-based Location Selection */}
+        {/* Google Places Search */}
+        <div className="mb-6">
+          <label className="block text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-purple-600" />
+            Search Location with Google Maps
+          </label>
+          <GooglePlacesAutocomplete
+            onPlaceSelected={handlePlaceSelection}
+            placeholder="Search for your property address..."
+          />
+          <p className="text-sm text-gray-600 mt-2">
+            Search and select your property's address. City, state, postal code, and coordinates will be filled automatically.
+          </p>
+        </div>
+
+        {/* Auto-filled Location Details */}
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6">
           <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-blue-600" />
-            Map Location (for search & directions)
+            <CheckCircle className="w-5 h-5 text-green-600" />
+            Location Details
           </h4>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Street Address (from map)
+                Street Address <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={formData.location.address}
-                readOnly
-                placeholder="Select location on map below"
-                className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl bg-gray-100 text-gray-600 cursor-not-allowed"
+                onChange={(e) => handleLocationChange('address', e.target.value)}
+                placeholder="Search using Google Maps above"
+                className={`w-full px-4 py-3 text-base border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
+                  validationMessages.address || fieldErrors['location.address'] ? 'border-red-300' : 'border-gray-200'
+                }`}
               />
-              <p className="text-xs text-gray-500 mt-1">This will be filled automatically when you select a location on the map</p>
+              {(validationMessages.address || fieldErrors['location.address']) && (
+                <ValidationMessage field="address" message={validationMessages.address || fieldErrors['location.address'] || ''} />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                City (from map)
+                City <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={formData.location.city}
-                readOnly
-                placeholder="Will be filled from map selection"
-                className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl bg-gray-100 text-gray-600 cursor-not-allowed"
+                onChange={(e) => handleLocationChange('city', e.target.value)}
+                placeholder="Mumbai"
+                className={`w-full px-4 py-3 text-base border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
+                  validationMessages.city || fieldErrors['location.city'] ? 'border-red-300' : 'border-gray-200'
+                }`}
               />
+              {(validationMessages.city || fieldErrors['location.city']) && (
+                <ValidationMessage field="city" message={validationMessages.city || fieldErrors['location.city'] || ''} />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                State (from map)
+                State <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={formData.location.state}
-                readOnly
-                placeholder="Will be filled from map selection"
-                className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl bg-gray-100 text-gray-600 cursor-not-allowed"
+                onChange={(e) => handleLocationChange('state', e.target.value)}
+                placeholder="Maharashtra"
+                className={`w-full px-4 py-3 text-base border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
+                  validationMessages.state || fieldErrors['location.state'] ? 'border-red-300' : 'border-gray-200'
+                }`}
               />
+              {(validationMessages.state || fieldErrors['location.state']) && (
+                <ValidationMessage field="state" message={validationMessages.state || fieldErrors['location.state'] || ''} />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Postal Code
+                Postal Code <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -922,65 +849,22 @@ const PropertyForm: React.FC = () => {
           </div>
         </div>
         
-        {/* Map search box */}
+        {/* Google Map Display */}
         <div className="mt-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
-            <div className="flex items-center space-x-3 mb-3">
-              <MapPin className="w-5 h-5 text-blue-600" />
-              <h4 className="text-lg font-semibold text-blue-900">Map Search</h4>
-            </div>
-            <MapSearchBox
-              onSelect={(coords, address) => {
-                handleLocationChange('coordinates', coords);
-                handleLocationChange('address', address);
-                
-                // Extract city and state from the address
-                const addressParts = address.split(', ');
-                let city = '';
-                let state = '';
-                
-                // Try to extract city and state from the address
-                if (addressParts.length >= 2) {
-                  // Look for state (usually second to last or last part)
-                  const possibleState = addressParts[addressParts.length - 2] || addressParts[addressParts.length - 1];
-                  if (possibleState && possibleState.length > 0) {
-                    state = possibleState.trim();
-                  }
-                  
-                  // Look for city (usually before state)
-                  const possibleCity = addressParts[addressParts.length - 3] || addressParts[addressParts.length - 2];
-                  if (possibleCity && possibleCity.length > 0 && possibleCity !== state) {
-                    city = possibleCity.trim();
-                  }
-                }
-                
-                // Update city and state if found
-                if (city) handleLocationChange('city', city);
-                if (state) handleLocationChange('state', state);
-              }}
-            />
-          </div>
-          
-          <label className="block text-base font-semibold text-gray-900 mb-2">Pin property location on map</label>
-          <div className="w-full h-80 rounded-xl overflow-hidden border-2 border-gray-200 shadow-lg">
-            <MapContainer
-              center={formData.location.coordinates[0] !== 0 && formData.location.coordinates[1] !== 0 ? [formData.location.coordinates[1], formData.location.coordinates[0]] : [20.5937, 78.9629]} // Default: India
-              zoom={formData.location.coordinates[0] !== 0 && formData.location.coordinates[1] !== 0 ? 14 : 5}
-              style={{ height: '100%', width: '100%' }}
-              scrollWheelZoom={true}
-            >
-              <TileLayer
-                attribution="&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              <LocationMarker
-                setCoordinates={(coords: [number, number]) => handleLocationChange('coordinates', coords)}
-                coordinates={formData.location.coordinates}
-              />
-            </MapContainer>
-          </div>
-          <p className="text-sm text-gray-700 mt-2">Search for an address or click on the map to set the exact location. This will be used for search and directions.</p>
-          <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">Selected Coordinates: <span className="font-mono font-medium">{formData.location.coordinates[1]}, {formData.location.coordinates[0]}</span></div>
+          <label className="block text-base font-semibold text-gray-900 mb-3">Property Location on Map</label>
+          <GoogleMapDisplay
+            center={formData.location.coordinates[0] !== 0 && formData.location.coordinates[1] !== 0 ? formData.location.coordinates : [78.9629, 20.5937]} // Default: India center
+            zoom={formData.location.coordinates[0] !== 0 && formData.location.coordinates[1] !== 0 ? 14 : 5}
+            markerPosition={formData.location.coordinates[0] !== 0 && formData.location.coordinates[1] !== 0 ? formData.location.coordinates : undefined}
+            onMapClick={(coords) => handleLocationChange('coordinates', coords)}
+            height="400px"
+            className="w-full shadow-lg"
+          />
+          <p className="text-sm text-gray-700 mt-3 bg-blue-50 p-3 rounded-lg">
+            📍 <strong>Selected Coordinates:</strong> <span className="font-mono font-medium">{formData.location.coordinates[1].toFixed(6)}, {formData.location.coordinates[0].toFixed(6)}</span>
+            <br />
+            <span className="text-xs text-gray-600">Click on the map to adjust the exact property location</span>
+          </p>
         </div>
       </div>
     </div>

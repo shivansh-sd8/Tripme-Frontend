@@ -376,6 +376,7 @@ export default function Home() {
                   </div>
                 </div>
 
+
               </div>
 
               {/* Right Column - Direct Image */}
