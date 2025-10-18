@@ -30,9 +30,10 @@ import AirbnbSearchForm from '@/components/trips/AirbnbSearchForm';
 interface HeaderProps {
   searchExpanded?: boolean;
   onSearchToggle?: (expanded: boolean) => void;
+  onSearch?: (location: any, guestsCount?: number, checkInDate?: string, checkOutDate?: string) => void;
 }
 
-const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle }: HeaderProps = {}) => {
+const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSearch }: HeaderProps = {}) => {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isAuthenticated, isLoading, logout, refreshUser } = useAuth();
@@ -133,7 +134,8 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle }: Head
 
   // When search is expanded, show full header regardless of scroll state
   // Show search bar on stories page only when expanded
-  const shouldShowFullHeader = (!scrolled || searchExpanded) && (pathname !== '/stories' || searchExpanded);
+  // On search page, keep search compressed by default unless explicitly expanded
+  const shouldShowFullHeader = (!scrolled || searchExpanded) && (pathname !== '/stories' || searchExpanded) && (pathname !== '/search' || searchExpanded);
 
   return (
     <header className={`w-full z-50 fixed top-0 left-0 right-0 transition-all duration-500 ease-in-out header-container ${
@@ -503,7 +505,7 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle }: Head
         {shouldShowFullHeader && (
           <div className="flex justify-center w-full pb-3">
             <div className="w-full max-w-4xl">
-              <AirbnbSearchForm variant="compact" activeCategory={activeCategory} />
+              <AirbnbSearchForm variant="compact" activeCategory={activeCategory} onSearch={onSearch} />
             </div>
           </div>
         )}

@@ -2,6 +2,7 @@
 import React, { useEffect, useState, Suspense, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { MapPin } from 'lucide-react';
+import Image from 'next/image';
 import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
 import { apiClient } from '@/infrastructure/api/clients/api-client';
@@ -68,6 +69,9 @@ function SearchPageContent() {
   } | null>(null);
   const [mapInitialized, setMapInitialized] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState<any>(null);
+  const [showPropertyModal, setShowPropertyModal] = useState(false);
+  const [searchExpanded, setSearchExpanded] = useState(false);
   const isFetchingRef = useRef(false);
 
   // Get search parameters from URL
@@ -113,19 +117,26 @@ function SearchPageContent() {
         console.log('✅ Coordinates found in URL:', { lng, lat });
         params.lng = lng;
         params.lat = lat;
-          params.radius = searchParams.get('radius') || '10000'; // Use URL radius or default 10km
+        
+        // Use larger radius for major cities or default to 50km for better coverage
+        const defaultRadius = city && ['delhi', 'mumbai', 'bangalore', 'chennai', 'kolkata', 'hyderabad', 'pune'].includes(city.toLowerCase()) 
+          ? '50000' // 50km for major cities
+          : '25000'; // 25km for smaller cities
+        params.radius = searchParams.get('radius') || defaultRadius;
+        
         // Set search center for new searches (allow updates for new location searches)
         const center = [parseFloat(lng), parseFloat(lat)] as [number, number];
         console.log('📍 Setting search center to:', center);
         setSearchCenter(center);
         setMapCenter(center); // Set map center to new search location
         setMapInitialized(false); // Reset map initialization flag
-        console.log('📍 Initial radius search:', { lng, lat, radius: params.radius });
+        console.log('📍 Initial radius search:', { lng, lat, radius: params.radius, city });
         } else {
-        console.log('❌ No coordinates found in URL');
+        console.log('❌ No coordinates found in URL, using city-based search');
+        // If no coordinates but we have city, rely on backend city-based search
         }
 
-        // Fetch ALL properties within 10km radius for initial display
+        // Fetch ALL properties within radius for initial display
         console.log('🌐 Making API call with params:', params);
         console.log('🔧 API Client instance:', apiClient);
         console.log('🔧 API Client getListings method:', typeof apiClient.getListings);
@@ -135,9 +146,38 @@ function SearchPageContent() {
       
       if (response.success && response.data) {
           const properties = response.data.listings || [];
-          setAllProperties(properties); // Store all properties for map markers
-          setListings(properties); // Show all properties initially
-          console.log('🗺️ Initial load: Found', properties.length, 'properties within 10km radius');
+          
+          // If we got very few results with radius search and we have a city, try city-based search as fallback
+          if (properties.length < 3 && city && lng && lat) {
+            console.log('🔄 Few results from radius search, trying city-based fallback...');
+            try {
+              const fallbackParams = { ...params };
+              delete fallbackParams.lng;
+              delete fallbackParams.lat;
+              delete fallbackParams.radius;
+              fallbackParams.city = city;
+              
+              const fallbackResponse = await apiClient.getListings(fallbackParams);
+              if (fallbackResponse.success && fallbackResponse.data) {
+                const fallbackProperties = fallbackResponse.data.listings || [];
+                console.log('🏙️ City-based fallback found', fallbackProperties.length, 'properties');
+                setAllProperties(fallbackProperties);
+                setListings(fallbackProperties);
+              } else {
+                setAllProperties(properties);
+                setListings(properties);
+              }
+            } catch (fallbackError) {
+              console.error('❌ City-based fallback failed:', fallbackError);
+              setAllProperties(properties);
+              setListings(properties);
+            }
+          } else {
+            setAllProperties(properties);
+            setListings(properties);
+          }
+          
+          console.log('🗺️ Initial load: Found', properties.length, 'properties within', params.radius, 'radius');
           
           // Add a small delay before enabling bounds filtering to prevent race conditions
           setTimeout(() => {
@@ -201,6 +241,21 @@ function SearchPageContent() {
     setMapCenter(center);
   }, []);
 
+  // Handle property click from map
+  const handlePropertyClick = useCallback((propertyId: string) => {
+    console.log('🗺️ Property clicked:', propertyId);
+    console.log('🗺️ Available properties:', allProperties.length);
+    const property = allProperties.find(p => p._id === propertyId);
+    console.log('🗺️ Found property:', property?.title);
+    if (property) {
+      setSelectedProperty(property);
+      setShowPropertyModal(true);
+      console.log('🗺️ Modal should be opening now');
+    } else {
+      console.log('❌ Property not found in allProperties');
+    }
+  }, [allProperties]);
+
   // Handle viewport changes - refetch properties based on map bounds (always active after initial load)
   useEffect(() => {
     console.log('🔄 Bounds effect triggered:', { mapBounds: !!mapBounds, initialLoadComplete });
@@ -244,13 +299,9 @@ function SearchPageContent() {
         const properties = data.data.listings || [];
         console.log('🗺️ Viewport fetch successful - updating properties with:', properties.length, 'properties');
         
-        // CRITICAL: Only update listings, keep allProperties for map markers
+        // Update both listings and allProperties for map markers
         setListings(properties);
-        
-        // Update allProperties only if we have new properties to show on map
-        if (properties.length > 0) {
-          setAllProperties(properties);
-        }
+        setAllProperties(properties);
         
         console.log('🗺️ Loaded properties in viewport:', properties.length);
         
@@ -287,29 +338,26 @@ function SearchPageContent() {
     router.push(`/search?${params.toString()}`);
   };
 
-  const handlePropertyClick = (propertyId: string) => {
-    // Build URL with search params preserved
-    const params = new URLSearchParams();
-    if (checkIn) params.set('checkIn', checkIn);
-    if (checkOut) params.set('checkOut', checkOut);
-    if (guests) params.set('guests', guests);
-    
-    const url = `/rooms/${propertyId}${params.toString() ? `?${params.toString()}` : ''}`;
-    router.push(url);
-  };
-
   // Memoize markers to prevent recreating on every render
   const mapMarkers = useMemo(() => {
-    return allProperties.map((property: any) => ({
-      id: property._id,
-      position: [property.location.coordinates[0], property.location.coordinates[1]] as [number, number],
-      title: property.title,
-      price: property.pricing?.basePrice,
-      image: property.images?.[0]?.url,
-      isHighlighted: hoveredPropertyId === property._id,
-      onClick: () => handlePropertyClick(property._id)
-    }));
-  }, [allProperties, hoveredPropertyId]);
+    console.log('🗺️ Creating map markers for properties:', allProperties.length);
+    const markers = allProperties.map((property: any) => {
+      const marker = {
+        id: property._id,
+        position: [property.location.coordinates[0], property.location.coordinates[1]] as [number, number],
+        title: property.title,
+        price: property.pricing?.basePrice,
+        image: property.images?.[0]?.url,
+        isHighlighted: hoveredPropertyId === property._id,
+        onClick: () => handlePropertyClick(property._id),
+        property: property // Pass full property data for the card
+      };
+      console.log('🗺️ Created marker:', { id: marker.id, title: marker.title, hasProperty: !!marker.property });
+      return marker;
+    });
+    console.log('🗺️ Total markers created:', markers.length);
+    return markers;
+  }, [allProperties, hoveredPropertyId, handlePropertyClick]);
 
   // Convert properties to Stay format for StayCard
   const stayListings = useMemo(() => {
@@ -317,89 +365,219 @@ function SearchPageContent() {
   }, [listings]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-      <Header onSearch={handleSearch} />
+    <div className="min-h-screen bg-white">
+      <Header 
+        onSearch={handleSearch}
+        searchExpanded={searchExpanded}
+        onSearchToggle={setSearchExpanded}
+      />
       
-      {/* Main Content: Split View - Fixed below header */}
-      <div className="pt-32 lg:pt-36">
-        <div className="flex gap-6 px-4 lg:px-6 max-w-[2000px] mx-auto">
+      {/* Main Content: Split View - Clean Airbnb Style */}
+      <div className="pt-20">
+        <div className="flex h-[calc(100vh-5rem)]">
           {/* Left: Scrollable Property List */}
-          <div className="w-full lg:w-1/2 overflow-y-auto max-h-[calc(100vh-10rem)] pb-8 custom-scrollbar">
-            {/* Results Header */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {listings.length} {listings.length === 1 ? 'property' : 'properties'}
+          <div className="w-full lg:w-1/2 overflow-y-auto pb-8">
+            {/* Results Header - Airbnb Style */}
+            <div className="px-6 pt-6 pb-4">
+              <div className="flex items-center justify-between">
+                <h1 className="text-xl font-semibold text-gray-900">
+                  {listings.length > 0 ? `Over ${listings.length} homes` : 'No homes found'}
                 </h1>
+                <div className="flex items-center">
+                  <svg className="w-4 h-4 text-pink-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm text-gray-600">Prices include all fees</span>
+                </div>
+        </div>
       </div>
 
-              {/* Info Message */}
-              <div className="flex items-center gap-2 text-sm text-gray-600 bg-gradient-to-r from-blue-50 to-cyan-50 px-4 py-2 rounded-lg border border-blue-200">
-                <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                </svg>
-                <span className="font-medium text-blue-900">
-                  Showing properties in visible area - zoom or pan to explore different regions
-                </span>
+            {/* Property Cards - Single Column Layout */}
+            <div className="px-6 py-4">
+          {loading ? (
+                <div className="flex items-center justify-center py-16">
+              <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading places...</p>
               </div>
             </div>
-
-            {/* Property Cards - 1 column for better map view */}
-            <div className="grid grid-cols-1 gap-6">
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600 font-medium">Loading properties...</p>
-                  </div>
-                </div>
               ) : stayListings.length > 0 ? (
-                stayListings.map((stay) => (
-                  <StayCard
-                    key={stay.id}
-                    stay={stay}
-                    onMouseEnter={() => setHoveredPropertyId(stay.id)}
-                    onMouseLeave={() => setHoveredPropertyId(null)}
-                  />
-                ))
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {stayListings.map((stay) => (
+                    <StayCard
+                      key={stay.id}
+                      stay={stay}
+                      onMouseEnter={() => setHoveredPropertyId(stay.id)}
+                      onMouseLeave={() => setHoveredPropertyId(null)}
+                    />
+                  ))}
+                </div>
               ) : (
-                <div className="text-center py-12">
-                  <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No properties found</h3>
+                <div className="text-center py-16">
+                  <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No places found</h3>
                   <p className="text-gray-600 mb-6">
-                  Try adjusting your search location or increasing the search radius.
+                    Try adjusting your search location or dates.
                 </p>
                 <button
                   onClick={() => router.push('/')}
-                    className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                    className="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors"
                 >
-                  Back to Homepage
+                    Search again
                 </button>
               </div>
               )}
             </div>
               </div>
 
-          {/* Right: Always Visible Map */}
-          <div className="hidden lg:block lg:w-1/2">
-            <div className="sticky top-32 h-[calc(100vh-10rem)]">
-              <div className="h-full bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 overflow-hidden p-2">
-                <GoogleMapDisplay
-                  center={mapCenter || searchCenter || [78.9629, 20.5937]} // Use mapCenter if user moved map, otherwise searchCenter
-                  zoom={(mapCenter || searchCenter) ? 13 : 5} // Zoom 13 = ~10km scale for specific search, Zoom 5 = country view
-                  markers={mapMarkers}
-                  onBoundsChange={handleBoundsChange}
-                  onCenterChange={handleCenterChange}
-                  height="100%"
-                  className="rounded-2xl overflow-hidden"
-                />
-                      </div>
-                    </div>
-                  </div>
+          {/* Right: Map Container with Rounded Borders */}
+          <div className="hidden lg:block lg:w-1/2 p-4 pt-8">
+            <div className="h-full rounded-2xl overflow-hidden shadow-lg border border-gray-200">
+              <GoogleMapDisplay
+                center={mapCenter || searchCenter || [78.9629, 20.5937]}
+                zoom={(mapCenter || searchCenter) ? 13 : 5}
+                markers={mapMarkers}
+                onBoundsChange={handleBoundsChange}
+                onCenterChange={handleCenterChange}
+                height="100%"
+                className="w-full h-full rounded-2xl"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* Footer */}
       <Footer />
+
+      {/* Property Detail Modal */}
+      {showPropertyModal && selectedProperty && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-5xl w-full mx-4 max-h-[90vh] overflow-hidden shadow-2xl border border-gray-100">
+            {/* Close Button */}
+            <div className="flex justify-end p-6">
+              <button
+                onClick={() => setShowPropertyModal(false)}
+                className="p-3 hover:bg-gray-100 rounded-full transition-all duration-200 hover:scale-105"
+              >
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Property Content */}
+            <div className="px-8 pb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Image Gallery */}
+                <div className="lg:col-span-2">
+                  <div className="relative aspect-[4/3] rounded-2xl overflow-hidden group">
+                    {selectedProperty.images && selectedProperty.images.length > 0 ? (
+                        <Image
+                        src={selectedProperty.images[0].url}
+                        alt={selectedProperty.title}
+                          fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                        <div className="text-center">
+                          <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <p className="text-gray-500 font-medium">No image available</p>
+                        </div>
+                        </div>
+                      )}
+                    
+                    {/* Favorite Button */}
+                    <button className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all duration-200 hover:scale-105 shadow-lg">
+                      <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                      </button>
+                  </div>
+                    </div>
+
+                    {/* Property Details */}
+                <div className="space-y-6">
+                  {/* Header */}
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-900 mb-2 leading-tight">
+                      {selectedProperty.title}
+                    </h2>
+                    <div className="flex items-center text-gray-600 mb-4">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span className="font-medium">
+                        {selectedProperty.location?.city}, {selectedProperty.location?.state}
+                            </span>
+                          </div>
+                        </div>
+
+                  {/* Rating & Reviews */}
+                  {selectedProperty.rating && (
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center bg-gray-50 rounded-full px-3 py-2">
+                        <svg className="w-4 h-4 text-yellow-500 fill-current mr-1" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        <span className="font-semibold text-gray-900">{selectedProperty.rating}</span>
+                        <span className="text-gray-600 ml-1">({selectedProperty.reviewCount || 0} reviews)</span>
+                      </div>
+                        </div>
+                  )}
+
+                  {/* Price */}
+                  <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6">
+                    <div className="text-4xl font-bold text-gray-900 mb-1">
+                      ₹{selectedProperty.pricing?.basePrice || 0}
+                        </div>
+                    <div className="text-gray-600 font-medium">per night</div>
+                      </div>
+
+                  {/* Amenities */}
+                  {selectedProperty.amenities && selectedProperty.amenities.length > 0 && (
+                        <div>
+                      <h3 className="font-semibold text-gray-900 mb-4 text-lg">What this place offers</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        {selectedProperty.amenities.slice(0, 8).map((amenity: string, index: number) => (
+                          <div key={index} className="flex items-center gap-2 text-gray-700">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="font-medium capitalize">{amenity.replace('-', ' ')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="space-y-3 pt-4">
+                    <button
+                      onClick={() => {
+                        setShowPropertyModal(false);
+                        router.push(`/rooms/${selectedProperty._id}`);
+                      }}
+                      className="w-full bg-gradient-to-r from-gray-900 to-black text-white py-4 px-6 rounded-2xl font-semibold hover:from-gray-800 hover:to-gray-900 transition-all duration-200 hover:scale-[1.02] shadow-lg"
+                    >
+                      View Full Details
+                    </button>
+                    <button
+                      onClick={() => setShowPropertyModal(false)}
+                      className="w-full border-2 border-gray-300 text-gray-700 py-3 px-6 rounded-2xl font-semibold hover:border-gray-400 hover:bg-gray-50 transition-all duration-200"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -407,10 +585,10 @@ function SearchPageContent() {
 export default function SearchPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading search...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     }>

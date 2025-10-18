@@ -1,24 +1,28 @@
 import React from 'react';
 import Image from 'next/image';
-import { Heart, Star, MapPin, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, Star, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Stay } from '@/types';
 import { formatPrice } from '@/shared/utils/pricingUtils';
-import Card from '../ui/Card';
 
 interface StayCardProps {
   stay: Stay;
   onFavorite?: (stayId: string) => void;
   isFavorite?: boolean;
   className?: string;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 const StayCard: React.FC<StayCardProps> = ({
   stay,
   onFavorite,
   isFavorite = false,
-  className
+  className,
+  onMouseEnter,
+  onMouseLeave
 }) => {
   const [currentImage, setCurrentImage] = React.useState(0);
+  const [isHovered, setIsHovered] = React.useState(false);
 
   const handleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -26,11 +30,13 @@ const StayCard: React.FC<StayCardProps> = ({
     onFavorite?.(stay.id);
   };
 
-  // Example badge logic (customize as needed)
+  // Enhanced badge logic
   const badge = stay.tags?.includes('superhost')
-    ? 'Superhost'
+    ? { text: 'Superhost', color: 'bg-gradient-to-r from-purple-600 to-pink-600' }
     : stay.tags?.includes('favourite')
-    ? 'Guest favourite'
+    ? { text: 'Guest favorite', color: 'bg-gradient-to-r from-orange-500 to-red-500' }
+    : stay.tags?.includes('new')
+    ? { text: 'New', color: 'bg-gradient-to-r from-green-500 to-emerald-500' }
     : null;
 
   const totalImages = stay.images.length;
@@ -40,125 +46,139 @@ const StayCard: React.FC<StayCardProps> = ({
     e.stopPropagation();
     setCurrentImage((prev) => (prev === 0 ? totalImages - 1 : prev - 1));
   };
+
   const goToNext = (e: React.MouseEvent) => {
     e.stopPropagation();
     setCurrentImage((prev) => (prev === totalImages - 1 ? 0 : prev + 1));
   };
 
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    onMouseEnter?.();
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    onMouseLeave?.();
+  };
+
+  const handleCardClick = () => {
+    // Open property page in new tab
+    window.open(`/rooms/${stay.id}`, '_blank');
+  };
+
   return (
-    <Card
-      variant="elevated"
-      padding="none"
-      className={`group cursor-pointer overflow-hidden bg-white rounded-3xl shadow-xl transition-transform duration-300 hover:scale-[1.025] hover:shadow-2xl ${className}`}
-      style={{ minHeight: 380, maxWidth: 370 }}
+    <div
+      className={`group cursor-pointer bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border border-gray-100 ${className}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onClick={handleCardClick}
     >
-      {/* Image Section */}
-      <div className="relative aspect-[3/2] w-full overflow-hidden rounded-t-3xl">
-        <Image
-          src={stay.images[currentImage]}
-          alt={stay.title}
-          fill
-          className="object-cover transition-transform duration-300 group-hover:scale-105"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        />
-        {/* Image navigation arrows */}
-        {showArrows && (
-          <>
-            <button
-              onClick={goToPrev}
-              className="absolute top-1/2 left-3 -translate-y-1/2 bg-white rounded-full shadow-lg p-2 z-20 hover:bg-gray-100 transition-colors"
-              aria-label="Previous image"
-            >
-              <ChevronLeft size={22} className="text-gray-700" />
-            </button>
-            <button
-              onClick={goToNext}
-              className="absolute top-1/2 right-3 -translate-y-1/2 bg-white rounded-full shadow-lg p-2 z-20 hover:bg-gray-100 transition-colors"
-              aria-label="Next image"
-            >
-              <ChevronRight size={22} className="text-gray-700" />
-            </button>
-            {/* Image indicator dots */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 z-20">
-              {stay.images.map((_, idx) => (
-                <span
-                  key={idx}
-                  className={`w-2 h-2 rounded-full ${idx === currentImage ? 'bg-purple-600' : 'bg-white border border-gray-300'}`}
+      {/* Vertical Layout - Airbnb Style */}
+      <div className="w-full">
+        {/* Image Section - Top */}
+        <div className="relative aspect-[4/3] w-full overflow-hidden">
+          <Image
+            src={stay.images[currentImage]}
+            alt={stay.title}
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-110"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+          
+          {/* Image Navigation Arrows */}
+          {showArrows && isHovered && (
+            <>
+              <button
+                onClick={goToPrev}
+                className="absolute left-3 top-1/2 -translate-y-1/2 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all duration-200 shadow-lg opacity-0 group-hover:opacity-100"
+              >
+                <ChevronLeft size={16} className="text-gray-700" />
+              </button>
+              <button
+                onClick={goToNext}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all duration-200 shadow-lg opacity-0 group-hover:opacity-100"
+              >
+                <ChevronRight size={16} className="text-gray-700" />
+              </button>
+            </>
+          )}
+          
+          {/* Image Dots */}
+          {showArrows && (
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
+              {stay.images.map((_, index) => (
+                <div
+                  key={index}
+                  className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                    index === currentImage ? 'bg-white' : 'bg-white/50'
+                  }`}
                 />
               ))}
             </div>
-          </>
-        )}
-        {/* Badge */}
-        {badge && (
-          <span className="absolute top-3 left-3 bg-white text-xs font-semibold px-3 py-1 rounded-full shadow-md z-10">
-            {badge}
-          </span>
-        )}
-        {/* Favorite Button */}
-        <button
-          onClick={handleFavorite}
-          className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-colors z-10"
-        >
-          <Heart
-            size={22}
-            className={`transition-colors ${
-              isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'
-            }`}
-          />
-        </button>
-      </div>
-
-      {/* Content Section */}
-      <div className="p-4 pb-5 flex flex-col gap-1">
-        {/* Title & Rating */}
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="font-semibold text-lg text-gray-900 line-clamp-1">{stay.title}</h3>
-          <div className="flex items-center gap-1">
-            <Star size={16} className="fill-yellow-400 text-yellow-400" />
-            <span className="text-sm font-medium text-gray-900">{stay.rating}</span>
-            <span className="text-xs text-gray-500">({stay.reviewCount})</span>
-          </div>
-        </div>
-        {/* Subtitle/location */}
-        <div className="flex items-center gap-1 text-sm text-gray-600 mb-1">
-          <MapPin size={14} />
-          <span>{stay.location.city}, {stay.location.state}</span>
-        </div>
-        {/* Capacity */}
-        <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
-          <Users size={13} />
-          <span>Up to {stay.maxGuests} guests</span>
-        </div>
-        {/* Tags (as pills, below location/capacity) */}
-        {stay.tags.length > 0 && (
-          <div className="flex gap-2 flex-wrap mb-1">
-            {stay.tags.slice(0, 2).map((tag) => (
-              <span
-                key={tag}
-                className="px-2 py-0.5 bg-purple-50 text-xs font-medium text-purple-700 rounded-full border border-purple-100"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-        {/* Price */}
-        <div className="flex items-end justify-between mt-2">
-          <div>
-            <span className="font-bold text-base text-gray-900">
-              {formatPrice(stay.price.amount, stay.price.currency)}
-            </span>
-            <span className="text-xs text-gray-500"> / night</span>
-          </div>
-          {stay.instantBookable && (
-            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-              Instant Book
-            </span>
+          )}
+          
+          {/* Favorite Button */}
+          <button
+            onClick={handleFavorite}
+            className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all duration-200 hover:scale-110 shadow-lg"
+          >
+            <Heart
+              size={18}
+              className={`transition-colors ${
+                isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-700 hover:text-red-500'
+              }`}
+            />
+          </button>
+          
+          {/* Badge */}
+          {badge && (
+            <div className={`absolute top-4 left-4 ${badge.color} text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg`}>
+              {badge.text}
+            </div>
           )}
         </div>
+
+        {/* Content Section - Bottom */}
+        <div className="p-4 space-y-2">
+          {/* Title & Rating */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-gray-900 text-base leading-tight line-clamp-2 group-hover:text-gray-700 transition-colors">
+                {stay.title}
+              </h3>
+              <div className="flex items-center gap-1 mt-1">
+                <MapPin size={14} className="text-gray-400 flex-shrink-0" />
+                <p className="text-sm text-gray-500 truncate">
+                  {stay.location.city}, {stay.location.state}
+                </p>
+              </div>
+            </div>
+            {stay.rating > 0 && (
+              <div className="flex items-center gap-1 bg-gray-50 rounded-full px-2 py-1 flex-shrink-0">
+                <Star size={14} className="fill-yellow-400 text-yellow-400" />
+                <span className="text-sm font-semibold text-gray-900">{stay.rating}</span>
+              </div>
+            )}
+          </div>
+          
+          {/* Property Details */}
+          <div className="text-sm text-gray-600">
+            {stay.bedrooms > 0 && `${stay.bedrooms} bedroom${stay.bedrooms > 1 ? 's' : ''}`}
+            {stay.bedrooms > 0 && stay.beds > 0 && ' · '}
+            {stay.beds > 0 && `${stay.beds} bed${stay.beds > 1 ? 's' : ''}`}
+          </div>
+          
+          {/* Price */}
+          <div className="flex items-baseline gap-1">
+            <span className="text-lg font-bold text-gray-900">
+              {formatPrice(stay.price.amount, stay.price.currency)}
+            </span>
+            <span className="text-sm text-gray-600 font-medium">night</span>
+          </div>
+        </div>
       </div>
-    </Card>
+    </div>
   );
 };
 

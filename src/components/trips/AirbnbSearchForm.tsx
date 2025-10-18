@@ -41,6 +41,7 @@ interface AirbnbSearchFormProps {
   };
   className?: string;
   activeCategory?: 'homes' | 'services';
+  onSearch?: (location: any, guestsCount?: number, checkInDate?: string, checkOutDate?: string) => void;
 }
 
 interface GuestCounts {
@@ -249,7 +250,8 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
   variant = 'default', 
   initialValues, 
   className,
-  activeCategory = 'homes'
+  activeCategory = 'homes',
+  onSearch
 }) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -774,8 +776,13 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
       }
     }
 
-    const searchUrl = `/search?${params.toString()}`;
-    router.push(searchUrl);
+    // If onSearch prop is provided, call it instead of navigating
+    if (onSearch) {
+      onSearch(selectedCity, totalGuests, formatDateForStorage(dateRange.startDate), formatDateForStorage(dateRange.endDate));
+    } else {
+      const searchUrl = `/search?${params.toString()}`;
+      router.push(searchUrl);
+    }
     saveRecentSearch(selectedCity.label, `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`);
   };
 
