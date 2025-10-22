@@ -129,6 +129,8 @@ export default function PropertyDetailsPage() {
   const [hourlyExtension, setHourlyExtension] = useState<number | null>(() => {
     return bookingData?.hourlyExtension || null;
   });
+  // 24-hour mode check-in time selector
+  const [checkInTimeStr, setCheckInTimeStr] = useState<string>('15:00');
   const [hourlyPricing, setHourlyPricing] = useState<any>(null);
   const [specialRequests, setSpecialRequests] = useState(() => {
     return bookingData?.specialRequests || '';
@@ -228,6 +230,29 @@ export default function PropertyDetailsPage() {
     console.log('✅ Price breakdown updated:', newPriceBreakdown);
     setPriceBreakdown(newPriceBreakdown);
   }, [property, dateRange.startDate, dateRange.endDate, guests, hourlyExtension, platformFeeRate, isLoadingPlatformFee]);
+
+  // If hourly booking is enabled for the property, enforce 24-hour flow:
+  // checkout = check-in + 23h (+ any extension hours)
+  useEffect(() => {
+    if (!property?.hourlyBooking?.enabled) return;
+    if (!dateRange.startDate) return;
+    try {
+      const [hh, mm] = (checkInTimeStr || '15:00').split(':').map(Number);
+      const start = new Date(dateRange.startDate);
+      start.setHours(isNaN(hh) ? 15 : hh, isNaN(mm) ? 0 : mm, 0, 0);
+      const end = new Date(start);
+      end.setHours(end.getHours() + 23 + (hourlyExtension || 0));
+      // Guard: only set on initial check-in selection (when no endDate yet or end equals start)
+      const prevStart = dateRange.startDate;
+      const prevEnd = dateRange.endDate;
+      const noEndSelected = !prevEnd || (new Date(prevEnd).toDateString() === new Date(prevStart).toDateString());
+      const startChanged = !prevStart || new Date(prevStart).getTime() !== start.getTime();
+      const endChanged = !prevEnd || new Date(prevEnd).getTime() !== end.getTime();
+      if (noEndSelected && (startChanged || endChanged)) {
+        setDateRange(prev => ({ ...prev, startDate: start, endDate: end }));
+      }
+    } catch {}
+  }, [property?.hourlyBooking?.enabled, dateRange.startDate, dateRange.endDate, checkInTimeStr, hourlyExtension]);
   
   // Availability state
   const [availability, setAvailability] = useState<any[]>([]);

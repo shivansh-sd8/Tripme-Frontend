@@ -167,6 +167,8 @@ export interface PropertyImage {
 
 export interface PropertyPricing {
   basePrice: number;
+  // 24-hour pricing: typically ~20% higher than basePrice
+  basePrice24Hour?: number;
   cleaningFee?: number;
   serviceFee?: number;
   securityDeposit?: number;
@@ -291,9 +293,13 @@ export interface Booking {
   listing?: string | Property;
   service?: string | Service;
   bookingType: 'property' | 'service';
-  bookingDuration?: 'daily' | 'hourly';
+  bookingDuration?: 'daily' | 'hourly' | '24hour';
   checkIn?: Date;
   checkOut?: Date;
+  // 24-hour booking datetime fields
+  checkInDateTime?: Date;
+  checkOutDateTime?: Date;
+  totalHours?: number; // For 24-hour flow: 24 + extension hours
   timeSlot?: TimeSlot;
   hourlyExtension?: HourlyExtension;
   guests: {

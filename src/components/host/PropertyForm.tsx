@@ -159,6 +159,7 @@ const PropertyForm: React.FC = () => {
     } as Location,
     pricing: {
       basePrice: 0,
+      basePrice24Hour: 0,
       extraGuestPrice: 0,
       cleaningFee: 0,
       serviceFee: 0,
@@ -178,6 +179,7 @@ const PropertyForm: React.FC = () => {
     checkInTime: '15:00',
     checkOutTime: '11:00',
     cancellationPolicy: 'moderate' as Property['cancellationPolicy'],
+    // Hourly extension booking (6/12/18 hours)
     hourlyBooking: {
       enabled: false,
       minStayDays: 1,
@@ -187,6 +189,8 @@ const PropertyForm: React.FC = () => {
         eighteenHours: 0.75
       }
     },
+    // Separate toggle for Anytime check-in (24-hour window)
+    anytimeEnabled: false,
     images: [] as { url: string; publicId: string; isPrimary: boolean; caption?: string; width?: number; height?: number; format?: string; size?: number }[]
   });
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
@@ -421,6 +425,7 @@ const PropertyForm: React.FC = () => {
       },
       pricing: {
         basePrice: formData.pricing.basePrice,
+        basePrice24Hour: formData.pricing.basePrice24Hour,
         extraGuestPrice: formData.pricing.extraGuestPrice,
         cleaningFee: formData.pricing.cleaningFee,
         serviceFee: formData.pricing.serviceFee,
@@ -886,8 +891,13 @@ const PropertyForm: React.FC = () => {
                 <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-xl font-bold text-purple-600">₹</span>
                 <input
                   type="number"
-                  value={formData.pricing.basePrice}
-                  onChange={(e) => handlePricingChange('basePrice', parseFloat(e.target.value) || 0)}
+                  inputMode="numeric"
+                  value={formData.pricing.basePrice === 0 ? '' : formData.pricing.basePrice}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === '') { handlePricingChange('basePrice', 0); return; }
+                    const num = Number(v); handlePricingChange('basePrice', isNaN(num) ? 0 : num);
+                  }}
                   placeholder="0"
                   className={`w-full pl-10 pr-4 py-3 text-base border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
                     validationMessages.basePrice || fieldErrors.basePrice ? 'border-red-300' : 'border-gray-200'
@@ -897,6 +907,9 @@ const PropertyForm: React.FC = () => {
               {(validationMessages.basePrice || fieldErrors.basePrice) && (
                 <ValidationMessage field="basePrice" message={validationMessages.basePrice || fieldErrors.basePrice || ''} />
               )}
+
+              {/* Anytime Check-in Price only when enabled */}
+              {/* Anytime price moved into Anytime section below */}
             </div>
             
             <div>
@@ -905,8 +918,12 @@ const PropertyForm: React.FC = () => {
                 <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-xl font-bold text-purple-600">₹</span>
                 <input
                   type="number"
-                  value={formData.pricing.extraGuestPrice}
-                  onChange={(e) => handlePricingChange('extraGuestPrice', Number(e.target.value))}
+                  inputMode="numeric"
+                  value={formData.pricing.extraGuestPrice === 0 ? '' : formData.pricing.extraGuestPrice}
+                  onChange={(e) => {
+                    const v = e.target.value; if (v === '') { handlePricingChange('extraGuestPrice', 0); return; }
+                    const num = Number(v); handlePricingChange('extraGuestPrice', isNaN(num) ? 0 : num);
+                  }}
                   placeholder="500"
                   className={`w-full pl-10 pr-4 py-3 text-base border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
                     validationMessages.extraGuestPrice || fieldErrors['pricing.extraGuestPrice'] ? 'border-red-300' : 'border-gray-200'
@@ -926,8 +943,12 @@ const PropertyForm: React.FC = () => {
                 <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-xl font-bold text-purple-600">₹</span>
                 <input
                   type="number"
-                  value={formData.pricing.cleaningFee}
-                  onChange={(e) => handlePricingChange('cleaningFee', parseFloat(e.target.value) || 0)}
+                  inputMode="numeric"
+                  value={formData.pricing.cleaningFee === 0 ? '' : formData.pricing.cleaningFee}
+                  onChange={(e) => {
+                    const v = e.target.value; if (v === '') { handlePricingChange('cleaningFee', 0); return; }
+                    const num = Number(v); handlePricingChange('cleaningFee', isNaN(num) ? 0 : num);
+                  }}
                   placeholder="0"
                   className={`w-full pl-10 pr-4 py-3 text-base border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
                     validationMessages.cleaningFee || fieldErrors['pricing.cleaningFee'] ? 'border-red-300' : 'border-gray-200'
@@ -945,8 +966,12 @@ const PropertyForm: React.FC = () => {
                 <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-xl font-bold text-purple-600">₹</span>
                 <input
                   type="number"
-                  value={formData.pricing.securityDeposit}
-                  onChange={(e) => handlePricingChange('securityDeposit', parseFloat(e.target.value) || 0)}
+                  inputMode="numeric"
+                  value={formData.pricing.securityDeposit === 0 ? '' : formData.pricing.securityDeposit}
+                  onChange={(e) => {
+                    const v = e.target.value; if (v === '') { handlePricingChange('securityDeposit', 0); return; }
+                    const num = Number(v); handlePricingChange('securityDeposit', isNaN(num) ? 0 : num);
+                  }}
                   placeholder="0"
                   className={`w-full pl-10 pr-4 py-3 text-base border-2 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
                     validationMessages.securityDeposit || fieldErrors['pricing.securityDeposit'] ? 'border-red-300' : 'border-gray-200'
@@ -974,12 +999,71 @@ const PropertyForm: React.FC = () => {
           </select>
         </div>
 
-        {/* Hourly Booking Settings */}
+        {/* Anytime Check-in (24-hour window) Settings - separate toggle */}
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Anytime Check‑in</h3>
+              <p className="text-sm text-gray-700">Let guests pick any check‑in time; checkout is +23 hours. You can also set extensions.</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.anytimeEnabled}
+                onChange={(e) => handleInputChange('anytimeEnabled', e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+            </label>
+          </div>
+
+          {formData.anytimeEnabled && (
+            <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+              <div className="rounded-xl bg-blue-50 border border-blue-200 p-4 text-sm text-blue-800">
+                Guests will see two ways to book:
+                <ul className="list-disc ml-5 mt-1">
+                  <li>Standard: Check‑in 11:00 AM, check‑out 10:00 AM next day</li>
+                  <li>Anytime Check‑in: They pick a check‑in time; checkout is +23 hours</li>
+                </ul>
+              </div>
+              {/* Anytime price input shown only when enabled */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Anytime Check‑in Price</label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  className={`w-full px-4 py-2.5 rounded-xl border focus:ring-2 focus:ring-purple-200 focus:border-purple-500 transition-colors text-gray-900 placeholder-gray-500 ${
+                    fieldErrors['pricing.basePrice24Hour'] ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  placeholder={
+                    formData.pricing.basePrice
+                      ? String(Math.round(formData.pricing.basePrice * 1.2))
+                      : 'e.g. 20% higher than base price'
+                  }
+                  value={formData.pricing.basePrice24Hour === 0 ? '' : (formData.pricing.basePrice24Hour || '')}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === '') {
+                      // Keep field visually empty; store 0 temporarily
+                      handlePricingChange('basePrice24Hour' as any, 0);
+                      return;
+                    }
+                    const num = Number(v);
+                    handlePricingChange('basePrice24Hour' as any, isNaN(num) ? 0 : num);
+                  }}
+                />
+                <p className="mt-1 text-xs text-gray-600">Tip: Often ~20% above standard daily price.</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Hourly Booking (Extensions) - separate section */}
         <div className="mt-8 pt-6 border-t border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Hourly Booking</h3>
-              <p className="text-sm text-gray-700">Allow guests to extend their stay with hourly options</p>
+              <p className="text-sm text-gray-700">Offer extension options of 6/12/18 hours as a % of daily rate.</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input

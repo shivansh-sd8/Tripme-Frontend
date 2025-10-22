@@ -1035,7 +1035,12 @@ export default function BookingPage() {
             rate: property?.hourlyBooking?.hourlyRates?.[`${bookingData.hourlyExtension === 6 ? 'six' : bookingData.hourlyExtension === 12 ? 'twelve' : 'eighteen'}Hours`] || 0,
             totalHours: bookingData.hourlyExtension
           }
-        })
+        }),
+        ...(property?.hourlyBooking?.enabled ? {
+          bookingDuration: '24hour',
+          checkInDateTime: checkInDate.toISOString(),
+          extensionHours: bookingData.hourlyExtension || 0
+        } : {})
       };
 
       console.log('🚀 Processing payment and creating booking with payload:', bookingPayload);

@@ -5,6 +5,9 @@ export interface BookingData {
   propertyId: string;
   startDate: Date | null;
   endDate: Date | null;
+  // 24-hour booking selections
+  is24Hour?: boolean;
+  checkInTime?: string; // HH:mm selected by user
   guests: {
     adults: number;
     children: number;
@@ -58,6 +61,8 @@ export const BookingProvider: React.FC<BookingProviderProps> = ({ children }) =>
           propertyId: updates.propertyId || '',
           startDate: updates.startDate || null,
           endDate: updates.endDate || null,
+          is24Hour: updates.is24Hour || false,
+          checkInTime: updates.checkInTime,
           guests: updates.guests || { adults: 1, children: 0, infants: 0 },
           hourlyExtension: updates.hourlyExtension || null,
           specialRequests: updates.specialRequests || '',
