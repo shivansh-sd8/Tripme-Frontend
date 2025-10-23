@@ -335,6 +335,14 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
       if (response.success && (response.data as any)?.listing) {
         const listing = (response.data as any).listing;
         
+        // Debug logging for images
+        console.log('PropertyEditForm: Loading listing data', {
+          id: listing._id,
+          title: listing.title,
+          rawImages: listing.images,
+          imagesCount: listing.images?.length || 0
+        });
+        
         setFormData({
           title: listing.title || '',
           description: listing.description || '',
@@ -382,7 +390,7 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
             }
           },
           anytimeEnabled: !!listing.anytimeEnabled,
-          images: listing.images || []
+          images: (listing.images || []).filter(img => img && img.url && typeof img.url === 'string')
         });
       } else {
         setError('Failed to load listing data');
@@ -502,17 +510,19 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
       checkOutTime: formData.checkOutTime,
       cancellationPolicy: formData.cancellationPolicy,
       hourlyBooking: formData.hourlyBooking,
-      images: formData.images.map(image => ({
-        url: image.url,
-        publicId: image.publicId,
-        isPrimary: image.isPrimary,
-        caption: image.caption,
-        width: image.width,
-        height: image.height,
-        format: image.format,
-        size: image.size
-        // Remove the 'type' field as backend doesn't expect it
-      }))
+      images: formData.images
+        .filter(image => image && image.url && typeof image.url === 'string')
+        .map(image => ({
+          url: image.url,
+          publicId: image.publicId,
+          isPrimary: image.isPrimary,
+          caption: image.caption,
+          width: image.width,
+          height: image.height,
+          format: image.format,
+          size: image.size
+          // Remove the 'type' field as backend doesn't expect it
+        }))
     };
   };
 

@@ -35,7 +35,11 @@ interface GoogleMapDisplayProps {
   className?: string;
 }
 
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyB9JgH59f8fK3xzaBfFB6T19u4qGEUeLOM';
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+if (!GOOGLE_MAPS_API_KEY) {
+  throw new Error('GOOGLE MAPS API KEY is not set');
+}
 
 const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
   center,

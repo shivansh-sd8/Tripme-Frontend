@@ -34,7 +34,14 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
   // Debug logging
   useEffect(() => {
-
+    console.log('ImageUpload: Images updated', {
+      count: images.length,
+      images: images.map(img => ({
+        hasUrl: !!img?.url,
+        url: img?.url?.substring(0, 50) + '...',
+        isPrimary: img?.isPrimary
+      }))
+    });
   }, [images]);
 
   const uploadMedia = async (file: File): Promise<ImageFile> => {
@@ -222,13 +229,13 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
             {images.map((image, index) => (
               <div key={index} className="relative group rounded-xl shadow-md bg-white overflow-hidden transition-transform duration-200 hover:scale-105">
                 <div className="aspect-[11/8] w-full h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
-                  {image.url ? (
+                  {image?.url ? (
                     <img
                       src={image.url}
                       alt={`Property image ${index + 1}`}
                       className="w-full h-full object-cover rounded-t-xl"
                       onError={(e) => {
-                        console.error('Image failed to load:', image.url);
+                        console.error('Image failed to load:', image?.url);
                         e.currentTarget.style.display = 'none';
                       }}
                     />
@@ -237,7 +244,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                       <span className="text-gray-500 text-sm">No image URL</span>
                     </div>
                   )}
-                  {image.isPrimary && (
+                  {image?.isPrimary && (
                     <span className="absolute top-3 left-3 bg-gradient-to-r from-purple-600 to-indigo-500 text-white text-xs px-3 py-1 rounded-full shadow-lg font-semibold z-10">
                       Primary
                     </span>
@@ -256,7 +263,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                     <input
                       type="text"
                       id={`caption-${index}`}
-                      value={image.caption || ''}
+                      value={image?.caption || ''}
                       onChange={(e) => updateCaption(index, e.target.value)}
                       className="block w-full px-3 pt-5 pb-2 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all peer"
                       placeholder=" "
@@ -269,7 +276,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                       Add caption...
                     </label>
                   </div>
-                  {!image.isPrimary && (
+                  {!image?.isPrimary && (
                     <button
                       onClick={() => setPrimaryImage(index)}
                       className="mt-3 w-full text-xs bg-gradient-to-r from-gray-100 to-gray-200 hover:from-purple-100 hover:to-indigo-100 text-gray-700 py-1 px-2 rounded-lg font-medium transition-colors shadow-sm"
