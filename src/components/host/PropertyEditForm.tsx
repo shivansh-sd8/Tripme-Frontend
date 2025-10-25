@@ -232,6 +232,10 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
     images: [] as { url: string; publicId: string; isPrimary: boolean; caption?: string; width?: number; height?: number; format?: string; size?: number }[]
   });
 
+  // Store original data to track changes
+  const [originalData, setOriginalData] = useState<any>(null);
+  const [hasChanges, setHasChanges] = useState(false);
+
   // Property type options
   const propertyTypes = [
     { value: 'villa', label: 'Villa' },
@@ -325,6 +329,14 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
     fetchListingData();
   }, [listingId]);
 
+  // Track changes
+  useEffect(() => {
+    if (originalData) {
+      const changedData = getChangedData();
+      setHasChanges(Object.keys(changedData).length > 0);
+    }
+  }, [formData, originalData]);
+
   const fetchListingData = async () => {
     try {
       setLoading(true);
@@ -343,12 +355,13 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
           imagesCount: listing.images?.length || 0
         });
         
-        setFormData({
+        const loadedData = {
           title: listing.title || '',
           description: listing.description || '',
           type: listing.type || 'apartment',
           propertyType: listing.propertyType || 'standard',
           style: listing.style || 'modern',
+          placeType: listing.placeType || 'entire',
           location: {
             type: 'Point',
             coordinates: listing.location?.coordinates || [0, 0],
@@ -389,8 +402,22 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
               eighteenHours: listing.hourlyBooking?.hourlyRates?.eighteenHours || 0.75
             }
           },
-          anytimeEnabled: !!listing.anytimeEnabled,
+          anytimeEnabled: !!(listing.enable24HourBooking || (listing.pricing?.basePrice24Hour && listing.pricing.basePrice24Hour > 0)),
           images: (listing.images || []).filter(img => img && img.url && typeof img.url === 'string')
+        };
+        
+        setFormData(loadedData);
+        const originalDataCopy = JSON.parse(JSON.stringify(loadedData));
+        setOriginalData(originalDataCopy); // Deep copy for comparison
+        
+        console.log('Form data loaded:', {
+          images: loadedData.images,
+          imagesCount: loadedData.images?.length || 0,
+          originalDataImages: originalDataCopy.images,
+          originalDataImagesCount: originalDataCopy.images?.length || 0,
+          anytimeEnabled: loadedData.anytimeEnabled,
+          basePrice24Hour: loadedData.pricing.basePrice24Hour,
+          listingEnable24HourBooking: listing.enable24HourBooking
         });
       } else {
         setError('Failed to load listing data');
@@ -405,6 +432,7 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
   };
 
   const handleInputChange = (field: string, value: any) => {
+    console.log('Input change:', { field, value, currentFormData: formData[field] });
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -471,6 +499,132 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
     }));
   };
 
+  // Helper function to check if two objects are deeply equal
+  const isEqual = (obj1: any, obj2: any): boolean => {
+    if (obj1 === obj2) return true;
+    if (obj1 == null || obj2 == null) return obj1 === obj2;
+    if (typeof obj1 !== typeof obj2) return false;
+    
+    // Special handling for arrays
+    if (Array.isArray(obj1) && Array.isArray(obj2)) {
+      if (obj1.length !== obj2.length) return false;
+      return obj1.every((item1, index) => isEqual(item1, obj2[index]));
+    }
+    
+    // For objects, use JSON.stringify as fallback
+    return JSON.stringify(obj1) === JSON.stringify(obj2);
+  };
+
+  // Generate only changed data for backend
+  const getChangedData = () => {
+    if (!originalData) return formData;
+
+    const changes: any = {};
+
+    // Check basic fields
+    if (formData.title !== originalData.title) changes.title = formData.title;
+    if (formData.description !== originalData.description) changes.description = formData.description;
+    if (formData.type !== originalData.type) changes.type = formData.type;
+    if (formData.propertyType !== originalData.propertyType) changes.propertyType = formData.propertyType;
+    if (formData.style !== originalData.style) changes.style = formData.style;
+    if (formData.placeType !== originalData.placeType) changes.placeType = formData.placeType;
+
+    // Check location
+    if (!isEqual(formData.location, originalData.location)) {
+      changes.location = {
+        type: 'Point',
+        coordinates: formData.location.coordinates,
+        address: formData.location.address,
+        city: formData.location.city,
+        state: formData.location.state,
+        country: formData.location.country,
+        postalCode: formData.location.postalCode
+      };
+    }
+
+    // Check pricing
+    if (!isEqual(formData.pricing, originalData.pricing)) {
+      changes.pricing = {
+        basePrice: formData.pricing.basePrice,
+        basePrice24Hour: (formData as any).pricing.basePrice24Hour,
+        extraGuestPrice: formData.pricing.extraGuestPrice,
+        cleaningFee: formData.pricing.cleaningFee,
+        serviceFee: formData.pricing.serviceFee,
+        securityDeposit: formData.pricing.securityDeposit,
+        currency: formData.pricing.currency,
+        weeklyDiscount: formData.pricing.weeklyDiscount,
+        monthlyDiscount: formData.pricing.monthlyDiscount
+      };
+    }
+
+    // Check capacity fields
+    if (formData.maxGuests !== originalData.maxGuests) changes.maxGuests = formData.maxGuests;
+    if (formData.minNights !== originalData.minNights) changes.minNights = formData.minNights;
+    if (formData.bedrooms !== originalData.bedrooms) changes.bedrooms = formData.bedrooms;
+    if (formData.beds !== originalData.beds) changes.beds = formData.beds;
+    if (formData.bathrooms !== originalData.bathrooms) changes.bathrooms = formData.bathrooms;
+
+    // Check arrays
+    if (!isEqual(formData.amenities, originalData.amenities)) changes.amenities = formData.amenities;
+    if (!isEqual(formData.features, originalData.features)) changes.features = formData.features;
+    if (!isEqual(formData.houseRules, originalData.houseRules)) changes.houseRules = formData.houseRules;
+
+    // Check time and policy fields
+    if (formData.checkInTime !== originalData.checkInTime) changes.checkInTime = formData.checkInTime;
+    if (formData.checkOutTime !== originalData.checkOutTime) changes.checkOutTime = formData.checkOutTime;
+    if (formData.cancellationPolicy !== originalData.cancellationPolicy) changes.cancellationPolicy = formData.cancellationPolicy;
+
+    // Check hourly booking
+    if (!isEqual(formData.hourlyBooking, originalData.hourlyBooking)) {
+      changes.hourlyBooking = formData.hourlyBooking;
+    }
+
+    // Check anytime enabled
+    if (formData.anytimeEnabled !== originalData.anytimeEnabled) {
+      changes.enable24HourBooking = formData.anytimeEnabled;
+    }
+
+    // Check images - only send if they've changed
+    const imagesChanged = !isEqual(formData.images, originalData.images);
+    console.log('Images change check:', {
+      currentImages: formData.images,
+      originalImages: originalData.images,
+      imagesChanged,
+      currentCount: formData.images?.length || 0,
+      originalCount: originalData.images?.length || 0
+    });
+    
+    if (imagesChanged) {
+      const validImages = formData.images
+        .filter(image => image && image.url && typeof image.url === 'string');
+      
+      console.log('Images will be sent:', validImages);
+      
+      // Only include images if there are valid images to send
+      if (validImages.length > 0) {
+        changes.images = validImages.map(image => ({
+          url: image.url,
+          publicId: image.publicId,
+          isPrimary: image.isPrimary,
+          caption: image.caption,
+          width: image.width,
+          height: image.height,
+          format: image.format,
+          size: image.size
+        }));
+      }
+    }
+
+    console.log('Changed data to send:', changes);
+    console.log('PlaceType debug:', {
+      current: formData.placeType,
+      original: originalData?.placeType,
+      changed: formData.placeType !== originalData?.placeType,
+      included: changes.placeType
+    });
+    return changes;
+  };
+
   const formatDataForBackend = () => {
     return {
       title: formData.title,
@@ -478,6 +632,7 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
       type: formData.type,
       propertyType: formData.propertyType,
       style: formData.style,
+      placeType: formData.placeType,
       location: {
         type: 'Point',
         coordinates: formData.location.coordinates,
@@ -510,6 +665,7 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
       checkOutTime: formData.checkOutTime,
       cancellationPolicy: formData.cancellationPolicy,
       hourlyBooking: formData.hourlyBooking,
+      enable24HourBooking: formData.anytimeEnabled,
       images: formData.images
         .filter(image => image && image.url && typeof image.url === 'string')
         .map(image => ({
@@ -532,11 +688,21 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
     setFieldErrors({});
     
     try {
-      const formattedData = formatDataForBackend();
+      const changedData = getChangedData();
       
-      const response = await apiClient.updateListing(listingId, formattedData);
+      // If no changes, show message and return
+      if (Object.keys(changedData).length === 0) {
+        setError('No changes detected. Please make some changes before saving.');
+        setSaving(false);
+        return;
+      }
+      
+      console.log('Sending only changed data to backend:', changedData);
+      const response = await apiClient.updateListing(listingId, changedData);
       
       if (response.success) {
+        // Update original data to reflect the saved changes
+        setOriginalData(JSON.parse(JSON.stringify(formData)));
         setSuccess(true);
         setTimeout(() => {
           router.push('/host/listings');
@@ -566,14 +732,16 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
       case 1:
         return formData.title && formData.description && formData.type;
       case 2:
-        return formData.location.city && formData.location.state;
+        return formData.placeType && formData.placeType !== '';
       case 3:
-        return formData.pricing.basePrice > 0;
+        return formData.location.city && formData.location.state;
       case 4:
-        return formData.maxGuests > 0 && formData.bedrooms > 0;
+        return formData.pricing.basePrice > 0;
       case 5:
-        return true; // Amenities are optional
+        return formData.maxGuests > 0 && formData.bedrooms > 0;
       case 6:
+        return true; // Amenities are optional
+      case 7:
         return formData.images.length > 0; // At least one image required
       default:
         return true;
@@ -637,11 +805,12 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
   // Define steps for the sidebar
   const steps = [
     { number: 1, title: 'Basic Info', icon: <Home size={20} /> },
-    { number: 2, title: 'Location', icon: <MapPin size={20} /> },
-    { number: 3, title: 'Pricing', icon: <span className="font-bold text-purple-600">₹</span> },
-    { number: 4, title: 'Capacity', icon: <Users size={20} /> },
-    { number: 5, title: 'Amenities', icon: <CheckCircle size={20} /> },
-    { number: 6, title: 'Images', icon: <Calendar size={20} /> }
+    { number: 2, title: 'Place Type', icon: <Home size={20} /> },
+    { number: 3, title: 'Location', icon: <MapPin size={20} /> },
+    { number: 4, title: 'Pricing', icon: <span className="font-bold text-purple-600">₹</span> },
+    { number: 5, title: 'Capacity', icon: <Users size={20} /> },
+    { number: 6, title: 'Amenities', icon: <CheckCircle size={20} /> },
+    { number: 7, title: 'Images', icon: <Calendar size={20} /> }
   ];
 
   return (
@@ -842,27 +1011,6 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
                               </select>
                             </div>
                             
-                            <div>
-                              <label className="block text-lg font-semibold text-slate-800 mb-3">What type of place will guests have?</label>
-                              <div className="space-y-3">
-                                {placeTypes.map(placeType => (
-                                  <label key={placeType.value} className="flex items-start space-x-3 p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all duration-200">
-                                    <input
-                                      type="radio"
-                                      name="placeType"
-                                      value={placeType.value}
-                                      checked={formData.placeType === placeType.value}
-                                      onChange={(e) => handleInputChange('placeType', e.target.value)}
-                                      className="mt-1 w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
-                                    />
-                                    <div className="flex-1">
-                                      <div className="font-medium text-gray-900">{placeType.label}</div>
-                                      <div className="text-sm text-gray-600 mt-1">{placeType.description}</div>
-                                    </div>
-                                  </label>
-                                ))}
-                              </div>
-                            </div>
                           </div>
                         </div>
                         
@@ -881,6 +1029,36 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
                   )}
                   
                   {step === 2 && (
+                    <div className="p-8">
+                      <div className="space-y-8">
+                        <div className="text-center mb-8">
+                          <h3 className="text-3xl font-bold text-slate-900 mb-2">What type of place will guests have?</h3>
+                          <p className="text-slate-600 text-lg">Help guests understand what they're booking</p>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          {placeTypes.map(placeType => (
+                            <label key={placeType.value} className="flex items-start space-x-4 p-6 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all duration-200">
+                              <input
+                                type="radio"
+                                name="placeType"
+                                value={placeType.value}
+                                checked={formData.placeType === placeType.value}
+                                onChange={(e) => handleInputChange('placeType', e.target.value)}
+                                className="mt-1 w-5 h-5 text-purple-600 border-gray-300 focus:ring-purple-500"
+                              />
+                              <div className="flex-1">
+                                <div className="font-semibold text-gray-900 text-lg mb-2">{placeType.label}</div>
+                                <div className="text-gray-600">{placeType.description}</div>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {step === 3 && (
                     <div className="p-8">
                       <div className="space-y-8">
                         <div className="text-center mb-8">
@@ -961,7 +1139,7 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
                     </div>
                   )}
                   
-                  {step === 3 && (
+                  {step === 4 && (
                     <div className="p-8">
                       <div className="space-y-8">
                         <div className="text-center mb-8">
@@ -1173,7 +1351,7 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
                     </div>
                   )}
                   
-                  {step === 4 && (
+                  {step === 5 && (
                     <div className="p-8">
                       <div className="space-y-8">
                         <div className="text-center mb-8">
@@ -1231,7 +1409,7 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
                     </div>
                   )}
                   
-                  {step === 5 && (
+                  {step === 6 && (
                     <div className="p-8">
                       <div className="space-y-8">
                         <div className="text-center mb-8">
@@ -1263,7 +1441,7 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
                     </div>
                   )}
                   
-                  {step === 6 && (
+                  {step === 7 && (
                     <div className="p-8">
                       <div className="space-y-8">
                         <div className="text-center mb-8">
@@ -1308,18 +1486,27 @@ const PropertyEditForm: React.FC<PropertyEditFormProps> = ({ listingId }) => {
                   ) : (
                     <Button 
                       onClick={handleSubmit}
-                      disabled={loading}
-                      className="flex items-center px-10 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 transition-all duration-200 rounded-xl shadow-lg shadow-green-500/25 text-lg font-medium"
+                      disabled={loading || !hasChanges}
+                      className={`flex items-center px-10 py-3 text-white transition-all duration-200 rounded-xl shadow-lg text-lg font-medium ${
+                        hasChanges 
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-green-500/25' 
+                          : 'bg-gradient-to-r from-gray-400 to-gray-500 cursor-not-allowed shadow-gray-400/25'
+                      }`}
                     >
                       {loading ? (
                         <>
                           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-3"></div>
                           Updating...
                         </>
-                      ) : (
+                      ) : hasChanges ? (
                         <>
                           <Save className="w-5 h-5 mr-2" />
                           Update Property
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-5 h-5 mr-2" />
+                          No Changes
                         </>
                       )}
                     </Button>
