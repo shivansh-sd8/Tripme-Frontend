@@ -2,7 +2,7 @@ import React from 'react';
 import Image from 'next/image';
 import { Heart, Star, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Stay } from '@/types';
-import { formatPrice } from '@/shared/utils/pricingUtils';
+import { formatCurrency } from '@/shared/constants/pricing.constants';
 
 interface StayCardProps {
   stay: Stay;
@@ -172,7 +172,7 @@ const StayCard: React.FC<StayCardProps> = ({
           {/* Price */}
           <div className="flex items-baseline gap-1">
             <span className="text-lg font-bold text-gray-900">
-              {formatPrice(stay.price.amount, stay.price.currency)}
+              {formatCurrency(stay.price.amount, stay.price.currency)}
             </span>
             <span className="text-sm text-gray-600 font-medium">night</span>
           </div>

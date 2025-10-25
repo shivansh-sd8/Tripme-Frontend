@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from 'react';
-import { formatCurrency, PRICING_CONSTANTS } from '@/shared/constants/pricing.constants';
-import { toTwoDecimals } from '@/shared/utils/pricingUtils';
+import { formatCurrency } from '@/shared/constants/pricing.constants';
 
 interface PricingBreakdownProps {
   pricing: {
-    basePrice: number;
+    basePrice?: number;
+    baseAmount?: number; // Backend calculated base amount
     nights: number;
     extraGuestPrice?: number;
     extraGuests?: number;
@@ -39,7 +39,8 @@ export default function PricingBreakdown({
   
   const [showDetailedBreakdown, setShowDetailedBreakdown] = useState(false);
   const {
-    basePrice,
+    basePrice = 0,
+    baseAmount: passedBaseAmount,
     nights = 1,
     extraGuestPrice = 0,
     extraGuests = 0,
@@ -48,7 +49,7 @@ export default function PricingBreakdown({
     securityDeposit = 0,
     hourlyExtension = 0,
     discountAmount = 0,
-    currency = PRICING_CONSTANTS.DEFAULT_CURRENCY,
+    currency = 'INR',
     // Calculated properties
     platformFee: passedPlatformFee,
     subtotal: passedSubtotal,
@@ -59,25 +60,19 @@ export default function PricingBreakdown({
     hostEarning: passedHostEarning
   } = pricing;
 
-  // Calculate pricing breakdown
-  const baseAmount = basePrice * nights;
-  const extraGuestCost = extraGuestPrice * extraGuests * nights;
-  const hostFees = cleaningFee + serviceFee; // Exclude security deposit from host fees
-  const calculatedHostSubtotal = baseAmount + extraGuestCost + hostFees + hourlyExtension - discountAmount;
-  const calculatedSubtotal = calculatedHostSubtotal + securityDeposit; // Include security deposit in total subtotal
+  // Use ONLY backend-calculated values - NO FRONTEND CALCULATIONS
+  const baseAmount = passedBaseAmount ?? 0;
+  const extraGuestCost = extraGuestPrice * extraGuests * nights; // Simple display calculation only
+  const hostFees = cleaningFee + serviceFee; // Simple display calculation only
   
-  // Use passed values if available, otherwise calculate
-  const subtotal = passedSubtotal ?? calculatedSubtotal;
-  const hostSubtotal = passedHostSubtotal ?? calculatedHostSubtotal;
-  
-  // If platformFee is not provided, use fallback calculation
-  const platformFee = passedPlatformFee ?? toTwoDecimals(subtotal * PRICING_CONSTANTS.PLATFORM_FEE_RATE * 100) / 100;
-  
-  const gst = passedGst ?? toTwoDecimals(subtotal * PRICING_CONSTANTS.GST_RATE * 100) / 100;
-  const processingFee = passedProcessingFee ?? toTwoDecimals((subtotal * PRICING_CONSTANTS.PROCESSING_FEE_RATE + PRICING_CONSTANTS.PROCESSING_FEE_FIXED) * 100) / 100;
-  
-  const totalAmount = passedTotal ?? (subtotal + platformFee + gst + processingFee);
-  const hostEarning = passedHostEarning ?? (subtotal - platformFee);
+  // Use ONLY passed values from backend - these are already calculated correctly
+  const subtotal = passedSubtotal ?? 0;
+  const hostSubtotal = passedHostSubtotal ?? 0;
+  const platformFee = passedPlatformFee ?? 0;
+  const gst = passedGst ?? 0;
+  const processingFee = passedProcessingFee ?? 0;
+  const totalAmount = passedTotal ?? 0;
+  const hostEarning = passedHostEarning ?? 0;
 
   const formatPrice = (amount: number) => formatCurrency(amount, currency);
 
@@ -178,7 +173,7 @@ export default function PricingBreakdown({
             {showDetailedBreakdown && (
               <div className="mt-3 space-y-2 border-t border-gray-200 pt-3">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-600">TripMe Service Fee ({hostSubtotal > 0 ? toTwoDecimals((platformFee / hostSubtotal) * 100) : 0}%)</span>
+                  <span className="text-gray-600">TripMe Service Fee</span>
                   <span className="text-gray-900">{formatPrice(platformFee)}</span>
                 </div>
                 
@@ -200,7 +195,7 @@ export default function PricingBreakdown({
       {/* Host Earning (only for host view) */}
       {showHostEarning && variant === 'host' && (
         <div className="flex justify-between items-center py-2">
-          <span className="text-gray-600">TripMe Service Fee ({hostSubtotal > 0 ? toTwoDecimals((platformFee / hostSubtotal) * 100) : 0}%)</span>
+          <span className="text-gray-600">TripMe Service Fee</span>
           <span className="text-gray-900">-{formatPrice(platformFee)}</span>
         </div>
       )}

@@ -9,7 +9,7 @@ import { RangeKeyDict } from 'react-date-range';
 import { createPortal } from 'react-dom';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
-import { cn } from '@/shared/utils/pricingUtils';
+import { cn } from '@/lib/utils';
 import { searchCalendarStyles } from '@/styles/calendars';
 
 // Google Maps API configuration

@@ -13,15 +13,19 @@ const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { 
 const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
 
 // Custom property marker icon using home.png (same as PropertyForm)
-const propertyMarkerIcon = new L.Icon({
-  iconUrl: '/home.png',
-  iconSize: [48, 60],
-  iconAnchor: [24, 60],
-  popupAnchor: [0, -60],
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png',
-  shadowSize: [61, 61],
-  shadowAnchor: [18, 61],
-});
+// Create icon only on client side to avoid SSR issues
+const createPropertyMarkerIcon = () => {
+  if (typeof window === 'undefined') return null;
+  return new L.Icon({
+    iconUrl: '/home.png',
+    iconSize: [48, 60],
+    iconAnchor: [24, 60],
+    popupAnchor: [0, -60],
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png',
+    shadowSize: [61, 61],
+    shadowAnchor: [18, 61],
+  });
+};
 
 interface PropertyMapProps {
   address: string;
@@ -93,6 +97,12 @@ export default function PropertyMap({
 }: PropertyMapProps) {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure we're on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Handle coordinates conversion
   const getCoordinates = () => {
@@ -196,6 +206,13 @@ export default function PropertyMap({
                 </button>
               </div>
             </div>
+          ) : !isClient ? (
+            <div className="h-96 bg-gray-100 rounded-xl flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
+                <p className="text-gray-600">Loading map...</p>
+              </div>
+            </div>
           ) : (
             <div className="h-96 bg-gray-100 rounded-xl overflow-hidden">
               <MapContainer
@@ -210,7 +227,7 @@ export default function PropertyMap({
                 />
                 <Marker
                   position={mapCenter}
-                  icon={propertyMarkerIcon}
+                  icon={createPropertyMarkerIcon()}
                 >
                   <Popup>
                     <div className="text-center">

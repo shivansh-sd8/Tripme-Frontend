@@ -5,8 +5,8 @@ import { apiClient } from "@/infrastructure/api/clients/api-client";
 import { useAuth } from "@/core/store/auth-context";
 import { useBooking } from "@/core/store/booking-context";
 import { User as UserType } from "@/shared/types";
-import { calculatePricingBreakdown, fetchPlatformFeeRate, toTwoDecimals } from "@/shared/utils/pricingUtils";
-import { formatCurrency, PRICING_CONSTANTS } from "@/shared/constants/pricing.constants";
+import { securePricingAPI } from "@/infrastructure/api/securePricing-api";
+import { formatCurrency } from "@/shared/constants/pricing.constants";
 import PricingBreakdown from "@/components/booking/PricingBreakdown";
 import Header from "@/components/shared/Header";
 import Footer from "@/components/shared/Footer";
@@ -235,8 +235,7 @@ export default function BookingPage() {
   const [blockedDates, setBlockedDates] = useState<string[]>([]);
   const [blockingTimer, setBlockingTimer] = useState<NodeJS.Timeout | null>(null);
   const [blockingExpiry, setBlockingExpiry] = useState<Date | null>(null);
-  const [platformFeeRate, setPlatformFeeRate] = useState<number | null>(null);
-  const [isLoadingPlatformFee, setIsLoadingPlatformFee] = useState(true);
+  // Platform fee rate is now handled by backend API
 
   
   // Booking state - initialize from context or defaults
@@ -255,6 +254,9 @@ export default function BookingPage() {
         paymentMethod: 'card',
         couponCode: '',
         hourlyExtension: contextBookingData.hourlyExtension,
+        is24Hour: contextBookingData.is24Hour || false,
+        checkInDateTime: contextBookingData.checkInDateTime,
+        extensionHours: contextBookingData.extensionHours,
         agreeToTerms: false
       };
     }
@@ -272,7 +274,10 @@ export default function BookingPage() {
     },
     paymentMethod: 'card',
     couponCode: '',
-      hourlyExtension: null,
+    hourlyExtension: 0,
+    is24Hour: false,
+    checkInDateTime: null,
+    extensionHours: 0,
     agreeToTerms: false
     };
   });
@@ -361,26 +366,7 @@ export default function BookingPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  // Fetch current platform fee rate immediately
-  useEffect(() => {
-    const loadPlatformFeeRate = async () => {
-      try {
-        setIsLoadingPlatformFee(true);
-        console.log('🔄 Loading platform fee rate...');
-        const rate = await fetchPlatformFeeRate();
-        console.log('📊 Platform fee rate loaded:', (rate * 100).toFixed(1) + '%');
-        setPlatformFeeRate(rate);
-      } catch (error) {
-        console.warn('Failed to fetch platform fee rate:', error);
-        setPlatformFeeRate(PRICING_CONSTANTS.PLATFORM_FEE_RATE);
-        console.warn('⚠️ Using fallback platform fee rate: 15%');
-      } finally {
-        setIsLoadingPlatformFee(false);
-      }
-    };
-    
-    loadPlatformFeeRate();
-  }, []);
+  // Platform fee rate is now handled by backend API
 
   // Initial availability fetch
   useEffect(() => {
@@ -604,7 +590,7 @@ export default function BookingPage() {
         console.log('Availability data received:', response.data.availability);
         const checkInDate = bookingData.checkIn instanceof Date ? bookingData.checkIn : new Date(bookingData.checkIn);
         const checkOutDate = bookingData.checkOut instanceof Date ? bookingData.checkOut : new Date(bookingData.checkOut);
-        console.log('Checking availability for dates:', checkInDate.toISOString().split('T')[0], 'to', checkOutDate.toISOString().split('T')[0]);
+        console.log('Checking availability for dates:', checkInDate.toLocaleDateString('en-CA'), 'to', checkOutDate.toLocaleDateString('en-CA'));
         
         // Check if all selected dates are available
         const startDate = new Date(bookingData.checkIn);
@@ -612,7 +598,7 @@ export default function BookingPage() {
         const currentDate = new Date(startDate);
         
         while (currentDate < endDate) {
-          const dateStr = currentDate.toISOString().split('T')[0];
+          const dateStr = currentDate.toLocaleDateString('en-CA');
           
           // Find availability record for this date
           const dateAvailability = response.data.availability.find((a: any) => {
@@ -700,38 +686,24 @@ export default function BookingPage() {
     setCouponError('');
 
     try {
-      // Calculate current subtotal for coupon validation
-      const checkInDate = ensureDateObject(bookingData.checkIn);
-      const checkOutDate = ensureDateObject(bookingData.checkOut);
-      const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
-      const basePrice = property.pricing?.basePrice || 0;
-      const extraGuestPrice = property.pricing?.extraGuestPrice || 0;
-      const cleaningFee = property.pricing?.cleaningFee || 0;
-      const serviceFee = property.pricing?.serviceFee || 0;
-      const securityDeposit = property.pricing?.securityDeposit || 0;
-      const extraGuests = bookingData.guests.adults > 1 ? bookingData.guests.adults - 1 : 0;
-      
-      let hourlyExtensionCost = 0;
-      if (bookingData.hourlyExtension && property.hourlyBooking?.enabled) {
-        const hourlyRate = property.hourlyBooking?.hourlyRates?.[`${bookingData.hourlyExtension === 6 ? 'six' : bookingData.hourlyExtension === 12 ? 'twelve' : 'eighteen'}Hours`] || 0;
-        hourlyExtensionCost = basePrice * hourlyRate;
-      }
-      
-      const baseAmount = basePrice * nights;
-      const extraGuestCost = extraGuestPrice * extraGuests * nights;
-      const hostFees = cleaningFee + serviceFee + securityDeposit;
-      const subtotal = baseAmount + extraGuestCost + hostFees + hourlyExtensionCost;
+      const response = await apiClient.post('/coupons/validate', {
+        couponCode: code,
+        propertyId: property._id,
+        checkIn: bookingData.checkIn,
+        checkOut: bookingData.checkOut,
+        guests: bookingData.guests
+      });
 
-      const response = await apiClient.validateCoupon(
-        code.toUpperCase(),
-        subtotal,
-        id as string
-      );
-
-      if (response.success) {
-        setCouponData(response.data);
+      if (response.success && response.data) {
+        const coupon = response.data.coupon;
+        setCouponData({
+          code: coupon.code,
+          discountAmount: coupon.discountAmount,
+          discountType: coupon.discountType,
+          description: coupon.description
+        });
         setCouponError('');
-        console.log('✅ Coupon validated successfully:', response.data);
+        console.log('✅ Coupon validated successfully:', coupon);
       } else {
         setCouponError(response.message || 'Invalid coupon code');
         setCouponData(null);
@@ -745,70 +717,77 @@ export default function BookingPage() {
     }
   };
 
-  // Calculate price breakdown
-  const calculatePrice = () => {
-    if (!property || isLoadingPlatformFee || platformFeeRate === null) {
-      console.log('⏳ Waiting for platform fee rate to load...');
+  // Get price breakdown from secure backend
+  const getSecurePricing = async () => {
+    if (!property || !bookingData.checkIn || !bookingData.checkOut) {
+      console.log('⏳ Waiting for required data to load...');
       return;
     }
     
-    const nights = Math.ceil((bookingData.checkOut.getTime() - bookingData.checkIn.getTime()) / (1000 * 60 * 60 * 24));
-    const basePrice = property.pricing?.basePrice || 0;
-    const extraGuestPrice = property.pricing?.extraGuestPrice || 0;
-    const cleaningFee = property.pricing?.cleaningFee || 0;
-    const serviceFee = property.pricing?.serviceFee || 0;
-    const securityDeposit = property.pricing?.securityDeposit || 0;
-    const extraGuests = bookingData.guests.adults > 1 ? bookingData.guests.adults - 1 : 0;
-    
-    // Calculate hourly extension cost using shared utility
-    let hourlyExtensionCost = 0;
-    if (bookingData.hourlyExtension && property.hourlyBooking?.enabled) {
-      // Use shared utility for consistent calculation
-      const { calculateHourlyExtension } = require('@/shared/utils/pricingUtils');
-      hourlyExtensionCost = calculateHourlyExtension(basePrice, bookingData.hourlyExtension);
+    try {
+      console.log('🔒 Calculating secure pricing via backend API...');
+      
+      // Use secure pricing API - all calculations happen on backend
+      const pricingRequest = {
+        propertyId: property._id,
+        checkIn: bookingData.checkIn instanceof Date ? bookingData.checkIn.toLocaleDateString('en-CA') : bookingData.checkIn,
+        checkOut: bookingData.checkOut instanceof Date ? bookingData.checkOut.toLocaleDateString('en-CA') : bookingData.checkOut,
+        guests: bookingData.guests,
+        hourlyExtension: bookingData.hourlyExtension || 0,
+        couponCode: couponData?.code,
+        bookingType: bookingData.is24Hour ? '24hour' : 'daily',
+        checkInDateTime: bookingData.checkInDateTime ? (bookingData.checkInDateTime instanceof Date ? bookingData.checkInDateTime.toISOString() : bookingData.checkInDateTime) : undefined,
+        extensionHours: bookingData.extensionHours
+      };
+
+      // Validate request before sending
+      const validation = securePricingAPI.validatePricingRequest(pricingRequest);
+      if (!validation.isValid) {
+        console.error('❌ Invalid pricing request:', validation.errors);
+        return;
+      }
+      
+      const response = await securePricingAPI.calculatePricing(pricingRequest);
+      
+      if (!response.success) {
+        console.error('❌ Secure pricing calculation failed:', response);
+        return;
+      }
+      
+      const pricing = response.data.pricing;
+      console.log('✅ Secure pricing calculated successfully:', {
+        nights: pricing.nights,
+        totalAmount: pricing.totalAmount,
+        token: response.data.security.pricingToken.substring(0, 8) + '...'
+      });
+      
+      const newPriceBreakdown = {
+        basePrice: property.pricing?.basePrice || 0,
+        serviceFee: pricing.serviceFee,
+        cleaningFee: pricing.cleaningFee,
+        securityDeposit: pricing.securityDeposit,
+        extraGuestCost: pricing.extraGuestCost,
+        extraGuestPrice: pricing.extraGuestPrice,
+        extraGuests: pricing.extraGuests,
+        hourlyExtension: pricing.hourlyExtension,
+        platformFee: pricing.platformFee,
+        gst: pricing.gst,
+        processingFee: pricing.processingFee,
+        taxes: pricing.gst,
+        total: pricing.totalAmount,
+        nights: pricing.nights,
+        subtotal: pricing.subtotal,
+        hostSubtotal: pricing.hostSubtotal,
+        discountAmount: pricing.discountAmount,
+        // Security token for validation
+        pricingToken: response.data.security.pricingToken
+      };
+      
+      console.log('✅ Secure price breakdown calculated:', newPriceBreakdown);
+      setPriceBreakdown(newPriceBreakdown);
+    } catch (error) {
+      console.error('❌ Error calculating secure pricing:', error);
     }
-    
-    // Apply coupon discount if available
-    const discountAmount = couponData?.discountAmount || 0;
-    
-    console.log(`💰 Calculating pricing with platform fee rate: ${(platformFeeRate * 100).toFixed(1)}%`);
-    
-    const pricing = calculatePricingBreakdown({
-      basePrice,
-      nights,
-      extraGuestPrice,
-      extraGuests,
-      cleaningFee,
-      serviceFee,
-      securityDeposit,
-      hourlyExtension: hourlyExtensionCost,
-      discountAmount,
-      currency: property.pricing?.currency || 'INR',
-      platformFeeRate: platformFeeRate
-    });
-    
-    const newPriceBreakdown = {
-      basePrice: basePrice, // Fixed: use actual price per night, not total base amount
-      serviceFee: pricing.serviceFee,
-      cleaningFee: pricing.cleaningFee,
-      securityDeposit: pricing.securityDeposit,
-      extraGuestCost: pricing.extraGuestCost,
-      extraGuestPrice: pricing.extraGuestPrice, // Added missing property
-      extraGuests: pricing.extraGuests, // Added missing property
-      hourlyExtension: pricing.hourlyExtension, // Fixed: was hourlyExtensionCost
-      platformFee: pricing.platformFee,
-      gst: pricing.gst,
-      processingFee: pricing.processingFee,
-      taxes: pricing.gst,
-      total: pricing.totalAmount,
-      nights,
-      subtotal: pricing.subtotal,
-      hostSubtotal: pricing.hostSubtotal, // Added host subtotal for correct percentage calculation
-      discountAmount: pricing.discountAmount
-    };
-    
-    console.log('✅ Price breakdown calculated:', newPriceBreakdown);
-    setPriceBreakdown(newPriceBreakdown);
   };
 
   // Helper function to ensure dates are Date objects
@@ -885,7 +864,7 @@ export default function BookingPage() {
       const datesToBlock: string[] = [];
       
       while (currentDate < endDate) {
-        const dateStr = currentDate.toISOString().split('T')[0];
+        const dateStr = currentDate.toLocaleDateString('en-CA');
         datesToBlock.push(dateStr);
         currentDate.setDate(currentDate.getDate() + 1);
       }
@@ -1036,16 +1015,19 @@ export default function BookingPage() {
             totalHours: bookingData.hourlyExtension
           }
         }),
-        ...(property?.hourlyBooking?.enabled ? {
+        // Only include hourly booking fields if it's actually an hourly booking
+        // For now, we'll determine this based on whether hourly extension is being used
+        ...(property?.hourlyBooking?.enabled && bookingData.hourlyExtension && bookingData.hourlyExtension > 0 ? {
           bookingDuration: '24hour',
           checkInDateTime: checkInDate.toISOString(),
-          extensionHours: bookingData.hourlyExtension || 0
+          extensionHours: bookingData.hourlyExtension
         } : {})
       };
 
       console.log('🚀 Processing payment and creating booking with payload:', bookingPayload);
       console.log('📅 Blocked dates to confirm:', blockedDates);
       console.log('🏠 Property ID:', id);
+      console.log('🔐 Authentication status:', { isAuthenticated, userId: user?._id, userEmail: user?.email });
       
       const response = await apiClient.processPaymentAndCreateBooking(bookingPayload);
       
@@ -1089,10 +1071,13 @@ export default function BookingPage() {
     }
   };
 
-  // Calculate price when booking data, coupon, or platform fee rate changes
+  // Get pricing from backend when booking data or coupon changes
   useEffect(() => {
-    calculatePrice();
-  }, [bookingData.checkIn, bookingData.checkOut, bookingData.hourlyExtension, property, couponData, platformFeeRate]);
+    const updatePricing = async () => {
+      await getSecurePricing();
+    };
+    updatePricing();
+  }, [bookingData.checkIn, bookingData.checkOut, bookingData.hourlyExtension, property, couponData]);
 
   // Clear availability state when dates change
   useEffect(() => {
@@ -1501,7 +1486,7 @@ export default function BookingPage() {
                             const currentDate = new Date(startDate);
                             
                             while (currentDate < endDate) {
-                              const dateStr = currentDate.toISOString().split('T')[0];
+                              const dateStr = currentDate.toLocaleDateString('en-CA');
                               const existsInModel = availability.some((a: any) => {
                                 const availabilityDateStr = a.date instanceof Date ? a.date.toLocaleDateString('en-CA') : new Date(a.date).toLocaleDateString('en-CA');
                                 return availabilityDateStr === dateStr;
@@ -2135,7 +2120,7 @@ export default function BookingPage() {
 
                 {/* Price Breakdown */}
                 <div className="mb-8">
-                  {isLoadingPlatformFee ? (
+                  {!priceBreakdown.total ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                       <span className="ml-3 text-gray-600">Loading pricing...</span>

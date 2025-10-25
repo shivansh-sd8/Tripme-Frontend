@@ -9,12 +9,25 @@ import Footer from "@/components/shared/Footer";
 import Button from "@/components/ui/Button";
 import HourlyBookingSelector from "@/components/booking/HourlyBookingSelector";
 import PricingBreakdown from "@/components/booking/PricingBreakdown";
-import { calculatePricingBreakdown, fetchPlatformFeeRate, toTwoDecimals, calculateHourlyExtension } from "@/shared/utils/pricingUtils";
-import { formatCurrency, PRICING_CONSTANTS } from "@/shared/constants/pricing.constants";
+import { securePricingAPI } from "@/infrastructure/api/securePricing-api";
+import { formatCurrency } from "@/shared/constants/pricing.constants";
 import { addDays, format, differenceInDays } from 'date-fns';
 import { createPortal } from 'react-dom';
 import PropertyAvailabilityCalendar from "@/components/rooms/PropertyAvailabilityCalendar";
-import PropertyMap from "@/components/rooms/PropertyMap";
+import dynamic from 'next/dynamic';
+
+// Dynamically import PropertyMap to avoid SSR issues with Leaflet
+const PropertyMap = dynamic(() => import("@/components/rooms/PropertyMap"), { 
+  ssr: false,
+  loading: () => (
+    <div className="h-96 bg-gray-100 rounded-xl flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
+        <p className="text-gray-600">Loading map...</p>
+      </div>
+    </div>
+  )
+});
 import { 
   Calendar, 
   MapPin, 
@@ -135,8 +148,7 @@ export default function PropertyDetailsPage() {
   const [specialRequests, setSpecialRequests] = useState(() => {
     return bookingData?.specialRequests || '';
   });
-  const [platformFeeRate, setPlatformFeeRate] = useState<number | null>(null);
-  const [isLoadingPlatformFee, setIsLoadingPlatformFee] = useState(true);
+  // Platform fee rate is now handled by backend
   
   // Pricing breakdown state
   const [priceBreakdown, setPriceBreakdown] = useState({
@@ -177,59 +189,81 @@ export default function PropertyDetailsPage() {
     }
   }, [bookingData]);
 
-  // Fetch current platform fee rate immediately
+  // Debug dateRange changes
   useEffect(() => {
-    const loadPlatformFeeRate = async () => {
-      try {
-        setIsLoadingPlatformFee(true);
-        const rate = await fetchPlatformFeeRate();
-        setPlatformFeeRate(rate);
-        console.log(`✅ Platform fee rate loaded: ${(rate * 100).toFixed(1)}%`);
-      } catch (error) {
-        console.error('❌ Error fetching platform fee rate:', error);
-        setPlatformFeeRate(PRICING_CONSTANTS.PLATFORM_FEE_RATE);
-        console.warn('⚠️ Using fallback platform fee rate: 15%');
-      } finally {
-        setIsLoadingPlatformFee(false);
-      }
-    };
-    
-    loadPlatformFeeRate();
-  }, []);
+    console.log('📅 dateRange state changed:', {
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
+      key: dateRange.key
+    });
+  }, [dateRange]);
+
+  // Fetch current platform fee rate immediately
+  // Platform fee rate is now handled by backend API
 
   // Update priceBreakdown when pricing calculation changes
   useEffect(() => {
-    if (!property || !dateRange.startDate || !dateRange.endDate || isLoadingPlatformFee || platformFeeRate === null) {
-      console.log('⏳ Waiting for required data to load...');
-      return;
-    }
+    console.log('🔄 useEffect dependency change detected:', {
+      property: !!property,
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
+      guests,
+      hourlyExtension
+    });
+    console.log('🔄 useEffect triggered at:', new Date().toISOString());
     
-    const pricing = calculateTotalPrice();
-    
-    if (!pricing) return;
-    
-    const newPriceBreakdown = {
-      basePrice: property?.pricing?.basePrice || 0, // Fixed: use actual price per night, not total base amount
-      serviceFee: pricing.serviceFee,
-      cleaningFee: pricing.cleaningFee,
-      securityDeposit: pricing.securityDeposit,
-      extraGuestCost: pricing.extraGuestCost,
-      extraGuestPrice: pricing.extraGuestPrice,
-      extraGuests: pricing.extraGuests,
-      hourlyExtension: pricing.hourlyExtension,
-      platformFee: pricing.platformFee,
-      gst: pricing.gst,
-      processingFee: pricing.processingFee,
-      taxes: pricing.gst,
-      total: pricing.totalAmount,
-      nights: pricing.nights,
-      subtotal: pricing.subtotal,
-      discountAmount: pricing.discountAmount
+    const updatePricing = async () => {
+      console.log('🔄 Pricing useEffect triggered', { 
+        property: !!property, 
+        startDate: !!dateRange.startDate, 
+        endDate: !!dateRange.endDate,
+        guests,
+        hourlyExtension
+      });
+      
+      if (!property || !dateRange.startDate || !dateRange.endDate) {
+        console.log('⏳ Waiting for required data to load...');
+        return;
+      }
+      
+      console.log('🚀 Calling secure pricing API...');
+      const pricing = await getSecurePricing();
+      
+      if (!pricing) {
+        console.log('❌ No pricing data returned from secure pricing API');
+        return;
+      }
+      
+      console.log('💰 Pricing data received:', pricing);
+      
+      const newPriceBreakdown = {
+        basePrice: property?.pricing?.basePrice || 0, // Fixed: use actual price per night, not total base amount
+        baseAmount: pricing.baseAmount, // Backend calculated base amount
+        serviceFee: pricing.serviceFee,
+        cleaningFee: pricing.cleaningFee,
+        securityDeposit: pricing.securityDeposit,
+        extraGuestCost: pricing.extraGuestCost,
+        extraGuestPrice: pricing.extraGuestPrice,
+        extraGuests: pricing.extraGuests,
+        hourlyExtension: pricing.hourlyExtension,
+        platformFee: pricing.platformFee,
+        gst: pricing.gst,
+        processingFee: pricing.processingFee,
+        taxes: pricing.gst,
+        total: pricing.totalAmount,
+        nights: pricing.nights,
+        subtotal: pricing.subtotal,
+        discountAmount: pricing.discountAmount
+      };
+      
+      console.log('✅ Price breakdown updated:', newPriceBreakdown);
+      console.log('🔍 NIGHTS IN STATE:', newPriceBreakdown.nights);
+      console.log('🔍 TOTAL IN STATE:', newPriceBreakdown.total);
+      setPriceBreakdown(newPriceBreakdown);
     };
     
-    console.log('✅ Price breakdown updated:', newPriceBreakdown);
-    setPriceBreakdown(newPriceBreakdown);
-  }, [property, dateRange.startDate, dateRange.endDate, guests, hourlyExtension, platformFeeRate, isLoadingPlatformFee]);
+    updatePricing();
+  }, [property, dateRange.startDate, dateRange.endDate, guests, hourlyExtension]);
 
   // If hourly booking is enabled for the property, enforce 24-hour flow:
   // checkout = check-in + 23h (+ any extension hours)
@@ -286,12 +320,15 @@ export default function PropertyDetailsPage() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
+    console.log('🏠 Loading property with ID:', id);
     apiClient.getListing(id as string)
       .then((res: any) => {
+        console.log('🏠 Property loaded:', res.data?.listing);
         setProperty(res.data?.listing || null);
         setError("");
       })
       .catch((error) => {
+        console.error('🏠 Error loading property:', error);
         setError("Property not found");
       })
       .finally(() => setLoading(false));
@@ -374,8 +411,9 @@ export default function PropertyDetailsPage() {
       return;
     }
 
-    // Check minimum nights if property has this requirement
-    const nights = endDate && !isNaN(endDate.getTime()) && !isNaN(startDate.getTime()) ? differenceInDays(endDate, startDate) : 0;
+    // Check minimum nights if property has this requirement (display only)
+    const nights = endDate && !isNaN(endDate.getTime()) && !isNaN(startDate.getTime()) ? 
+      Math.max(0, Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))) : 0;
     if (property?.minNights && nights < property.minNights) {
       setAvailabilityError(`Minimum ${property.minNights} nights required`);
       return;
@@ -471,6 +509,32 @@ export default function PropertyDetailsPage() {
           setAvailabilityChecked(true);
           setAvailabilityError('');
           setAvailability(availabilityData);
+          
+          // Get pricing from backend when availability is confirmed
+          console.log('✅ Availability confirmed, getting pricing from backend...');
+          const pricing = await getSecurePricing();
+          if (pricing) {
+            console.log('💰 Pricing received from backend:', pricing);
+            setPriceBreakdown({
+              basePrice: property?.pricing?.basePrice || 0,
+              baseAmount: pricing.baseAmount,
+              serviceFee: pricing.serviceFee,
+              cleaningFee: pricing.cleaningFee,
+              securityDeposit: pricing.securityDeposit,
+              extraGuestCost: pricing.extraGuestCost,
+              extraGuestPrice: pricing.extraGuestPrice,
+              extraGuests: pricing.extraGuests,
+              hourlyExtension: pricing.hourlyExtension,
+              platformFee: pricing.platformFee,
+              gst: pricing.gst,
+              processingFee: pricing.processingFee,
+              taxes: pricing.gst,
+              total: pricing.totalAmount,
+              nights: pricing.nights,
+              subtotal: pricing.subtotal,
+              discountAmount: pricing.discountAmount
+            });
+          }
         } else {
           setAvailabilityError(`Selected dates are not available. Conflicting dates: ${conflictingDates.join(', ')}`);
           setAvailabilityChecked(false);
@@ -508,8 +572,9 @@ export default function PropertyDetailsPage() {
       return false;
     }
 
-    // Check minimum nights if property has this requirement
-    const nights = (!endDate || !startDate || isNaN(endDate.getTime()) || isNaN(startDate.getTime())) ? 0 : differenceInDays(endDate, startDate);
+    // Check minimum nights if property has this requirement (display only)
+    const nights = (!endDate || !startDate || isNaN(endDate.getTime()) || isNaN(startDate.getTime())) ? 0 : 
+      Math.max(0, Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
     if (property?.minNights && nights < property.minNights) {
       setAvailabilityError(`Minimum ${property.minNights} nights required`);
       return false;
@@ -553,52 +618,101 @@ export default function PropertyDetailsPage() {
 
   const calculateTotalNights = () => {
     if (!dateRange.startDate || !dateRange.endDate || isNaN(dateRange.startDate.getTime()) || isNaN(dateRange.endDate.getTime())) return 0;
-    return differenceInDays(dateRange.endDate, dateRange.startDate);
+    // Simple display calculation only - real calculation happens on backend
+    return Math.max(0, Math.floor((dateRange.endDate.getTime() - dateRange.startDate.getTime()) / (1000 * 60 * 60 * 24)));
   };
 
-  const calculateTotalPrice = () => {
-    if (!property || !dateRange.startDate || !dateRange.endDate || isLoadingPlatformFee || platformFeeRate === null) {
-      console.log('⏳ Waiting for platform fee rate to load...');
+  // Manual trigger for testing
+  const testPricingCalculation = async () => {
+    console.log('🧪 Manual pricing test triggered');
+    if (!property || !dateRange.startDate || !dateRange.endDate) {
+      console.log('❌ Missing required data for pricing test');
+      return;
+    }
+    
+    const pricing = await getSecurePricing();
+    if (pricing) {
+      console.log('✅ Manual pricing test successful:', pricing);
+      setPriceBreakdown({
+        basePrice: property?.pricing?.basePrice || 0,
+        baseAmount: pricing.baseAmount, // Backend calculated base amount
+        serviceFee: pricing.serviceFee,
+        cleaningFee: pricing.cleaningFee,
+        securityDeposit: pricing.securityDeposit,
+        extraGuestCost: pricing.extraGuestCost,
+        extraGuestPrice: pricing.extraGuestPrice,
+        extraGuests: pricing.extraGuests,
+        hourlyExtension: pricing.hourlyExtension,
+        platformFee: pricing.platformFee,
+        gst: pricing.gst,
+        processingFee: pricing.processingFee,
+        taxes: pricing.gst,
+        total: pricing.totalAmount,
+        nights: pricing.nights,
+        subtotal: pricing.subtotal,
+        discountAmount: pricing.discountAmount
+      });
+    } else {
+      console.log('❌ Manual pricing test failed');
+    }
+  };
+
+  const getSecurePricing = async () => {
+    console.log('🔍 getSecurePricing called with:', { 
+      property: !!property, 
+      startDate: dateRange.startDate, 
+      endDate: dateRange.endDate 
+    });
+    
+    if (!property || !dateRange.startDate || !dateRange.endDate) {
+      console.log('⏳ Waiting for required data to load...', { property: !!property, startDate: !!dateRange.startDate, endDate: !!dateRange.endDate });
       return null;
     }
     
-    const nights = calculateTotalNights();
-    const basePrice = property?.pricing?.basePrice || 0;
-    const extraGuestPrice = property?.pricing?.extraGuestPrice || 0;
-    const cleaningFee = property?.pricing?.cleaningFee || 0;
-    const serviceFee = property?.pricing?.serviceFee || 0;
-    const securityDeposit = property?.pricing?.securityDeposit || 0;
-    const extraGuests = guests > 1 ? guests - 1 : 0;
-    
-    // Calculate hourly extension cost using shared utility
-    let hourlyExtensionCost = 0;
-    if (hourlyExtension && property?.hourlyBooking?.enabled) {
-      hourlyExtensionCost = calculateHourlyExtension(basePrice, hourlyExtension);
+    try {
+      // Request pricing from backend - NO CALCULATIONS ON FRONTEND
+      const pricingRequest = {
+        propertyId: property._id,
+        checkIn: dateRange.startDate.toLocaleDateString('en-CA'),
+        checkOut: dateRange.endDate.toLocaleDateString('en-CA'),
+        guests: { adults: guests, children: 0 },
+        hourlyExtension: hourlyExtension || 0,
+        bookingType: property?.enable24HourBooking ? '24hour' : 'daily'
+      };
+
+      // Basic validation only - comprehensive validation on backend
+      if (!pricingRequest.propertyId || !pricingRequest.checkIn || !pricingRequest.checkOut) {
+        console.error('❌ Invalid pricing request parameters');
+        return null;
+      }
+
+      console.log('🔒 Requesting pricing from secure backend API...', pricingRequest);
+      
+      const response = await securePricingAPI.calculatePricing(pricingRequest);
+      
+      if (!response.success) {
+        console.error('❌ Secure pricing request failed:', response);
+        return null;
+      }
+      
+      const pricing = response.data.pricing;
+      console.log('✅ Secure pricing received from backend:', {
+        nights: pricing.nights,
+        totalAmount: pricing.totalAmount,
+        token: response.data.security.pricingToken.substring(0, 8) + '...'
+      });
+      
+      // Return pricing data as received from backend
+      return {
+        ...pricing,
+        // Security token for validation
+        pricingToken: response.data.security.pricingToken
+      };
+    } catch (error) {
+      console.error('❌ Error requesting secure pricing:', error);
+      console.error('❌ Error details:', error.message, error.stack);
+      return null;
     }
-    
-    console.log(`💰 Calculating pricing with platform fee rate: ${(platformFeeRate * 100).toFixed(1)}%`);
-    
-    const pricing = calculatePricingBreakdown({
-      basePrice,
-      nights,
-      extraGuestPrice,
-      extraGuests,
-      cleaningFee,
-      serviceFee,
-      securityDeposit,
-      hourlyExtension: hourlyExtensionCost,
-      currency: property?.pricing?.currency || 'INR',
-      platformFeeRate: platformFeeRate
-    });
-    
-    // Note: priceBreakdown state will be set in useEffect to avoid infinite re-renders
-    
-    return {
-      ...pricing,
-      // Legacy fields for backward compatibility
-      subtotal: pricing.subtotal,
-      total: pricing.totalAmount
-    };
   };
 
   const handleBooking = async () => {
@@ -626,7 +740,7 @@ export default function PropertyDetailsPage() {
         cleaningFee: property?.pricing?.cleaningFee || 0,
         serviceFee: property?.pricing?.serviceFee || 0,
         securityDeposit: property?.pricing?.securityDeposit || 0,
-        totalPrice: calculateTotalPrice().total || 0
+        totalPrice: 0 // Will be calculated by backend
       }
     });
 
@@ -710,8 +824,17 @@ export default function PropertyDetailsPage() {
     );
   }
 
-  const pricing = calculateTotalPrice();
-  const nights = calculateTotalNights();
+  const pricing = priceBreakdown; // Use the state instead of calling async function
+  const nights = pricing?.nights || 0; // Use nights from backend pricing data
+  
+  // Debug pricing state
+  console.log('🔍 Pricing debug:', {
+    pricing,
+    nights,
+    priceBreakdown,
+    total: pricing?.total,
+    totalAmount: pricing?.totalAmount
+  });
   
   // Check if current user is the host of this property (safe for unauthenticated users)
   const isOwnProperty = isAuthenticated && user && property?.host && (
@@ -1297,22 +1420,34 @@ export default function PropertyDetailsPage() {
                                         if (selectionStep === 'checkin') {
                                           // Select check-in date
                                           console.log('Setting check-in date:', date.toDateString());
-                                          setDateRange({
+                                          const newDateRange = {
                                             ...dateRange,
                                             startDate: new Date(date),
                                             endDate: null,
                                             key: 'selection'
-                                          });
+                                          };
+                                          console.log('📅 New date range:', newDateRange);
+                                          console.log('📅 Setting dateRange state...');
+                                          setDateRange(newDateRange);
+                                          console.log('📅 DateRange state updated');
                                           setSelectionStep('checkout');
                                         } else if (selectionStep === 'checkout') {
                                           // Select check-out date
                                           if (date > dateRange.startDate) {
                                             console.log('Setting check-out date:', date.toDateString());
-                                            setDateRange({
+                                            console.log('🔍 Original date:', date);
+                                            console.log('🔍 New Date(date):', new Date(date));
+                                            console.log('🔍 Start date:', dateRange.startDate);
+                                            const newDateRange = {
                                               ...dateRange,
                                               endDate: new Date(date),
                                               key: 'selection'
-                                            });
+                                            };
+                                            console.log('📅 Complete date range:', newDateRange);
+                                            console.log('🔍 Final endDate:', newDateRange.endDate);
+                                            console.log('📅 Setting complete dateRange state...');
+                                            setDateRange(newDateRange);
+                                            console.log('📅 Complete dateRange state updated');
                                             setSelectionStep('complete');
                                             setTimeout(() => setShowDatePicker(false), 300);
                                           } else if (date < dateRange.startDate) {
@@ -1373,6 +1508,16 @@ export default function PropertyDetailsPage() {
                         </div>
                       )}
                     
+                      {/* Test Pricing Button */}
+                      <div className="mt-2">
+                        <Button
+                          onClick={testPricingCalculation}
+                          className="w-full font-semibold py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                        >
+                          🧪 Test Pricing Calculation
+                        </Button>
+                      </div>
+
                       {/* Check Availability Button */}
                       <div className="mt-4">
                         <Button
@@ -1406,7 +1551,7 @@ export default function PropertyDetailsPage() {
                           <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
                             <div className="flex items-center gap-2 text-green-700">
                               <CheckCircle className="w-4 h-4" />
-                              <span className="text-sm font-medium">Available! {nights} night{nights > 1 ? 's' : ''} • {formatPrice(pricing.total)}</span>
+                              <span className="text-sm font-medium">Available! {pricing?.nights || 0} night{(pricing?.nights || 0) > 1 ? 's' : ''} • {pricing?.total && !isNaN(pricing.total) ? formatPrice(pricing.total) : 'Calculating...'}</span>
                             </div>
                           </div>
                         )}
@@ -1569,7 +1714,7 @@ export default function PropertyDetailsPage() {
                         </div>
                           <div>
                             <h3 className="text-lg font-bold text-gray-900">Price Breakdown</h3>
-                            <p className="text-sm text-gray-600">{nights} night{nights > 1 ? 's' : ''} stay</p>
+                            <p className="text-sm text-gray-600">{pricing?.nights || 0} night{(pricing?.nights || 0) > 1 ? 's' : ''} stay</p>
                           </div>
                         </div>
                         

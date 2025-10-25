@@ -1,77 +1,15 @@
 /**
- * Frontend Pricing Constants
- * This file defines pricing constants that match the backend pricing configuration
- * 
- * NOTE: This file is now DEPRECATED. Use shared/utils/pricingUtils.ts instead.
- * This file is kept for backward compatibility only.
+ * Frontend Display Constants Only
+ * NO PRICING CALCULATIONS - Only display what backend sends
  */
 
-// Re-export from shared utilities
-export { 
-  toTwoDecimals,
-  fetchPlatformFeeRate,
-  getPlatformFeeRate,
-  calculatePricingBreakdown,
-  calculateHourlyExtension,
-  validatePricingConsistency,
-  // General utilities
-  cn,
-  formatPrice,
-  formatDate,
-  generateSlug,
-  debounce
-} from '../utils/pricingUtils';
-
-export const PRICING_CONSTANTS = {
-  // Platform fees (percentage of subtotal) - This will be overridden by dynamic rate
-  PLATFORM_FEE_RATE: 0.15, // 15% TripMe service fee (fallback)
-  PROCESSING_FEE_RATE: 0.029, // 2.9% processing fee
-  PROCESSING_FEE_FIXED: 30, // ₹30 fixed processing fee
-  
-  // Tax rates
-  GST_RATE: 0.18, // 18% GST (Goods and Services Tax)
-  
-  // Default service fees (if not set by host)
-  DEFAULT_SERVICE_FEE_RATE: 0.05, // 5% of base price
-  
-  // Currency settings
-  DEFAULT_CURRENCY: 'INR',
-  SUPPORTED_CURRENCIES: ['INR', 'USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD'],
-  
-  // Minimum amounts
-  MIN_BASE_PRICE: 1,
-  MIN_CLEANING_FEE: 0,
-  MIN_SERVICE_FEE: 0,
-  MIN_SECURITY_DEPOSIT: 0,
-  
-  // Maximum amounts (for validation)
-  MAX_BASE_PRICE: 1000000, // ₹10,00,000
-  MAX_CLEANING_FEE: 10000, // ₹10,000
-  MAX_SERVICE_FEE: 50000, // ₹50,000
-  MAX_SECURITY_DEPOSIT: 50000, // ₹50,000
-  
-  // Hourly booking rates (percentage of daily rate)
-  HOURLY_RATES: {
-    SIX_HOURS: 0.30, // 30% of daily rate
-    TWELVE_HOURS: 0.60, // 60% of daily rate
-    EIGHTEEN_HOURS: 0.75 // 75% of daily rate
-  },
-  
-  // Discount limits
-  MAX_WEEKLY_DISCOUNT: 100, // 100% max
-  MAX_MONTHLY_DISCOUNT: 100, // 100% max
-  MAX_COUPON_DISCOUNT: 100, // 100% max
-} as const;
-
-
-
 /**
- * Format currency amount
+ * Format currency amount for display
  * @param amount - Amount to format
  * @param currency - Currency code
  * @returns Formatted currency string
  */
-export function formatCurrency(amount: number, currency: string = PRICING_CONSTANTS.DEFAULT_CURRENCY): string {
+export function formatCurrency(amount: number, currency: string = 'INR'): string {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: currency,
@@ -81,9 +19,22 @@ export function formatCurrency(amount: number, currency: string = PRICING_CONSTA
 }
 
 /**
- * Validate pricing parameters   
- * @param pricing - Pricing object to validate
- * @returns Validation result
+ * Display constants for UI only
+ */
+export const DISPLAY_CONSTANTS = {
+  // Currency settings
+  DEFAULT_CURRENCY: 'INR',
+  SUPPORTED_CURRENCIES: ['INR', 'USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD'],
+  
+  // Display limits
+  MAX_DISPLAY_AMOUNT: 1000000, // ₹10,00,000
+  MIN_DISPLAY_AMOUNT: 0,
+} as const;
+
+/**
+ * WARNING: This function is deprecated and should not be used
+ * All pricing calculations now happen on the backend
+ * @deprecated Use securePricingAPI.calculatePricing() instead
  */
 export function validatePricing(pricing: {
   basePrice: number;
@@ -91,42 +42,12 @@ export function validatePricing(pricing: {
   serviceFee?: number;
   securityDeposit?: number;
 }): { isValid: boolean; errors: string[] } {
-  const errors: string[] = [];
+  console.warn('⚠️ validatePricing is deprecated. All pricing calculations happen on backend now.');
   
-  if (pricing.basePrice < PRICING_CONSTANTS.MIN_BASE_PRICE) {
-    errors.push(`Base price must be at least ₹${PRICING_CONSTANTS.MIN_BASE_PRICE}`);
-  }
-  
-  if (pricing.basePrice > PRICING_CONSTANTS.MAX_BASE_PRICE) {
-    errors.push(`Base price cannot exceed ₹${PRICING_CONSTANTS.MAX_BASE_PRICE}`);
-  }
-  
-  if ((pricing.cleaningFee || 0) < PRICING_CONSTANTS.MIN_CLEANING_FEE) {
-    errors.push(`Cleaning fee must be at least ₹${PRICING_CONSTANTS.MIN_CLEANING_FEE}`);
-  }
-  
-  if ((pricing.cleaningFee || 0) > PRICING_CONSTANTS.MAX_CLEANING_FEE) {
-    errors.push(`Cleaning fee cannot exceed ₹${PRICING_CONSTANTS.MAX_CLEANING_FEE}`);
-  }
-  
-  if ((pricing.serviceFee || 0) < PRICING_CONSTANTS.MIN_SERVICE_FEE) {
-    errors.push(`Service fee must be at least ₹${PRICING_CONSTANTS.MIN_SERVICE_FEE}`);
-  }
-  
-  if ((pricing.serviceFee || 0) > PRICING_CONSTANTS.MAX_SERVICE_FEE) {
-    errors.push(`Service fee cannot exceed ₹${PRICING_CONSTANTS.MAX_SERVICE_FEE}`);
-  }
-  
-  if ((pricing.securityDeposit || 0) < PRICING_CONSTANTS.MIN_SECURITY_DEPOSIT) {
-    errors.push(`Security deposit must be at least ₹${PRICING_CONSTANTS.MIN_SECURITY_DEPOSIT}`);
-  }
-  
-  if ((pricing.securityDeposit || 0) > PRICING_CONSTANTS.MAX_SECURITY_DEPOSIT) {
-    errors.push(`Security deposit cannot exceed ₹${PRICING_CONSTANTS.MAX_SECURITY_DEPOSIT}`);
-  }
-  
+  // Return valid to prevent breaking existing code
+  // Real validation happens on backend
   return {
-    isValid: errors.length === 0,
-    errors
+    isValid: true,
+    errors: []
   };
 }

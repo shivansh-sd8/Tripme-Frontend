@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { Calendar, MapPin, Users, Star, Clock, CheckCircle, XCircle } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
-import { formatDate, formatPrice } from '@/shared/utils/pricingUtils';
+import { formatCurrency } from '@/shared/constants/pricing.constants';
+import { format } from 'date-fns';
 
 // Mock booking data
 const mockBookings = [
@@ -181,11 +182,11 @@ const BookingsContent: React.FC = () => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     <div>
                       <p className="text-sm text-gray-500">Check-in</p>
-                      <p className="font-medium">{formatDate(booking.checkIn)}</p>
+                      <p className="font-medium">{format(new Date(booking.checkIn), 'MMM dd, yyyy')}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Check-out</p>
-                      <p className="font-medium">{formatDate(booking.checkOut)}</p>
+                      <p className="font-medium">{format(new Date(booking.checkOut), 'MMM dd, yyyy')}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Guests</p>
@@ -196,7 +197,7 @@ const BookingsContent: React.FC = () => {
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Total</p>
-                      <p className="font-medium">{formatPrice(booking.totalPrice)}</p>
+                      <p className="font-medium">{formatCurrency(booking.totalPrice)}</p>
                     </div>
                   </div>
 

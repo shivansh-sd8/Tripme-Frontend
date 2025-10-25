@@ -1,5 +1,5 @@
 import React, { useId } from 'react';
-import { cn } from '@/shared/utils/pricingUtils';
+import { cn } from '@/lib/utils';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
