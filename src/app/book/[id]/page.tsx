@@ -1015,13 +1015,7 @@ export default function BookingPage() {
             totalHours: bookingData.hourlyExtension
           }
         }),
-        // Only include hourly booking fields if it's actually an hourly booking
-        // For now, we'll determine this based on whether hourly extension is being used
-        ...(property?.hourlyBooking?.enabled && bookingData.hourlyExtension && bookingData.hourlyExtension > 0 ? {
-          bookingDuration: '24hour',
-          checkInDateTime: checkInDate.toISOString(),
-          extensionHours: bookingData.hourlyExtension
-        } : {})
+        // Do not include extra 24-hour specific fields; backend infers from dates and hourlyExtension
       };
 
       console.log('🚀 Processing payment and creating booking with payload:', bookingPayload);

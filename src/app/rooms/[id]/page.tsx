@@ -622,40 +622,7 @@ export default function PropertyDetailsPage() {
     return Math.max(0, Math.floor((dateRange.endDate.getTime() - dateRange.startDate.getTime()) / (1000 * 60 * 60 * 24)));
   };
 
-  // Manual trigger for testing
-  const testPricingCalculation = async () => {
-    console.log('🧪 Manual pricing test triggered');
-    if (!property || !dateRange.startDate || !dateRange.endDate) {
-      console.log('❌ Missing required data for pricing test');
-      return;
-    }
-    
-    const pricing = await getSecurePricing();
-    if (pricing) {
-      console.log('✅ Manual pricing test successful:', pricing);
-      setPriceBreakdown({
-        basePrice: property?.pricing?.basePrice || 0,
-        baseAmount: pricing.baseAmount, // Backend calculated base amount
-        serviceFee: pricing.serviceFee,
-        cleaningFee: pricing.cleaningFee,
-        securityDeposit: pricing.securityDeposit,
-        extraGuestCost: pricing.extraGuestCost,
-        extraGuestPrice: pricing.extraGuestPrice,
-        extraGuests: pricing.extraGuests,
-        hourlyExtension: pricing.hourlyExtension,
-        platformFee: pricing.platformFee,
-        gst: pricing.gst,
-        processingFee: pricing.processingFee,
-        taxes: pricing.gst,
-        total: pricing.totalAmount,
-        nights: pricing.nights,
-        subtotal: pricing.subtotal,
-        discountAmount: pricing.discountAmount
-      });
-    } else {
-      console.log('❌ Manual pricing test failed');
-    }
-  };
+  // Manual test function removed
 
   const getSecurePricing = async () => {
     console.log('🔍 getSecurePricing called with:', { 
@@ -677,7 +644,8 @@ export default function PropertyDetailsPage() {
         checkOut: dateRange.endDate.toLocaleDateString('en-CA'),
         guests: { adults: guests, children: 0 },
         hourlyExtension: hourlyExtension || 0,
-        bookingType: property?.enable24HourBooking ? '24hour' : 'daily'
+        // Always request daily pricing unless explicitly switching to 24-hour mode
+        bookingType: 'daily'
       };
 
       // Basic validation only - comprehensive validation on backend
@@ -1508,15 +1476,7 @@ export default function PropertyDetailsPage() {
                         </div>
                       )}
                     
-                      {/* Test Pricing Button */}
-                      <div className="mt-2">
-                        <Button
-                          onClick={testPricingCalculation}
-                          className="w-full font-semibold py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm"
-                        >
-                          🧪 Test Pricing Calculation
-                        </Button>
-                      </div>
+                      {/* Test Pricing Button removed */}
 
                       {/* Check Availability Button */}
                       <div className="mt-4">
