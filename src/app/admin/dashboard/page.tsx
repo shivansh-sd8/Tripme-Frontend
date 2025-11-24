@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import { useAuth } from '@/core/store/auth-context';
@@ -201,6 +201,18 @@ export default function AdminDashboard() {
   });
   const [loading, setLoading] = useState(true);
 
+  // Debug: Log whenever recentActivities changes
+  useEffect(() => {
+    console.log('🔍 recentActivities state changed:', {
+      exists: !!recentActivities,
+      isObject: typeof recentActivities === 'object',
+      hasUsers: 'users' in (recentActivities || {}),
+      usersType: typeof recentActivities?.users,
+      usersIsArray: Array.isArray(recentActivities?.users),
+      usersValue: recentActivities?.users
+    });
+  }, [recentActivities]);
+
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
@@ -269,19 +281,64 @@ export default function AdminDashboard() {
         // Fetch recent activities
         try {
           const activitiesResponse = await apiClient.get('/admin/activities/recent');
-          if (activitiesResponse.success) {
-            setRecentActivities(activitiesResponse.data);
+          console.log('🔍 Activities response:', activitiesResponse);
+          if (activitiesResponse.success && activitiesResponse.data) {
+            const data = activitiesResponse.data as any;
+            console.log('🔍 Activities data structure:', {
+              hasUsers: 'users' in data,
+              usersType: typeof data.users,
+              usersIsArray: Array.isArray(data.users),
+              usersValue: data.users
+            });
+            // Ensure all values are arrays, never null or undefined
+            // Use Array.isArray check and default to empty array
+            const safeUsers = Array.isArray(data.users) ? data.users : [];
+            const safeBookings = Array.isArray(data.bookings) ? data.bookings : [];
+            const safeProperties = Array.isArray(data.properties) ? data.properties : [];
+            const safePayments = Array.isArray(data.payments) ? data.payments : [];
+            
+            // Double-check: ensure we're setting valid arrays
+            const newState: RecentActivity = {
+              users: Array.isArray(safeUsers) ? safeUsers : [],
+              bookings: Array.isArray(safeBookings) ? safeBookings : [],
+              properties: Array.isArray(safeProperties) ? safeProperties : [],
+              payments: Array.isArray(safePayments) ? safePayments : []
+            };
+            
+            console.log('🔍 Setting recentActivities state:', newState);
+            setRecentActivities(newState);
+          } else {
+            console.warn('🔍 Activities response not successful or no data:', activitiesResponse);
+            // Ensure we always have a valid state
+            setRecentActivities({
+              users: [],
+              bookings: [],
+              properties: [],
+              payments: []
+            });
           }
         } catch (error) {
           console.warn('Failed to fetch recent activities:', error);
-          // Keep default empty state
+          // Ensure we always have a valid state even on error
+          setRecentActivities({
+            users: [],
+            bookings: [],
+            properties: [],
+            payments: []
+          });
         }
 
         // Fetch system health
         try {
           const healthResponse = await apiClient.get('/admin/system/health');
-          if (healthResponse.success) {
-            setSystemHealth(healthResponse.data);
+          if (healthResponse.success && healthResponse.data) {
+            const healthData = healthResponse.data as any;
+            setSystemHealth({
+              database: healthData.database || 'connected',
+              uptime: healthData.uptime || 0,
+              memoryUsage: healthData.memoryUsage || { rss: 0, heapTotal: 0, heapUsed: 0, external: 0, arrayBuffers: 0 },
+              activeConnections: healthData.activeConnections || 0
+            });
           }
         } catch (error) {
           console.warn('Failed to fetch system health:', error);
@@ -312,6 +369,46 @@ export default function AdminDashboard() {
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();
   };
+
+  // Safely compute recent users for display - ALWAYS returns an array
+  // This is the ONLY place where we access recentActivities.users
+  const recentUsers = useMemo(() => {
+    try {
+      // Step 1: Ensure recentActivities exists
+      if (!recentActivities) {
+        console.log('🔍 useMemo: recentActivities is null/undefined');
+        return [];
+      }
+      
+      // Step 2: Ensure it's an object
+      if (typeof recentActivities !== 'object' || Array.isArray(recentActivities)) {
+        console.log('🔍 useMemo: recentActivities is not a plain object');
+        return [];
+      }
+      
+      // Step 3: Safely get users with multiple fallbacks
+      let users = recentActivities.users;
+      
+      // If users is undefined or null, default to empty array
+      if (users === undefined || users === null) {
+        console.warn('🔍 useMemo: users is undefined/null, defaulting to []');
+        return [];
+      }
+      
+      // Step 4: Ensure it's an array
+      if (!Array.isArray(users)) {
+        console.warn('🔍 useMemo: users is not an array:', typeof users, users);
+        return [];
+      }
+      
+      // Step 5: Now safe to call slice
+      return users.slice(0, 3);
+    } catch (error) {
+      console.error('🔍 Error in recentUsers useMemo:', error);
+      console.error('🔍 recentActivities at error:', recentActivities);
+      return [];
+    }
+  }, [recentActivities]);
 
   const StatCard = ({ title, value, change, icon: Icon, color }: any) => (
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:bg-white/90 hover:shadow-2xl transition-all duration-300 group">
@@ -596,20 +693,36 @@ export default function AdminDashboard() {
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activities</h3>
               <div className="space-y-4">
-                {recentActivities.users.slice(0, 3).map((user, index) => (
-                  <div key={index} className="flex items-center space-x-3 p-3 bg-gray-100/50 rounded-xl">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                      <span className="text-sm font-bold text-white">{user.name.charAt(0)}</span>
+                {(() => {
+                  // Triple-check: ensure recentUsers exists and is an array
+                  let safeUsers: any[] = [];
+                  
+                  if (Array.isArray(recentUsers)) {
+                    safeUsers = recentUsers;
+                  } else {
+                    // If useMemo failed, return empty array - don't access recentActivities.users directly
+                    safeUsers = [];
+                  }
+                  
+                  if (safeUsers.length === 0) {
+                    return <p className="text-gray-500 text-sm text-center py-4">No recent user activities</p>;
+                  }
+                  
+                  return safeUsers.map((user, index) => (
+                    <div key={index} className="flex items-center space-x-3 p-3 bg-gray-100/50 rounded-xl">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                        <span className="text-sm font-bold text-white">{user.name?.charAt(0) || 'U'}</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-gray-900 font-medium">{user.name || 'Unknown User'}</p>
+                        <p className="text-gray-600 text-sm">{user.role || 'guest'} • {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</p>
+                      </div>
+                      {user.kyc?.status === 'pending' && (
+                        <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">KYC Pending</span>
+                      )}
                     </div>
-                    <div className="flex-1">
-                      <p className="text-gray-900 font-medium">{user.name}</p>
-                      <p className="text-gray-600 text-sm">{user.role} • {new Date(user.createdAt).toLocaleDateString()}</p>
-                    </div>
-                    {user.kyc?.status === 'pending' && (
-                      <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">KYC Pending</span>
-                    )}
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
             </div>
 
@@ -694,7 +807,7 @@ export default function AdminDashboard() {
                     <div className="w-24 bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-blue-500 h-2 rounded-full" 
-                        style={{ width: `${(stats.revenue.platformFees / stats.revenue.total) * 100}%` }}
+                        style={{ width: `${stats.revenue.total > 0 ? (stats.revenue.platformFees / stats.revenue.total) * 100 : 0}%` }}
                       ></div>
                     </div>
                     <span className="text-gray-700 text-sm w-16 text-right">{formatCurrency(stats.revenue.platformFees)}</span>
@@ -706,7 +819,7 @@ export default function AdminDashboard() {
                     <div className="w-24 bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-cyan-500 h-2 rounded-full" 
-                        style={{ width: `${(stats.revenue.totalPayouts / stats.revenue.total) * 100}%` }}
+                        style={{ width: `${stats.revenue.total > 0 ? (stats.revenue.totalPayouts / stats.revenue.total) * 100 : 0}%` }}
                       ></div>
                     </div>
                     <span className="text-gray-700 text-sm w-16 text-right">{formatCurrency(stats.revenue.totalPayouts)}</span>
@@ -718,7 +831,7 @@ export default function AdminDashboard() {
                     <div className="w-24 bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-emerald-500 h-2 rounded-full" 
-                        style={{ width: `${(stats.revenue.netRevenue / stats.revenue.total) * 100}%` }}
+                        style={{ width: `${stats.revenue.total > 0 ? (stats.revenue.netRevenue / stats.revenue.total) * 100 : 0}%` }}
                       ></div>
                     </div>
                     <span className="text-gray-700 text-sm w-16 text-right">{formatCurrency(stats.revenue.netRevenue)}</span>
