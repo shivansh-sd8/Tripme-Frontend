@@ -9,7 +9,7 @@ class ApiClient {
   private defaultHeaders: Record<string, string>;
 
   constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+    this.baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
     this.defaultHeaders = {
       'Content-Type': 'application/json',
     };
@@ -186,6 +186,61 @@ class ApiClient {
       body: JSON.stringify(availabilityData),
     });
   }
+
+  // ========================================
+  // NEW: Hourly availability methods
+  // These use the new AvailabilityEvent model for precise hourly tracking
+  // If backend APIs don't work, comment out these methods
+  // ========================================
+  
+  async getHourlyAvailability(listingId: string, startDate?: string, endDate?: string, durationHours?: number): Promise<ApiResponse<any>> {
+    const queryParams = [];
+    if (startDate) queryParams.push(`startDate=${startDate}`);
+    if (endDate) queryParams.push(`endDate=${endDate}`);
+    if (durationHours) queryParams.push(`durationHours=${durationHours}`);
+    const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
+    return this.request(`/availability/${listingId}/hourly${queryString}`);
+  }
+
+  async getAvailabilityEvents(listingId: string, startDate?: string, endDate?: string): Promise<ApiResponse<any>> {
+    const queryParams = [];
+    if (startDate) queryParams.push(`startDate=${startDate}`);
+    if (endDate) queryParams.push(`endDate=${endDate}`);
+    const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
+    return this.request(`/availability/${listingId}/events${queryString}`);
+  }
+
+  async getNextAvailableSlot(listingId: string, fromDate?: string, durationHours?: number): Promise<ApiResponse<any>> {
+    const queryParams = [];
+    if (fromDate) queryParams.push(`fromDate=${fromDate}`);
+    if (durationHours) queryParams.push(`durationHours=${durationHours}`);
+    const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
+    return this.request(`/availability/${listingId}/next-slot${queryString}`);
+  }
+
+  async updateMaintenanceTime(listingId: string, maintenanceHours: number): Promise<ApiResponse<any>> {
+    return this.request(`/availability/${listingId}/maintenance-time`, {
+      method: 'PUT',
+      body: JSON.stringify({ maintenanceHours }),
+    });
+  }
+
+  // Check if a specific time slot is available (for custom check-in times)
+  async checkTimeSlotAvailability(
+    listingId: string, 
+    checkIn: string, 
+    checkOut: string, 
+    extension?: number
+  ): Promise<ApiResponse<any>> {
+    const queryParams = [`checkIn=${encodeURIComponent(checkIn)}`, `checkOut=${encodeURIComponent(checkOut)}`];
+    if (extension) queryParams.push(`extension=${extension}`);
+    const queryString = `?${queryParams.join('&')}`;
+    return this.request(`/availability/${listingId}/check-slot${queryString}`);
+  }
+  
+  // ========================================
+  // END NEW: Hourly availability methods
+  // ========================================
 
   // Service availability methods
   async getServiceAvailability(serviceId: string): Promise<ApiResponse<any>> {

@@ -31,20 +31,18 @@ const convertPropertyToStay = (property: any): Stay => {
     rating: property.rating?.average || 0,
     reviewCount: property.reviewCount || 0,
     host: {
+      id: property.host?._id || property.host?.id || '',
       name: property.host?.name || 'Unknown Host',
       avatar: property.host?.profileImage || '',
       isSuperhost: false
     },
     amenities: property.amenities || [],
-    features: property.features || [],
     tags: property.tags || [],
     maxGuests: property.maxGuests || 1,
     bedrooms: property.bedrooms || 0,
     beds: property.beds || 0,
     bathrooms: property.bathrooms || 0,
-    cancellationPolicy: property.cancellationPolicy || 'moderate',
     instantBookable: property.instantBookable || false,
-    isWishlisted: false,
     createdAt: new Date(property.createdAt),
     updatedAt: new Date(property.updatedAt)
   };
@@ -73,6 +71,8 @@ function SearchPageContent() {
   const [showPropertyModal, setShowPropertyModal] = useState(false);
   const [searchExpanded, setSearchExpanded] = useState(false);
   const isFetchingRef = useRef(false);
+  // Store initial search results so they're never lost (for map markers)
+  const initialPropertiesRef = useRef<any[]>([]);
 
   // Get search parameters from URL
   const lng = searchParams.get('lng');
@@ -161,18 +161,24 @@ function SearchPageContent() {
               if (fallbackResponse.success && fallbackResponse.data) {
                 const fallbackProperties = fallbackResponse.data.listings || [];
                 console.log('🏙️ City-based fallback found', fallbackProperties.length, 'properties');
+                // Store initial results in ref so they're never lost
+                initialPropertiesRef.current = fallbackProperties;
                 setAllProperties(fallbackProperties);
                 setListings(fallbackProperties);
               } else {
+                initialPropertiesRef.current = properties;
                 setAllProperties(properties);
                 setListings(properties);
               }
             } catch (fallbackError) {
               console.error('❌ City-based fallback failed:', fallbackError);
+              initialPropertiesRef.current = properties;
               setAllProperties(properties);
               setListings(properties);
             }
           } else {
+            // Store initial results in ref so they're never lost
+            initialPropertiesRef.current = properties;
             setAllProperties(properties);
             setListings(properties);
           }
@@ -297,13 +303,23 @@ function SearchPageContent() {
 
       if (data.success && data.data) {
         const properties = data.data.listings || [];
-        console.log('🗺️ Viewport fetch successful - updating properties with:', properties.length, 'properties');
+        console.log('🗺️ Viewport fetch successful - found:', properties.length, 'properties');
         
-        // Update both listings and allProperties for map markers
-        setListings(properties);
-        setAllProperties(properties);
-        
-        console.log('🗺️ Loaded properties in viewport:', properties.length);
+        // FIXED: Only update listings if we found properties in the viewport
+        // If viewport search returns empty, use initial properties as fallback
+        if (properties.length > 0) {
+          setListings(properties);
+          setAllProperties(properties);
+          console.log('🗺️ Updated listings with viewport results:', properties.length);
+        } else {
+          console.log('🗺️ Viewport returned 0 results - using initial properties as fallback');
+          // Use initial properties for both listings and markers
+          if (initialPropertiesRef.current.length > 0) {
+            setListings(initialPropertiesRef.current);
+            setAllProperties(initialPropertiesRef.current);
+            console.log('🗺️ Restored initial properties:', initialPropertiesRef.current.length);
+          }
+        }
         
         // Log each property for debugging
         properties.forEach((prop: any, index: number) => {
@@ -315,13 +331,21 @@ function SearchPageContent() {
         });
       } else {
         console.error('❌ Map API error:', data.error);
-        // Don't clear allProperties - keep initial results visible on map
-        setListings([]);
+        // FIXED: Use initial properties as fallback on error
+        if (initialPropertiesRef.current.length > 0) {
+          setListings(initialPropertiesRef.current);
+          setAllProperties(initialPropertiesRef.current);
+          console.log('🗺️ Restored initial properties after API error');
+        }
       }
     } catch (error) {
       console.error('❌ Error fetching properties with bounds:', error);
-      // Don't clear allProperties - keep initial results visible on map
-      setListings([]);
+      // FIXED: Use initial properties as fallback on error
+      if (initialPropertiesRef.current.length > 0) {
+        setListings(initialPropertiesRef.current);
+        setAllProperties(initialPropertiesRef.current);
+        console.log('🗺️ Restored initial properties after fetch error');
+      }
     }
   };
 
@@ -330,7 +354,8 @@ function SearchPageContent() {
     const params = new URLSearchParams();
     params.set('lng', location.coordinates[0].toString());
     params.set('lat', location.coordinates[1].toString());
-    params.set('city', location.city);
+    // Fix: Use location.value or location.label instead of location.city (which doesn't exist)
+    params.set('city', location.value || location.label || '');
     if (guestsCount) params.set('guests', guestsCount.toString());
     if (checkInDate) params.set('checkIn', checkInDate);
     if (checkOutDate) params.set('checkOut', checkOutDate);

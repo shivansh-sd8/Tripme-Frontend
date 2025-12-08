@@ -412,7 +412,8 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
       
       if (cityFromUrl || checkInFromUrl || checkOutFromUrl) {
         // Load from URL parameters
-        if (cityFromUrl) {
+        // Ignore "undefined" string which can occur from buggy URLs
+        if (cityFromUrl && cityFromUrl !== 'undefined') {
           setSelectedCity({ value: cityFromUrl, label: cityFromUrl });
         }
         if (checkInFromUrl && checkOutFromUrl) {
@@ -435,7 +436,10 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
         if (saved) {
           try {
             const searchState = JSON.parse(saved);
-            setSelectedCity({ value: searchState.location, label: searchState.location });
+            // Only set city if it's a valid value (not undefined or empty)
+            if (searchState.location && searchState.location !== 'undefined') {
+              setSelectedCity({ value: searchState.location, label: searchState.location });
+            }
             setDateRange({
               startDate: parseDateFromStorage(searchState.checkIn),
               endDate: parseDateFromStorage(searchState.checkOut),

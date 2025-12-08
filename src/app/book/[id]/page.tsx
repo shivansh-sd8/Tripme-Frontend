@@ -255,6 +255,7 @@ export default function BookingPage() {
         couponCode: '',
         hourlyExtension: contextBookingData.hourlyExtension,
         is24Hour: contextBookingData.is24Hour || false,
+        checkInTime: contextBookingData.checkInTime, // FIX: Include custom check-in time
         checkInDateTime: contextBookingData.checkInDateTime,
         extensionHours: contextBookingData.extensionHours,
         agreeToTerms: false
@@ -267,18 +268,19 @@ export default function BookingPage() {
       checkOut: new Date(Date.now() + 24 * 60 * 60 * 1000),
       guests: { adults: 1, children: 0, infants: 0 },
       specialRequests: '',
-    contactInfo: {
-      name: user?.name || '',
-      phone: user?.phone || '',
-      email: user?.email || ''
-    },
-    paymentMethod: 'card',
-    couponCode: '',
-    hourlyExtension: 0,
-    is24Hour: false,
-    checkInDateTime: null,
-    extensionHours: 0,
-    agreeToTerms: false
+      contactInfo: {
+        name: user?.name || '',
+        phone: user?.phone || '',
+        email: user?.email || ''
+      },
+      paymentMethod: 'card',
+      couponCode: '',
+      hourlyExtension: 0,
+      is24Hour: false,
+      checkInTime: undefined, // Will use property default if not set
+      checkInDateTime: null,
+      extensionHours: 0,
+      agreeToTerms: false
     };
   });
   
@@ -301,7 +303,8 @@ export default function BookingPage() {
       checkIn: bookingData.checkIn,
       checkOut: bookingData.checkOut,
       guests: bookingData.guests,
-      hourlyExtension: bookingData.hourlyExtension
+      hourlyExtension: bookingData.hourlyExtension,
+      checkInTime: bookingData.checkInTime // DEBUG: Check if checkInTime is passed
     });
   }, [bookingData]);
 
@@ -1007,6 +1010,8 @@ export default function BookingPage() {
         specialRequests: bookingData.specialRequests,
         contactInfo: bookingData.contactInfo,
         paymentMethod: 'card', // Use 'card' as expected by backend validation
+        // NEW: Include custom check-in time for 23-hour checkout calculation
+        ...(bookingData.checkInTime && { checkInTime: bookingData.checkInTime }),
         ...(bookingData.couponCode && bookingData.couponCode.trim() && { couponCode: bookingData.couponCode.trim() }),
         ...(bookingData.hourlyExtension && bookingData.hourlyExtension > 0 && property?.hourlyBooking?.enabled && { 
           hourlyExtension: {
@@ -1019,6 +1024,8 @@ export default function BookingPage() {
       };
 
       console.log('🚀 Processing payment and creating booking with payload:', bookingPayload);
+      console.log('🕐 DEBUG - bookingData.checkInTime:', bookingData.checkInTime);
+      console.log('🕐 DEBUG - payload checkInTime:', bookingPayload.checkInTime);
       console.log('📅 Blocked dates to confirm:', blockedDates);
       console.log('🏠 Property ID:', id);
       console.log('🔐 Authentication status:', { isAuthenticated, userId: user?._id, userEmail: user?.email });
@@ -1029,18 +1036,9 @@ export default function BookingPage() {
         console.log('✅ Payment processed and booking created successfully:', response.data);
         console.log('📋 Booking ID from response:', response.data.booking._id);
         
-        // Confirm the availability with the booking ID
-        try {
-          console.log('🔐 Confirming availability for dates:', blockedDates);
-          console.log('📋 Using booking ID:', response.data.booking._id);
-          
-          await apiClient.confirmBooking(id as string, blockedDates, response.data.booking._id);
-          console.log('✅ Successfully confirmed availability for all dates');
-        } catch (error) {
-          console.error('❌ Failed to confirm availability:', error);
-          // Even if availability confirmation fails, the booking is still created
-          // We can handle this separately if needed
-        }
+        // NOTE: confirmBooking is no longer needed here
+        // The backend's processPaymentAndCreateBooking already updates dates from 'blocked' to 'booked'
+        console.log('✅ Availability already confirmed by backend during payment processing');
 
         // Clear blocked dates state since they're now booked
         setBlockedDates([]);

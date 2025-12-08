@@ -455,7 +455,14 @@ export default function HostBookingDetailPage() {
                     <div className="text-right">
                       <div className="text-sm font-semibold text-gray-900">{formatDate(booking.checkIn)}</div>
                       <div className="text-xs text-blue-600">
-                        {booking.timeSlot ? formatTime(booking.timeSlot.startTime) : (booking.listing?.checkInTime || '3:00 PM')}
+                        {booking.timeSlot ? formatTime(booking.timeSlot.startTime) : (() => {
+                          // Use booking's custom check-in time, fallback to property default
+                          const timeStr = booking.checkInTime || booking.listing?.checkInTime || '15:00';
+                          const [h, m] = timeStr.split(':').map(Number);
+                          const period = h >= 12 ? 'PM' : 'AM';
+                          const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                          return `${hour}:${(m || 0).toString().padStart(2, '0')} ${period}`;
+                        })()}
                             </div>
                           </div>
                     </div>
@@ -468,7 +475,14 @@ export default function HostBookingDetailPage() {
                     <div className="text-right">
                       <div className="text-sm font-semibold text-gray-900">{formatDate(booking.checkOut)}</div>
                       <div className="text-xs text-green-600">
-                        {booking.timeSlot ? formatTime(booking.timeSlot.endTime) : (booking.checkOutTime || booking.listing?.checkOutTime || '11:00 AM')}
+                        {booking.timeSlot ? formatTime(booking.timeSlot.endTime) : (() => {
+                          // Use booking's check-out time, fallback to property default
+                          const timeStr = booking.checkOutTime || booking.listing?.checkOutTime || '11:00';
+                          const [h, m] = timeStr.split(':').map(Number);
+                          const period = h >= 12 ? 'PM' : 'AM';
+                          const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                          return `${hour}:${(m || 0).toString().padStart(2, '0')} ${period}`;
+                        })()}
                         {booking.hourlyExtension?.hours && (
                           <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                             +{booking.hourlyExtension.hours}h extension

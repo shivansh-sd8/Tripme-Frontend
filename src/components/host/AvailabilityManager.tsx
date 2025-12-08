@@ -20,7 +20,7 @@ interface AvailabilityManagerProps {
 
 interface SelectionItem {
   date: Date;
-  status: 'available' | 'unavailable' | 'booked' | 'maintenance' | 'on-hold';
+  status: 'available' | 'unavailable' | 'booked' | 'maintenance' | 'on-hold' | 'partially-available';
   reason?: string;
 }
 
@@ -35,6 +35,16 @@ const STATUS_OPTIONS = [
     bgColor: 'emerald-50',
     textColor: 'emerald-700',
     borderColor: 'emerald-200'
+  },
+  {
+    value: 'partially-available',
+    label: 'Partially Available',
+    description: 'Available after maintenance/cleaning',
+    icon: Clock,
+    color: 'blue',
+    bgColor: 'blue-50',
+    textColor: 'blue-700',
+    borderColor: 'blue-200'
   },
   {
     value: 'unavailable',
@@ -84,14 +94,36 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
   const [selectionType, setSelectionType] = useState<'range' | 'single'>('single');
   const [singleDate, setSingleDate] = useState<Date>(new Date());
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
+  const [tooltipDate, setTooltipDate] = useState<string | null>(null); // For booking details tooltip
   const [isSelecting, setIsSelecting] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState<'available' | 'unavailable' | 'booked' | 'maintenance' | 'on-hold'>('available');
+  const [selectedStatus, setSelectedStatus] = useState<'available' | 'unavailable' | 'booked' | 'maintenance' | 'on-hold' | 'partially-available'>('available');
   const [reason, setReason] = useState<string>('');
   const [selections, setSelections] = useState<SelectionItem[]>([]);
+  const [availableHours, setAvailableHours] = useState<Array<{ startTime: string; endTime: string }>>([]);
+  const [unavailableHours, setUnavailableHours] = useState<Array<{ startTime: string; endTime: string }>>([]);
+  const [onHoldHours, setOnHoldHours] = useState<Array<{ startTime: string; endTime: string }>>([]);
+  const [isAllDayAvailable, setIsAllDayAvailable] = useState<boolean>(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [dayMeta, setDayMeta] = useState<Record<string, { status: 'available' | 'unavailable' | 'booked' | 'maintenance' | 'on-hold' }>>({});
+  const [dayMeta, setDayMeta] = useState<Record<string, { 
+    status: 'available' | 'unavailable' | 'booked' | 'maintenance' | 'on-hold' | 'partially-available';
+    checkInDate?: string;   // Full check-in date
+    checkOutDate?: string;  // Full check-out date
+    checkInTime?: string;
+    checkOutTime?: string;
+    guestName?: string;
+  }>>({});
+  
+  // ========================================
+  // NEW: Maintenance time configuration
+  // If this causes issues, comment out this section and the related UI below
+  // ========================================
+  const [maintenanceHours, setMaintenanceHours] = useState<number>(2);
+  const [savingMaintenance, setSavingMaintenance] = useState(false);
+  // ========================================
+  // END NEW: Maintenance time state
+  // ========================================
 
   const selectionCount = selections.length;
 
@@ -126,16 +158,26 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
         if (targetType === 'listing') {
           const availRes = await apiClient.getAvailability(targetId);
           const arr = (availRes as any)?.data?.availability || (availRes as any)?.data?.data?.availability || (availRes as any)?.data || [];
-          const map: Record<string, { status: 'available' | 'unavailable' | 'booked' | 'maintenance' | 'on-hold' }> = {};
+          const map: Record<string, { 
+            status: 'available' | 'unavailable' | 'booked' | 'maintenance' | 'on-hold' | 'partially-available';
+            checkInDate?: string;
+            checkOutDate?: string;
+            checkInTime?: string;
+            checkOutTime?: string;
+            guestName?: string;
+          }> = {};
           
           // Process existing availability records
           arr.forEach((it: any) => {
             const d = format(new Date(it.date), 'yyyy-MM-dd');
             // Map backend status to our frontend status
-            let status: 'available' | 'unavailable' | 'booked' | 'maintenance' | 'on-hold';
+            let status: 'available' | 'unavailable' | 'booked' | 'maintenance' | 'on-hold' | 'partially-available';
             switch (it.status) {
               case 'available':
                 status = 'available';
+                break;
+              case 'partially-available':
+                status = 'partially-available';
                 break;
               case 'booked':
                 status = 'booked';
@@ -151,18 +193,32 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                 status = 'unavailable';
                 break;
             }
-            map[d] = { status };
+            // Include booking details for booked dates (from backend populate)
+            map[d] = { 
+              status,
+              checkInDate: it.checkInDate,
+              checkOutDate: it.checkOutDate,
+              checkInTime: it.checkInTime,
+              checkOutTime: it.checkOutTime,
+              guestName: it.guestName,
+              availableHours: it.availableHours || [], // Add availableHours
+              unavailableHours: it.unavailableHours || [], // Add unavailableHours
+              onHoldHours: it.onHoldHours || [] // Add onHoldHours
+            };
           });
           
-          // Fill in missing dates as unavailable (default state)
+          // ========================================
+          // Fill in missing dates as UNAVAILABLE - host must explicitly set dates as available
+          // ========================================
           const today = new Date();
-          const endDate = new Date();
-          endDate.setMonth(endDate.getMonth() + 3); // Show next 3 months
+          const endDateFill = new Date();
+          endDateFill.setMonth(endDateFill.getMonth() + 3); // Show next 3 months
           
           const currentDate = new Date(today);
-          while (currentDate <= endDate) {
+          while (currentDate <= endDateFill) {
             const dateStr = format(currentDate, 'yyyy-MM-dd');
             if (!map[dateStr]) {
+              // Default to 'unavailable' - host must explicitly mark dates as available
               map[dateStr] = { status: 'unavailable' };
             }
             currentDate.setDate(currentDate.getDate() + 1);
@@ -172,7 +228,12 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
         } else {
           const availRes = await apiClient.getServiceAvailability(targetId);
           const slots = (availRes as any)?.data?.availableSlots || (availRes as any)?.data?.data?.availableSlots || [];
-          const map: Record<string, { status: 'available' | 'unavailable' | 'booked' | 'maintenance' | 'on-hold' }> = {};
+          const map: Record<string, { 
+            status: 'available' | 'unavailable' | 'booked' | 'maintenance' | 'on-hold';
+            checkInTime?: string;
+            checkOutTime?: string;
+            guestName?: string;
+          }> = {};
           
           // Process service availability slots
           slots.forEach((slot: any) => {
@@ -204,7 +265,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
             map[d] = { status };
           });
           
-          // Fill in missing dates as unavailable for services too
+          // Fill in missing dates as UNAVAILABLE for services - host must explicitly set dates as available
           const today = new Date();
           const endDate = new Date();
           endDate.setMonth(endDate.getMonth() + 3);
@@ -213,6 +274,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
           while (currentDate <= endDate) {
             const dateStr = format(currentDate, 'yyyy-MM-dd');
             if (!map[dateStr]) {
+              // Default to 'unavailable' - host must explicitly mark dates as available
               map[dateStr] = { status: 'unavailable' };
             }
             currentDate.setDate(currentDate.getDate() + 1);
@@ -248,6 +310,11 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
       }
       return Array.from(dedup.values());
     });
+    // Reset hour ranges after adding selection
+    setAvailableHours([]);
+    setUnavailableHours([]);
+    setOnHoldHours([]);
+    setIsAllDayAvailable(true);
   };
 
   const addSelectionSingle = () => {
@@ -261,6 +328,11 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
       });
       return Array.from(dedup.values());
     });
+    // Reset hour ranges after adding selection
+    setAvailableHours([]);
+    setUnavailableHours([]);
+    setOnHoldHours([]);
+    setIsAllDayAvailable(true);
   };
 
   const removeSelection = (dateStr: string) => {
@@ -302,12 +374,30 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
               backendStatus = 'blocked';
           }
           
-          const mapped = {
+          const mapped: any = {
             date: format(s.date, 'yyyy-MM-dd'),
             status: backendStatus,
             reason: s.reason
           };
-          console.log('📅 Mapping selection:', { frontend: s.status, backend: backendStatus, date: mapped.date });
+          
+          // Add availableHours if status is 'available' and not all day
+          if (backendStatus === 'available' && !isAllDayAvailable && availableHours.length > 0) {
+            mapped.availableHours = availableHours;
+          } else if (backendStatus === 'available' && isAllDayAvailable) {
+            mapped.availableHours = []; // Empty array means all day available
+          }
+          
+          // Add unavailableHours if status is 'available' and unavailable hours are set
+          if (backendStatus === 'available' && unavailableHours.length > 0) {
+            mapped.unavailableHours = unavailableHours;
+          }
+          
+          // Add onHoldHours if status is 'on-hold' and on-hold hours are set
+          if (backendStatus === 'on-hold' && onHoldHours.length > 0) {
+            mapped.onHoldHours = onHoldHours;
+          }
+          
+          console.log('📅 Mapping selection:', { frontend: s.status, backend: backendStatus, date: mapped.date, availableHours: mapped.availableHours, unavailableHours: mapped.unavailableHours, onHoldHours: mapped.onHoldHours });
           return mapped;
         });
         
@@ -487,6 +577,8 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                           return 'bg-orange-50 border-orange-200 text-orange-700';
                         case 'on-hold':
                           return 'bg-yellow-50 border-yellow-200 text-yellow-700';
+                        case 'partially-available':
+                          return 'bg-blue-50 border-blue-200 text-blue-700';
                         default:
                           return 'bg-slate-50 border-slate-200 text-slate-700';
                       }
@@ -549,6 +641,165 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                 </div>
               )}
 
+              {/* Available Hours Selection - Only show if status is 'available' */}
+              {selectedStatus === 'available' && (
+                <div className="space-y-4">
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Available Hours
+                  </label>
+                  
+                  <div className="flex items-center gap-3 mb-4">
+                    <input
+                      type="checkbox"
+                      id="allDayAvailable"
+                      checked={isAllDayAvailable}
+                      onChange={(e) => {
+                        setIsAllDayAvailable(e.target.checked);
+                        if (e.target.checked) {
+                          setAvailableHours([]);
+                        }
+                      }}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="allDayAvailable" className="text-sm text-slate-600">
+                      Available all day (24 hours)
+                    </label>
+                  </div>
+
+                  {!isAllDayAvailable && (
+                    <div className="space-y-3">
+                      {availableHours.map((range, index) => (
+                        <div key={index} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                          <div className="flex-1 grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-slate-600 mb-1">
+                                Start Time
+                              </label>
+                              <input
+                                type="time"
+                                value={range.startTime}
+                                onChange={(e) => {
+                                  const updated = [...availableHours];
+                                  updated[index].startTime = e.target.value;
+                                  setAvailableHours(updated);
+                                }}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-slate-600 mb-1">
+                                End Time
+                              </label>
+                              <input
+                                type="time"
+                                value={range.endTime}
+                                onChange={(e) => {
+                                  const updated = [...availableHours];
+                                  updated[index].endTime = e.target.value;
+                                  setAvailableHours(updated);
+                                }}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAvailableHours(availableHours.filter((_, i) => i !== index));
+                            }}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                      
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAvailableHours([...availableHours, { startTime: '09:00', endTime: '17:00' }]);
+                        }}
+                        className="w-full px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Time Range
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* On-Hold Hours Selection - Only show if status is 'on-hold' */}
+              {selectedStatus === 'on-hold' && (
+                <div className="space-y-4">
+                  <label className="block text-sm font-semibold text-slate-700">
+                    On-Hold Hours
+                  </label>
+                  <p className="text-xs text-slate-500">
+                    Set specific time ranges when the property is temporarily on hold. Leave empty to set entire day as on-hold.
+                  </p>
+                  
+                  <div className="space-y-3">
+                    {onHoldHours.map((range, index) => (
+                      <div key={index} className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <div className="flex-1 grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-slate-600 mb-1">
+                              Start Time
+                            </label>
+                            <input
+                              type="time"
+                              value={range.startTime}
+                              onChange={(e) => {
+                                const updated = [...onHoldHours];
+                                updated[index].startTime = e.target.value;
+                                setOnHoldHours(updated);
+                              }}
+                              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-slate-600 mb-1">
+                              End Time
+                            </label>
+                            <input
+                              type="time"
+                              value={range.endTime}
+                              onChange={(e) => {
+                                const updated = [...onHoldHours];
+                                updated[index].endTime = e.target.value;
+                                setOnHoldHours(updated);
+                              }}
+                              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOnHoldHours(onHoldHours.filter((_, i) => i !== index));
+                          }}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOnHoldHours([...onHoldHours, { startTime: '22:00', endTime: '23:00' }]);
+                      }}
+                      className="w-full px-4 py-2 text-sm font-medium text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add On-Hold Time Range
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Date Input */}
               {selectionType === 'single' && (
                 <div>
@@ -601,6 +852,8 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                       switch (statusValue) {
                         case 'available':
                           return 'text-emerald-600';
+                        case 'partially-available':
+                          return 'text-blue-600';
                         case 'unavailable':
                           return 'text-red-600';
                         case 'booked':
@@ -618,6 +871,8 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                       switch (statusValue) {
                         case 'available':
                           return 'text-emerald-500';
+                        case 'partially-available':
+                          return 'text-blue-500';
                         case 'unavailable':
                           return 'text-red-500';
                         case 'booked':
@@ -670,6 +925,56 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                   {saving ? 'Saving...' : 'Save Availability'}
                 </Button>
               </div>
+              
+              {/* ========================================
+                  NEW: Maintenance Time Configuration
+                  This sets how long the property is blocked after checkout for cleaning/preparation
+                  If this causes issues, comment out this entire section
+                  ======================================== */}
+              {targetType === 'listing' && (
+                <div className="pt-4 border-t border-slate-200">
+                  <div className="bg-orange-50 p-4 rounded-xl border border-orange-200">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Wrench className="w-5 h-5 text-orange-600" />
+                      <h4 className="font-semibold text-orange-800">Maintenance Time</h4>
+                    </div>
+                    <p className="text-sm text-orange-700 mb-3">
+                      Set hours needed for cleaning/preparation after checkout. Property will be blocked automatically.
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min="1"
+                        max="12"
+                        value={maintenanceHours}
+                        onChange={(e) => setMaintenanceHours(Math.max(1, Math.min(12, parseInt(e.target.value) || 2)))}
+                        className="w-20 border-2 border-orange-200 rounded-lg px-3 py-2 text-center font-semibold text-orange-800 focus:border-orange-400 focus:ring-2 focus:ring-orange-200"
+                      />
+                      <span className="text-sm text-orange-700">hours after checkout</span>
+                    </div>
+                    <Button
+                      onClick={async () => {
+                        setSavingMaintenance(true);
+                        try {
+                          await apiClient.updateMaintenanceTime(targetId, maintenanceHours);
+                          setSuccess(`Maintenance time updated to ${maintenanceHours} hours!`);
+                        } catch (e: any) {
+                          setError(e?.message || 'Failed to update maintenance time');
+                        } finally {
+                          setSavingMaintenance(false);
+                        }
+                      }}
+                      disabled={savingMaintenance}
+                      className="mt-3 w-full py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-all duration-200"
+                    >
+                      {savingMaintenance ? 'Saving...' : 'Save Maintenance Time'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {/* ========================================
+                  END NEW: Maintenance Time Configuration
+                  ======================================== */}
             </Card>
           </div>
 
@@ -690,6 +995,8 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                       switch (statusValue) {
                         case 'available':
                           return 'bg-emerald-500';
+                        case 'partially-available':
+                          return 'bg-blue-500';
                         case 'unavailable':
                           return 'bg-red-500';
                         case 'booked':
@@ -743,7 +1050,8 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                    dayContentRenderer={(date: Date) => {
                      const ds = format(date, 'yyyy-MM-dd');
                      const meta = dayMeta[ds];
-                     const status = meta?.status || 'unavailable';
+                     // FIXED: Default to 'available' to match room page behavior (was 'unavailable')
+                     const status = meta?.status || 'available';
                      const isExpired = date < new Date(new Date().setHours(0, 0, 0, 0));
                      
                      // Check if this date is in the current selection range
@@ -792,6 +1100,8 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                        switch (status) {
                          case 'available':
                            return 'bg-emerald-500 text-white';
+                         case 'partially-available':
+                           return 'bg-blue-500 text-white';
                          case 'unavailable':
                            return 'bg-red-500 text-white';
                          case 'booked':
@@ -805,28 +1115,142 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                        }
                      };
                      
-                     return (
-                       <div 
-                         className={`
-                           w-full h-full flex items-center justify-center rounded-full
-                           ${getStatusColorClasses()}
-                         `}
-                         onMouseEnter={() => {
-                           if (isSelecting && range.startDate) {
-                             setHoveredDate(date);
-                           }
-                         }}
-                         onMouseLeave={() => {
-                           if (isSelecting) {
-                             setHoveredDate(null);
-                           }
-                         }}
-                       >
-                         <span className="text-sm font-bold">
-                           {date.getDate()}
-                         </span>
-                       </div>
-                     );
+                    // Helper to format time
+                    const formatTime12Hour = (timeStr: string) => {
+                      if (!timeStr) return '';
+                      const [hours, minutes] = timeStr.split(':').map(Number);
+                      const period = hours >= 12 ? 'PM' : 'AM';
+                      const displayHours = hours % 12 || 12;
+                      return `${displayHours}:${minutes?.toString().padStart(2, '0') || '00'} ${period}`;
+                    };
+                    
+                    return (
+                      <div 
+                        className={`
+                          w-full h-full flex items-center justify-center rounded-full relative
+                          ${getStatusColorClasses()}
+                        `}
+                        onMouseEnter={() => {
+                          if (isSelecting && range.startDate) {
+                            setHoveredDate(date);
+                          }
+                          // Show tooltip for booked dates or dates with hour restrictions
+                          if ((status === 'booked' || (status === 'available' && meta?.availableHours && meta.availableHours.length > 0)) && !isExpired) {
+                            setTooltipDate(ds);
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          if (isSelecting) {
+                            setHoveredDate(null);
+                          }
+                          setTooltipDate(null);
+                        }}
+                      >
+                        <span className="text-sm font-bold">
+                          {date.getDate()}
+                        </span>
+                        
+                        {/* Tooltip for booked dates showing check-in/out dates and times */}
+                        {tooltipDate === ds && status === 'booked' && !isExpired && (
+                          <div className="absolute z-[9999] bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap">
+                            <div className="font-semibold mb-1">Booked</div>
+                            {(meta?.checkInDate || meta?.checkInTime) && (
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-blue-400" />
+                                <span>In: {meta?.checkInDate ? format(new Date(meta.checkInDate), 'MMM d') : ''}{meta?.checkInTime ? `, ${formatTime12Hour(meta.checkInTime)}` : ''}</span>
+                              </div>
+                            )}
+                            {(meta?.checkOutDate || meta?.checkOutTime) && (
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-green-400" />
+                                <span>Out: {meta?.checkOutDate ? format(new Date(meta.checkOutDate), 'MMM d') : ''}{meta?.checkOutTime ? `, ${formatTime12Hour(meta.checkOutTime)}` : ''}</span>
+                              </div>
+                            )}
+                            {meta?.guestName && (
+                              <div className="text-gray-300 mt-1">
+                                Guest: {meta.guestName}
+                              </div>
+                            )}
+                            {/* Arrow */}
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                          </div>
+                        )}
+
+                        {/* Tooltip for dates with hour restrictions */}
+                        {tooltipDate === ds && status === 'available' && !isExpired && ((meta?.availableHours && meta.availableHours.length > 0) || (meta?.unavailableHours && meta.unavailableHours.length > 0)) && (
+                          <div className="absolute z-[9999] bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-blue-600 text-white text-xs rounded-lg shadow-lg">
+                            {(meta?.availableHours && meta.availableHours.length > 0) && (
+                              <>
+                                <div className="font-semibold mb-1 flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  Available Hours
+                                </div>
+                                {meta.availableHours.map((range, idx) => (
+                                  <div key={idx} className="text-blue-200">
+                                    {formatTime12Hour(range.startTime)} - {formatTime12Hour(range.endTime)}
+                                  </div>
+                                ))}
+                              </>
+                            )}
+                            {(meta?.unavailableHours && meta.unavailableHours.length > 0) && (
+                              <>
+                                {meta?.availableHours && meta.availableHours.length > 0 && <div className="mt-2 pt-2 border-t border-blue-500"></div>}
+                                <div className="font-semibold mb-1 flex items-center gap-1">
+                                  <XCircle className="w-3 h-3" />
+                                  Unavailable Hours
+                                </div>
+                                {meta.unavailableHours.map((range, idx) => (
+                                  <div key={idx} className="text-red-200">
+                                    {formatTime12Hour(range.startTime)} - {formatTime12Hour(range.endTime)}
+                                  </div>
+                                ))}
+                              </>
+                            )}
+                            {/* Arrow */}
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-blue-600"></div>
+                          </div>
+                        )}
+
+                        {/* Tooltip for on-hold dates */}
+                        {tooltipDate === ds && status === 'on-hold' && !isExpired && (
+                          <div className="absolute z-[9999] bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-yellow-600 text-white text-xs rounded-lg shadow-lg">
+                            <div className="font-semibold mb-1 flex items-center gap-1">
+                              <Pause className="w-3 h-3" />
+                              On Hold
+                            </div>
+                            {meta?.onHoldHours && meta.onHoldHours.length > 0 ? (
+                              <>
+                                <div className="text-yellow-200">On-hold hours:</div>
+                                {meta.onHoldHours.map((range, idx) => (
+                                  <div key={idx} className="text-yellow-200">
+                                    {formatTime12Hour(range.startTime)} - {formatTime12Hour(range.endTime)}
+                                  </div>
+                                ))}
+                              </>
+                            ) : (
+                              <div className="text-yellow-200">Entire day on hold</div>
+                            )}
+                            {/* Arrow */}
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-yellow-600"></div>
+                          </div>
+                        )}
+
+                        {/* Tooltip for unavailable dates */}
+                        {tooltipDate === ds && status === 'unavailable' && !isExpired && (
+                          <div className="absolute z-[9999] bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-red-600 text-white text-xs rounded-lg shadow-lg whitespace-nowrap">
+                            <div className="font-semibold mb-1 flex items-center gap-1">
+                              <XCircle className="w-3 h-3" />
+                              Unavailable
+                            </div>
+                            <div className="text-red-200 text-[10px]">
+                              This date is not available for booking
+                            </div>
+                            {/* Arrow */}
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-red-600"></div>
+                          </div>
+                        )}
+                      </div>
+                    );
                    }}
                 />
               </div>
@@ -862,6 +1286,8 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                     switch (statusValue) {
                       case 'available':
                         return 'bg-emerald-500';
+                      case 'partially-available':
+                        return 'bg-blue-500';
                       case 'unavailable':
                         return 'bg-red-500';
                       case 'booked':
@@ -879,6 +1305,8 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                     switch (statusValue) {
                       case 'available':
                         return 'text-emerald-500';
+                      case 'partially-available':
+                        return 'text-blue-500';
                       case 'unavailable':
                         return 'text-red-500';
                       case 'booked':

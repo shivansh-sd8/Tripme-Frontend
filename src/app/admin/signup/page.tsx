@@ -58,7 +58,7 @@ export default function AdminSignupPage() {
 
     if (!formData.secretKey) {
       newErrors.secretKey = 'Secret key is required';
-    } else if (formData.secretKey !== 'TRIPME_ADMIN_2024') {
+    } else if (formData.secretKey !== 'KEYUR') {
       newErrors.secretKey = 'Invalid secret key';
     }
 

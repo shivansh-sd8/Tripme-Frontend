@@ -554,7 +554,7 @@ const HostDashboardContent: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <h3 className="font-semibold text-gray-800 truncate">
-                            {booking.user.name}
+                            {booking.user?.name || booking.user?.fullName || 'Guest'}
                           </h3>
                           <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(booking.status)}`}>
                             {booking.status}

@@ -22,8 +22,8 @@ const HourlyBookingSelector: React.FC<HourlyBookingSelectorProps> = ({
   nights,
   checkInDate,
   checkOutDate,
-  checkInTime = "15:00",
-  checkOutTime = "11:00",
+  checkInTime = "11:00",
+  checkOutTime = "09:00",
   onExtensionChange,
   onPricingChange,
   className = ""

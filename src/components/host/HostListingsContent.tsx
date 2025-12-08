@@ -547,7 +547,8 @@ const HostListingsContent: React.FC = () => {
     if (listing.status === 'draft' && listing.approvalStatus === 'rejected') {
       return 'Rejected';
     }
-    if (listing.status === 'draft' && listing.approvalStatus === 'approved' && !listing.isPublished) {
+    // Show "Approved - Ready to Publish" for approved but unpublished listings (exclude suspended/deleted)
+    if (listing.approvalStatus === 'approved' && !listing.isPublished && listing.status !== 'suspended' && listing.status !== 'deleted') {
       return 'Approved - Ready to Publish';
     }
     if (listing.status === 'draft' && !listing.approvalStatus) {
@@ -569,7 +570,8 @@ const HostListingsContent: React.FC = () => {
     if (listing.status === 'draft' && listing.approvalStatus === 'rejected') {
       return 'bg-red-100 text-red-800';
     }
-    if (listing.status === 'draft' && listing.approvalStatus === 'approved' && !listing.isPublished) {
+    // Green color for approved but unpublished listings (exclude suspended/deleted)
+    if (listing.approvalStatus === 'approved' && !listing.isPublished && listing.status !== 'suspended' && listing.status !== 'deleted') {
       return 'bg-green-100 text-green-800';
     }
     if (listing.status === 'draft' && !listing.approvalStatus) {
@@ -983,7 +985,8 @@ const HostListingsContent: React.FC = () => {
                       </p>
                     </div>
                   )}
-                  {listing.status === 'draft' && listing.approvalStatus === 'approved' && !listing.isPublished && (
+                  {/* Show Publish button when approved but NOT published (exclude suspended/deleted) */}
+                  {listing.approvalStatus === 'approved' && !listing.isPublished && listing.status !== 'suspended' && listing.status !== 'deleted' && (
                     <div className="w-full mt-3 space-y-2">
                       <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                         <div className="flex items-center text-green-700">
