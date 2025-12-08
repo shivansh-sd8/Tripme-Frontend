@@ -288,12 +288,19 @@ export default function PropertyDetailsPage() {
     } catch {}
   }, [property?.hourlyBooking?.enabled, dateRange.startDate, dateRange.endDate, checkInTimeStr, hourlyExtension]);
   
+  
   // Availability state
   const [availability, setAvailability] = useState<any[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityChecked, setAvailabilityChecked] = useState(false);
   const [availabilityError, setAvailabilityError] = useState('');
   const [showAvailabilityCalendar, setShowAvailabilityCalendar] = useState(false);
+  
+  // Booked dates state - for showing red marks on calendar
+  const [bookedDates, setBookedDates] = useState<Set<string>>(new Set());
+  
+  // Maintenance info by date - for validating check-in times
+  const [maintenanceByDate, setMaintenanceByDate] = useState<Map<string, { availableAfter: Date; availableHours?: Array<{ startTime: string; endTime: string }> }>>(new Map());
   
   // UI state
   const [showFullDescription, setShowFullDescription] = useState(false);
@@ -309,13 +316,73 @@ export default function PropertyDetailsPage() {
   const datePickerRef = useRef<HTMLDivElement>(null);
   const guestPickerRef = useRef<HTMLDivElement>(null);
   const bookingCardRef = useRef<HTMLDivElement>(null);
+  const lastAutoAdjustedDate = useRef<string | null>(null); // Track last date we auto-adjusted for
 
-  // Clear availability state when dates change
+  // Clear availability state when dates OR extension hours change
+  // This allows user to try different extensions without refreshing
   useEffect(() => {
     setAvailabilityError('');
     setAvailabilityChecked(false);
     setAvailability([]);
-  }, [dateRange.startDate, dateRange.endDate]);
+    console.log('🔄 Availability state cleared (dates or extension changed)');
+  }, [dateRange.startDate, dateRange.endDate, hourlyExtension]);
+
+
+  // Auto-adjust check-in time ONLY on initial date selection (not on every time change)
+  // Also validate check-in time is after maintenance end time for checkout dates
+  useEffect(() => {
+    if (!dateRange.startDate) return;
+    
+    const now = new Date();
+    const isToday = dateRange.startDate.toDateString() === now.toDateString();
+    
+    // Get date string for maintenance lookup
+    const dateStr = `${dateRange.startDate.getFullYear()}-${String(dateRange.startDate.getMonth() + 1).padStart(2, '0')}-${String(dateRange.startDate.getDate()).padStart(2, '0')}`;
+    const maintenanceInfo = maintenanceByDate.get(dateStr);
+    
+    // Only auto-adjust if this is a new date (not already adjusted)
+    const shouldAutoAdjust = lastAutoAdjustedDate.current !== dateStr;
+    
+    // Check if maintenance restriction exists for this date
+    if (maintenanceInfo && shouldAutoAdjust) {
+      const [selectedHour, selectedMinute] = checkInTimeStr.split(':').map(Number);
+      const selectedTime = new Date(dateRange.startDate);
+      selectedTime.setHours(selectedHour, selectedMinute, 0, 0);
+      
+      // Check if selected time is before maintenance end
+      if (selectedTime < maintenanceInfo.availableAfter) {
+        // Auto-adjust to maintenance end time (rounded up to next hour)
+        const maintenanceEndHour = maintenanceInfo.availableAfter.getHours();
+        const maintenanceEndMinute = maintenanceInfo.availableAfter.getMinutes();
+        const nextAvailableHour = maintenanceEndMinute > 0 ? maintenanceEndHour + 1 : maintenanceEndHour;
+        const newTimeStr = `${nextAvailableHour.toString().padStart(2, '0')}:00`;
+        
+        console.log(`⏰ Auto-adjusting check-in time from ${checkInTimeStr} to ${newTimeStr} (before maintenance end at ${maintenanceInfo.availableAfter.toLocaleTimeString()})`);
+        setCheckInTimeStr(newTimeStr);
+        lastAutoAdjustedDate.current = dateStr; // Mark as adjusted
+        return;
+      }
+    }
+    
+    if (isToday && shouldAutoAdjust) {
+      const currentHour = now.getHours();
+      const [selectedHour] = checkInTimeStr.split(':').map(Number);
+      
+      // If selected time is in the past, auto-adjust to next available hour
+      if (selectedHour <= currentHour) {
+        const nextAvailableHour = Math.min(currentHour + 1, 23);
+        const newTimeStr = `${nextAvailableHour.toString().padStart(2, '0')}:00`;
+        console.log(`⏰ Auto-adjusting check-in time from ${checkInTimeStr} to ${newTimeStr} (past time)`);
+        setCheckInTimeStr(newTimeStr);
+        lastAutoAdjustedDate.current = dateStr; // Mark as adjusted
+      }
+    }
+    
+    // Clear adjustment flag when date changes (so we can adjust again for new date)
+    if (lastAutoAdjustedDate.current !== dateStr && !shouldAutoAdjust) {
+      lastAutoAdjustedDate.current = null;
+    }
+  }, [dateRange.startDate]); // Only run on date change, not time change
 
   useEffect(() => {
     if (!id) return;
@@ -334,7 +401,72 @@ export default function PropertyDetailsPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  // Removed automatic availability loading - only load when user explicitly checks availability
+  // Load booked dates when property is loaded (for showing red marks on calendar)
+  useEffect(() => {
+    if (!id) return;
+    
+    const fetchBookedDates = async () => {
+      try {
+        // Fetch availability for the next 6 months
+        const startDate = new Date();
+        const endDate = new Date();
+        endDate.setMonth(endDate.getMonth() + 6);
+        
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = endDate.toISOString().split('T')[0];
+        
+        const response = await apiClient.getAvailability(id as string, startDateStr, endDateStr);
+        
+        if (response.success && response.data?.availability) {
+          const bookedSet = new Set<string>();
+          const maintenanceMap = new Map<string, { availableAfter: Date }>();
+          
+          response.data.availability.forEach((slot: any) => {
+            // FIXED: Use local date format to avoid timezone shift issues
+            const slotDate = new Date(slot.date);
+            const dateStr = `${slotDate.getFullYear()}-${String(slotDate.getMonth() + 1).padStart(2, '0')}-${String(slotDate.getDate()).padStart(2, '0')}`;
+            
+            // Store maintenance info if available
+            if (slot.maintenance?.availableAfter) {
+              const availableAfter = new Date(slot.maintenance.availableAfter);
+              const existing = maintenanceMap.get(dateStr) || { availableAfter };
+              maintenanceMap.set(dateStr, { 
+                ...existing,
+                availableAfter,
+                availableHours: slot.availableHours || existing.availableHours
+              });
+              console.log(`🔧 Maintenance info for ${dateStr}: available after ${availableAfter.toISOString()}`);
+            }
+            
+            // Store hour restrictions for available dates
+            if (slot.status === 'available' && slot.availableHours && slot.availableHours.length > 0) {
+              const existing = maintenanceMap.get(dateStr) || { availableAfter: new Date() };
+              maintenanceMap.set(dateStr, {
+                ...existing,
+                availableHours: slot.availableHours
+              });
+              console.log(`⏰ Hour restrictions for ${dateStr}:`, slot.availableHours);
+            }
+            
+            // Mark dates that are booked, blocked, maintenance, or unavailable
+            if (['booked', 'blocked', 'maintenance', 'unavailable'].includes(slot.status)) {
+              bookedSet.add(dateStr);
+              console.log(`📅 Marking ${dateStr} as booked/blocked (status: ${slot.status})`);
+            }
+          });
+          
+          setMaintenanceByDate(maintenanceMap);
+          
+          setBookedDates(bookedSet);
+          console.log('📅 Loaded booked dates:', bookedSet.size, 'dates');
+        }
+      } catch (error) {
+        console.error('Error fetching booked dates:', error);
+      }
+    };
+    
+    fetchBookedDates();
+  }, [id]);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -383,6 +515,34 @@ export default function PropertyDetailsPage() {
     return format(date, 'EEEE, MMMM dd');
   };
 
+  // Helper function to format hour to 12-hour format with AM/PM
+  const formatTimeHour = (hour: number) => {
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return `${displayHour}:00 ${period}`;
+  };
+
+  // Calculate checkout time based on checkout DATE + check-in time - 1 hour + extension
+  // Example: Check-in Dec 5 at 4 PM, Checkout date Dec 7 → Checkout: Dec 7 at 3 PM (4 PM - 1h)
+  // With 6h extension: Dec 7 at 9 PM
+  const getCalculatedCheckout = () => {
+    if (!dateRange.startDate || !dateRange.endDate) return null;
+    const [hh, mm] = (checkInTimeStr || '15:00').split(':').map(Number);
+    
+    // Use the checkout DATE (endDate) as the base
+    const checkOut = new Date(dateRange.endDate);
+    // Set checkout time to check-in time - 1 hour (23-hour stay per night)
+    // So if check-in is 4 PM, checkout is 3 PM on the checkout date
+    checkOut.setHours(hh - 1, mm, 0, 0);
+    
+    // Add extension hours if any
+    if (hourlyExtension && hourlyExtension > 0) {
+      checkOut.setHours(checkOut.getHours() + hourlyExtension);
+    }
+    
+    return checkOut;
+  };
+
   // Check availability for selected dates
   const checkAvailability = async () => {
     if (!id || selectionStep !== 'complete') {
@@ -412,32 +572,213 @@ export default function PropertyDetailsPage() {
     }
 
     // Check minimum nights if property has this requirement (display only)
-    const nights = endDate && !isNaN(endDate.getTime()) && !isNaN(startDate.getTime()) ? 
-      Math.max(0, Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))) : 0;
-    if (property?.minNights && nights < property.minNights) {
-      setAvailabilityError(`Minimum ${property.minNights} nights required`);
+    // FIXED: Calculate nights using calendar days (ignore time component)
+    let nights = 0;
+    if (endDate && !isNaN(endDate.getTime()) && startDate && !isNaN(startDate.getTime())) {
+      // Normalize dates to midnight to get accurate day count
+      const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+      nights = Math.max(0, Math.round((endDay.getTime() - startDay.getTime()) / (1000 * 60 * 60 * 24)));
+    }
+    
+    // DEBUG: Log nights calculation in detail
+    console.log('🌙 DETAILED Nights calculation:', {
+      startDateRaw: dateRange.startDate,
+      endDateRaw: dateRange.endDate,
+      startDate: startDate?.toISOString(),
+      startDateLocal: startDate?.toLocaleDateString(),
+      endDate: endDate?.toISOString(),
+      endDateLocal: endDate?.toLocaleDateString(),
+      diffMs: endDate && startDate ? (endDate.getTime() - startDate.getTime()) : 'N/A',
+      nights: nights,
+      propertyMinNights: property?.minNights,
+      propertyMinNightsType: typeof property?.minNights
+    });
+    
+    // Only check minNights if property has this requirement set
+    const minNightsRequired = property?.minNights ? Number(property.minNights) : 0;
+    if (minNightsRequired > 0 && nights < minNightsRequired) {
+      console.log(`❌ FAILED: ${nights} nights < ${minNightsRequired} minNights`);
+      setAvailabilityError(`Minimum ${minNightsRequired} nights required`);
       return;
+    }
+    console.log(`✅ PASSED: ${nights} nights >= ${minNightsRequired || 'no minimum'}`);
+    
+
+    // Validate check-in time is after maintenance end (if applicable)
+    const dateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+    const maintenanceInfo = maintenanceByDate.get(dateStr);
+    
+    if (maintenanceInfo) {
+      const [checkInHour, checkInMinute] = (checkInTimeStr || '15:00').split(':').map(Number);
+      const selectedCheckInTime = new Date(startDate);
+      selectedCheckInTime.setHours(checkInHour, checkInMinute, 0, 0);
+      
+      if (selectedCheckInTime < maintenanceInfo.availableAfter) {
+        const maintenanceEndTime = maintenanceInfo.availableAfter.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+        setAvailabilityError(`Check-in time must be after ${maintenanceEndTime} (maintenance period ends)`);
+        setAvailabilityLoading(false);
+        return;
+      }
     }
 
     setAvailabilityLoading(true);
     setAvailabilityError('');
     
     try {
+      // Calculate exact check-in and check-out times based on custom check-in time
+      const [checkInHour, checkInMinute] = (checkInTimeStr || '15:00').split(':').map(Number);
+      const exactCheckIn = new Date(startDate);
+      exactCheckIn.setHours(checkInHour, checkInMinute, 0, 0);
+      
+      // Checkout = endDate at (check-in time - 1 hour) + extension
+      // Example: Check-in Dec 5 at 4 PM, endDate Dec 7 → Checkout: Dec 7 at 3 PM
+      const exactCheckOut = new Date(endDate);
+      exactCheckOut.setHours(checkInHour - 1, checkInMinute, 0, 0); // Check-in time - 1 hour
+      
+      // Add extension hours if any
+      if (hourlyExtension && hourlyExtension > 0) {
+        exactCheckOut.setHours(exactCheckOut.getHours() + hourlyExtension);
+      }
+      
+      console.log('⏰ Custom time calculation:', {
+        checkInTimeStr,
+        exactCheckIn: exactCheckIn.toISOString(),
+        exactCheckOut: exactCheckOut.toISOString(),
+        checkoutDate: endDate.toLocaleDateString(),
+        extensionHours: hourlyExtension || 0
+      });
+
+      // NEW: Use hourly slot checking for properties with hourly booking enabled
+      if (property?.hourlyBooking?.enabled) {
+        console.log('🕐 Using hourly slot availability check...');
+        const slotResponse = await apiClient.checkTimeSlotAvailability(
+          id as string,
+          exactCheckIn.toISOString(),
+          exactCheckOut.toISOString(),
+          hourlyExtension || 0
+        );
+        
+        if (slotResponse.success && slotResponse.data) {
+          if (slotResponse.data.available) {
+            console.log('✅ Time slot is available!');
+            setAvailabilityChecked(true);
+            setAvailabilityError('');
+            
+            // Get pricing from backend when availability is confirmed
+            const pricing = await getSecurePricing();
+            if (pricing) {
+              console.log('💰 Pricing received from backend:', pricing);
+              setPriceBreakdown({
+                basePrice: property?.pricing?.basePrice || 0,
+                baseAmount: pricing.baseAmount,
+                serviceFee: pricing.serviceFee,
+                cleaningFee: pricing.cleaningFee,
+                securityDeposit: pricing.securityDeposit,
+                extraGuestCost: pricing.extraGuestCost,
+                extraGuestPrice: pricing.extraGuestPrice,
+                extraGuests: pricing.extraGuests,
+                hourlyExtension: pricing.hourlyExtension,
+                platformFee: pricing.platformFee,
+                gst: pricing.gst,
+                processingFee: pricing.processingFee,
+                taxes: pricing.gst,
+                total: pricing.totalAmount,
+                nights: pricing.nights,
+                subtotal: pricing.subtotal,
+                discountAmount: pricing.discountAmount
+              });
+            }
+            setAvailabilityLoading(false);
+            return;
+          } else {
+            // Has conflicts
+            const conflicts = slotResponse.data.conflicts;
+            let errorMsg = 'Selected time slot is not available.';
+            if (conflicts?.dailyConflicts?.length > 0) {
+              const conflictDates = conflicts.dailyConflicts.map((c: any) => 
+                new Date(c.date).toLocaleDateString()
+              ).join(', ');
+              errorMsg = `Dates not available: ${conflictDates}`;
+            }
+            if (slotResponse.data.nextAvailableSlot?.start) {
+              const nextDate = new Date(slotResponse.data.nextAvailableSlot.start);
+              if (!isNaN(nextDate.getTime())) {
+                errorMsg += ` Next available: ${nextDate.toLocaleString()}`;
+              }
+            }
+            setAvailabilityError(errorMsg);
+            setAvailabilityChecked(false);
+            setAvailabilityLoading(false);
+            return;
+          }
+        }
+      }
+
+      // FALLBACK: Traditional daily availability check
       const startDateStr = startDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
-      const endDateStr = endDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+      
+      // FIXED: Calculate extended checkout date if hourly extension is selected
+      let effectiveEndDate = new Date(endDate);
+      let extendedCheckoutDate = new Date(endDate); // The actual day when checkout happens
+      
+      if (hourlyExtension && hourlyExtension > 0) {
+        // Use the already calculated exactCheckOut for the extended date
+        extendedCheckoutDate = new Date(exactCheckOut.getFullYear(), exactCheckOut.getMonth(), exactCheckOut.getDate());
+        
+        console.log('⏰ Extended checkout calculation:', {
+          originalCheckout: endDate.toLocaleDateString(),
+          extensionHours: hourlyExtension,
+          extendedCheckoutDateTime: exactCheckOut.toISOString(),
+          extendedCheckoutDate: extendedCheckoutDate.toLocaleDateString(),
+          originalEndDate: endDate.toLocaleDateString()
+        });
+      }
+      
+      // Check availability up to the day AFTER the extended checkout date
+      // (to include the checkout date itself in the check)
+      const checkEndDate = new Date(extendedCheckoutDate);
+      checkEndDate.setDate(checkEndDate.getDate() + 1);
+      
+      const endDateStr = checkEndDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
       
       const response = await apiClient.getAvailability(id as string, startDateStr, endDateStr);
       
       if (response.success && response.data) {
         const availabilityData = response.data.availability || [];
         
+        // DEBUG: Log what we received from API
+        console.log('📅 Availability API Response:', {
+          startDate: startDateStr,
+          endDate: endDateStr,
+          recordsCount: availabilityData.length,
+          records: availabilityData.map((a: any) => ({
+            date: a.date,
+            status: a.status,
+            reason: a.reason
+          }))
+        });
         
-        // Check if all selected dates are available
-        const currentDate = new Date(startDate);
+        // Check if all selected dates are available (including extended dates)
+        // FIXED: Normalize to midnight to avoid time-based comparison issues
+        const currentDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
         let allAvailable = true;
         const conflictingDates: string[] = [];
         
-        while (currentDate < endDate) {
+        // FIXED: Check dates up to the extended checkout date (not just original checkout)
+        // For 6-hour extension on Dec 5 checkout = still Dec 5, so check Dec 4-5
+        // For 18-hour extension on Dec 5 checkout = Dec 6, so check Dec 4-5-6
+        const dateCheckEnd = hourlyExtension && hourlyExtension > 0 ? checkEndDate : 
+          new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        
+        console.log('🔍 Checking availability:', {
+          from: currentDate.toLocaleDateString(),
+          to: dateCheckEnd.toLocaleDateString(),
+          extensionHours: hourlyExtension || 0,
+          extendedCheckoutDate: extendedCheckoutDate.toLocaleDateString()
+        });
+        
+        while (currentDate < dateCheckEnd) {
           const dateStr = currentDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
           
           // Find availability record for this date
@@ -480,27 +821,33 @@ export default function PropertyDetailsPage() {
           });
           
           
-          // Check availability status - dates are available by default unless explicitly marked as unavailable
+          // Check availability status - dates are AVAILABLE by default unless explicitly marked as unavailable
           if (dateAvailability) {
             // Date exists in Availability model - check its status
             if (dateAvailability.status === 'booked') {
+              console.log(`❌ Date ${dateStr} is BOOKED`);
               allAvailable = false;
               conflictingDates.push(dateStr);
             } else if (dateAvailability.status === 'maintenance') {
+              console.log(`❌ Date ${dateStr} is under MAINTENANCE`);
               allAvailable = false;
               conflictingDates.push(dateStr);
             } else if (dateAvailability.status === 'blocked') {
+              console.log(`❌ Date ${dateStr} is BLOCKED`);
               allAvailable = false;
               conflictingDates.push(dateStr);
-            } else if (dateAvailability.status === 'available') {
+            } else if (dateAvailability.status === 'unavailable') {
+              console.log(`❌ Date ${dateStr} is UNAVAILABLE`);
+              allAvailable = false;
+              conflictingDates.push(dateStr);
             } else {
-              // Any other unknown status - treat as available by default
+              console.log(`✅ Date ${dateStr} is available (status: ${dateAvailability.status})`);
             }
+            // 'available' or any other status = available
           } else {
-            // Date doesn't exist in Availability model - it's NOT available
-            allAvailable = false;
-            conflictingDates.push(dateStr);
+            console.log(`✅ Date ${dateStr} - no record, defaulting to AVAILABLE`);
           }
+          // No record in Availability model = AVAILABLE by default (this is correct behavior)
           
           currentDate.setDate(currentDate.getDate() + 1);
         }
@@ -536,7 +883,16 @@ export default function PropertyDetailsPage() {
             });
           }
         } else {
+          // Check if the conflict is due to extension hours
+          const originalEndStr = endDate.toLocaleDateString('en-CA');
+          const isExtensionConflict = hourlyExtension && hourlyExtension > 0 && 
+            conflictingDates.some(d => d > originalEndStr);
+          
+          if (isExtensionConflict) {
+            setAvailabilityError(`Cannot add ${hourlyExtension}-hour extension: checkout would overlap with booked dates (${conflictingDates.join(', ')}). Try a shorter extension or different dates.`);
+        } else {
           setAvailabilityError(`Selected dates are not available. Conflicting dates: ${conflictingDates.join(', ')}`);
+          }
           setAvailabilityChecked(false);
         }
       } else {
@@ -573,8 +929,13 @@ export default function PropertyDetailsPage() {
     }
 
     // Check minimum nights if property has this requirement (display only)
-    const nights = (!endDate || !startDate || isNaN(endDate.getTime()) || isNaN(startDate.getTime())) ? 0 : 
-      Math.max(0, Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+    // FIXED: Calculate nights using calendar days (ignore time component)
+    let nights = 0;
+    if (endDate && startDate && !isNaN(endDate.getTime()) && !isNaN(startDate.getTime())) {
+      const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+      nights = Math.max(0, Math.round((endDay.getTime() - startDay.getTime()) / (1000 * 60 * 60 * 24)));
+    }
     if (property?.minNights && nights < property.minNights) {
       setAvailabilityError(`Minimum ${property.minNights} nights required`);
       return false;
@@ -618,8 +979,10 @@ export default function PropertyDetailsPage() {
 
   const calculateTotalNights = () => {
     if (!dateRange.startDate || !dateRange.endDate || isNaN(dateRange.startDate.getTime()) || isNaN(dateRange.endDate.getTime())) return 0;
-    // Simple display calculation only - real calculation happens on backend
-    return Math.max(0, Math.floor((dateRange.endDate.getTime() - dateRange.startDate.getTime()) / (1000 * 60 * 60 * 24)));
+    // FIXED: Calculate nights using calendar days (ignore time component)
+    const startDay = new Date(dateRange.startDate.getFullYear(), dateRange.startDate.getMonth(), dateRange.startDate.getDate());
+    const endDay = new Date(dateRange.endDate.getFullYear(), dateRange.endDate.getMonth(), dateRange.endDate.getDate());
+    return Math.max(0, Math.round((endDay.getTime() - startDay.getTime()) / (1000 * 60 * 60 * 24)));
   };
 
   // Manual test function removed
@@ -695,7 +1058,7 @@ export default function PropertyDetailsPage() {
       return;
     }
 
-    // Update booking context with current selection
+    // Update booking context with current selection (including custom check-in time)
     updateBookingData({
       propertyId: id as string,
       startDate: dateRange.startDate,
@@ -703,6 +1066,8 @@ export default function PropertyDetailsPage() {
       guests: { adults: guests, children: 0, infants: 0 },
       hourlyExtension: hourlyExtension,
       specialRequests: specialRequests,
+      // NEW: Include custom check-in time for 23-hour checkout calculation
+      checkInTime: checkInTimeStr || '15:00',
       pricing: {
         basePrice: property?.pricing?.basePrice || 0,
         cleaningFee: property?.pricing?.cleaningFee || 0,
@@ -1007,6 +1372,7 @@ export default function PropertyDetailsPage() {
                     console.log('Selected date:', date);
                     // You can add logic here to update booking dates
                   }}
+                  isHostView={isOwnProperty} // Show booking details only for property owner
                 />
               </div>
 
@@ -1264,9 +1630,211 @@ export default function PropertyDetailsPage() {
                         {property?.minNights && property.minNights > 1 && (
                           <div>• Minimum stay: {property.minNights} nights</div>
                         )}
-                        <div>• Check-in: {property?.checkInTime || '15:00'}</div>
-                        <div>• Check-out: {property?.checkOutTime || '11:00'}</div>
                       </div>
+
+                      {/* Custom Check-in Time Selector */}
+                      {!isOwnProperty && (
+                        <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Clock className="w-4 h-4 text-blue-600" />
+                            <label className="text-sm font-semibold text-gray-800">Check-in Time</label>
+                          </div>
+                          <select 
+                            value={checkInTimeStr}
+                            onChange={(e) => {
+                              const newTime = e.target.value;
+                              const [selectedHour] = newTime.split(':').map(Number);
+                              
+                              // If time is after 12:00 AM (0-5 AM), move check-in date to next day
+                              if (selectedHour >= 0 && selectedHour <= 5 && dateRange.startDate) {
+                                const nextDay = new Date(dateRange.startDate);
+                                nextDay.setDate(nextDay.getDate() + 1);
+                                
+                                console.log(`📅 Adjusting check-in date to ${nextDay.toDateString()} (time is ${newTime})`);
+                                setDateRange(prev => ({
+                                  ...prev,
+                                  startDate: nextDay,
+                                  endDate: prev.endDate ? new Date(prev.endDate.getTime() + 24 * 60 * 60 * 1000) : null
+                                }));
+                                // Reset adjustment flag for new date
+                                lastAutoAdjustedDate.current = null;
+                              }
+                              
+                              setCheckInTimeStr(newTime);
+                              // Clear availability when time changes
+                              setAvailabilityError('');
+                              setAvailabilityChecked(false);
+                              // Clear auto-adjustment flag so user can manually select any time
+                              lastAutoAdjustedDate.current = null;
+                            }}
+                            className="w-full p-3 border border-blue-200 rounded-lg bg-white text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                          >
+                            {/* Generate time options - filter out past hours if check-in date is today */}
+                            {(() => {
+                              const now = new Date();
+                              const currentHour = now.getHours();
+                              const isToday = dateRange.startDate && 
+                                dateRange.startDate.toDateString() === now.toDateString();
+                              
+                              // Check for maintenance restriction and hour restrictions
+                              const dateStr = dateRange.startDate ? 
+                                `${dateRange.startDate.getFullYear()}-${String(dateRange.startDate.getMonth() + 1).padStart(2, '0')}-${String(dateRange.startDate.getDate()).padStart(2, '0')}` : '';
+                              const maintenanceInfo = maintenanceByDate.get(dateStr);
+                              const hourRestrictions = maintenanceInfo?.availableHours;
+                              
+                              // Minimum hour: current hour + 1 if today, otherwise 6 AM
+                              let minHour = isToday ? Math.max(currentHour + 1, 6) : 6;
+                              
+                              // If maintenance restriction exists, ensure minHour is after maintenance end
+                              if (maintenanceInfo?.availableAfter) {
+                                const maintenanceEndHour = maintenanceInfo.availableAfter.getHours();
+                                const maintenanceEndMinute = maintenanceInfo.availableAfter.getMinutes();
+                                // If maintenance ends mid-hour (e.g., 6:30 PM), allow that hour (6 PM) but user must select after 6:30
+                                // For simplicity, round up to next hour if maintenance ends mid-hour
+                                const requiredHour = maintenanceEndMinute > 0 ? maintenanceEndHour + 1 : maintenanceEndHour;
+                                minHour = Math.max(minHour, requiredHour);
+                                console.log(`🔧 Maintenance restriction: available after ${maintenanceInfo.availableAfter.toLocaleTimeString()}, minHour set to ${minHour}`);
+                              }
+                              
+                              // Generate options: filter by hour restrictions if they exist
+                              const options = [];
+                              
+                              // If hour restrictions exist, only show times within allowed ranges
+                              if (hourRestrictions && hourRestrictions.length > 0) {
+                                const allowedTimes = new Set<string>();
+                                
+                                for (const range of hourRestrictions) {
+                                  const [startH, startM] = range.startTime.split(':').map(Number);
+                                  const [endH, endM] = range.endTime.split(':').map(Number);
+                                  
+                                  let currentH = startH;
+                                  let currentM = startM;
+                                  
+                                  while (currentH < endH || (currentH === endH && currentM < endM)) {
+                                    const timeStr = `${currentH.toString().padStart(2, '0')}:${currentM.toString().padStart(2, '0')}`;
+                                    
+                                    // Only include if it's not in the past (if today) and after maintenance end
+                                    if (!isToday || currentH > currentHour || (currentH === currentHour && currentM > now.getMinutes())) {
+                                      if (!maintenanceInfo?.availableAfter || 
+                                          currentH > maintenanceInfo.availableAfter.getHours() ||
+                                          (currentH === maintenanceInfo.availableAfter.getHours() && currentM >= maintenanceInfo.availableAfter.getMinutes())) {
+                                        allowedTimes.add(timeStr);
+                                      }
+                                    }
+                                    
+                                    // Move to next hour
+                                    currentM += 60;
+                                    if (currentM >= 60) {
+                                      currentM = 0;
+                                      currentH++;
+                                    }
+                                  }
+                                }
+                                
+                                // Convert allowed times to option elements
+                                Array.from(allowedTimes).sort().forEach(timeStr => {
+                                  const [h] = timeStr.split(':').map(Number);
+                                  options.push(
+                                    <option key={timeStr} value={timeStr}>
+                                      {formatTimeHour(h)}
+                                    </option>
+                                  );
+                                });
+                                
+                                console.log(`⏰ Filtered time options based on hour restrictions:`, Array.from(allowedTimes));
+                              } else {
+                                // No hour restrictions - generate all times as before
+                                // First: from minHour to 11 PM
+                                for (let hour = minHour; hour <= 23; hour++) {
+                                  const value = `${hour.toString().padStart(2, '0')}:00`;
+                                  options.push(
+                                    <option key={value} value={value}>
+                                      {formatTimeHour(hour)}
+                                    </option>
+                                  );
+                                }
+                                
+                                // Then: from 12 AM (0) to 5 AM (5) - only if minHour doesn't already cover these
+                                if (minHour > 5) {
+                                  for (let hour = 0; hour <= 5; hour++) {
+                                    const value = `${hour.toString().padStart(2, '0')}:00`;
+                                    options.push(
+                                      <option key={value} value={value}>
+                                        {formatTimeHour(hour)}
+                                      </option>
+                                    );
+                                  }
+                                }
+                              }
+                              
+                              // If no options available (too late, maintenance restriction, or hour restrictions), show message
+                              if (options.length === 0) {
+                                return (
+                                  <option value="" disabled>
+                                    {hourRestrictions && hourRestrictions.length > 0
+                                      ? `No times available - outside available hours (${hourRestrictions.map(r => `${r.startTime}-${r.endTime}`).join(', ')})`
+                                      : maintenanceInfo?.availableAfter
+                                      ? `No times available - maintenance until ${maintenanceInfo.availableAfter.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}`
+                                      : 'No times available today - select tomorrow'}
+                                  </option>
+                                );
+                              }
+                              
+                              return options;
+                            })()}
+                          </select>
+                          
+                          {/* Show warning if today's time options are limited */}
+                          {dateRange.startDate && dateRange.startDate.toDateString() === new Date().toDateString() && (
+                            <div className="mt-2 text-xs text-amber-600 flex items-center gap-1">
+                              <span>⚠️</span>
+                              <span>Showing available times for today (past hours hidden)</span>
+                            </div>
+                          )}
+                          
+                          {/* Show maintenance restriction message for checkout dates */}
+                          {dateRange.startDate && (() => {
+                            const dateStr = `${dateRange.startDate.getFullYear()}-${String(dateRange.startDate.getMonth() + 1).padStart(2, '0')}-${String(dateRange.startDate.getDate()).padStart(2, '0')}`;
+                            const maintenanceInfo = maintenanceByDate.get(dateStr);
+                            if (maintenanceInfo) {
+                              return (
+                                <div className="mt-2 text-xs text-orange-600 flex items-center gap-1 bg-orange-50 p-2 rounded-lg border border-orange-200">
+                                  <span>🔧</span>
+                                  <span>
+                                    Available after {maintenanceInfo.availableAfter.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })} (maintenance period)
+                                  </span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+                          
+                          {/* Calculated checkout display */}
+                          {dateRange.startDate && (
+                            <div className="mt-3 p-3 bg-white rounded-lg border border-blue-100">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-gray-600">Calculated Check-out:</span>
+                                <span className="text-sm font-semibold text-blue-700">
+                                  {(() => {
+                                    const checkout = getCalculatedCheckout();
+                                    if (!checkout) return 'Select dates';
+                                    return checkout.toLocaleString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      hour: 'numeric',
+                                      minute: '2-digit',
+                                      hour12: true
+                                    });
+                                  })()}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                (Check-in + 23h{hourlyExtension ? ` + ${hourlyExtension}h extension` : ''})
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     
                       {/* Fresh Working Calendar */}
                       {showDatePicker && (
@@ -1350,6 +1918,11 @@ export default function PropertyDetailsPage() {
                                   const isToday = date.toDateString() === new Date().toDateString();
                                   const isPast = date < new Date();
                                   
+                                  // Check if this date is booked/unavailable
+                                  // FIXED: Use local date format to match bookedDates format
+                                  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                                  const isBooked = bookedDates.has(dateStr);
+                                  
                                   const isStartDate = dateRange.startDate && 
                                     dateRange.startDate.toDateString() === date.toDateString();
                                   const isEndDate = dateRange.endDate && 
@@ -1357,12 +1930,16 @@ export default function PropertyDetailsPage() {
                                   const isInRange = dateRange.startDate && dateRange.endDate &&
                                     date > dateRange.startDate && date < dateRange.endDate;
                                   
-                                  const isSelectable = isCurrentMonth && !isPast;
+                                  // Booked dates are not selectable
+                                  const isSelectable = isCurrentMonth && !isPast && !isBooked;
                                   
-                                  let className = 'text-center py-2 text-sm rounded-lg transition-colors ';
+                                  let className = 'text-center py-2 text-sm rounded-lg transition-colors relative ';
                                   
                                   if (!isCurrentMonth) {
                                     className += 'text-gray-300';
+                                  } else if (isBooked) {
+                                    // Red styling for booked dates
+                                    className += 'bg-red-100 text-red-400 cursor-not-allowed line-through';
                                   } else if (!isSelectable) {
                                     className += 'text-gray-400 bg-gray-100';
                                   } else if (isStartDate || isEndDate) {
@@ -1379,6 +1956,7 @@ export default function PropertyDetailsPage() {
                                     <div
                                       key={date.getTime()}
                                       className={className}
+                                      title={isBooked ? 'This date is already booked' : undefined}
                                       onClick={() => {
                                         if (!isSelectable) return;
                                         
@@ -1440,13 +2018,29 @@ export default function PropertyDetailsPage() {
                                         }
                                       }}
                                     >
-                                      {date.getDate()}
+                                      <span>{date.getDate()}</span>
+                                      {/* Red dot indicator for booked dates */}
+                                      {isBooked && isCurrentMonth && (
+                                        <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                                      )}
                                     </div>
                                   );
                                 }
                                 
                                 return days;
                               })()}
+                            </div>
+
+                            {/* Legend for booked dates */}
+                            <div className="mt-3 flex items-center justify-center gap-4 text-xs text-gray-500">
+                              <div className="flex items-center gap-1">
+                                <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                                <span>Booked</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                                <span>Selected</span>
+                              </div>
                             </div>
 
                             {/* Reset Button */}
@@ -1637,13 +2231,12 @@ export default function PropertyDetailsPage() {
                                 <div className="font-semibold text-gray-900">{hourlyExtension} hours selected</div>
                                 <div className="text-sm text-gray-600">
                                   New checkout: {(() => {
-                                    if (!dateRange.endDate) return 'Select dates first';
-                                    const [hours, minutes] = (property?.checkOutTime || '11:00').split(':').map(Number);
-                                    const baseCheckout = new Date(dateRange.endDate);
-                                    baseCheckout.setHours(hours, minutes, 0, 0);
-                                    const newCheckout = new Date(baseCheckout);
-                                    newCheckout.setHours(newCheckout.getHours() + hourlyExtension);
-                                    return newCheckout.toLocaleTimeString('en-US', { 
+                                    // Use same calculation as getCalculatedCheckout
+                                    const checkout = getCalculatedCheckout();
+                                    if (!checkout) return 'Select dates first';
+                                    return checkout.toLocaleString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric', 
                                       hour: 'numeric', 
                                       minute: '2-digit',
                                       hour12: true 

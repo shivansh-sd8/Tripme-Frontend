@@ -52,6 +52,9 @@ export interface Stay {
   rating: number;
   reviewCount: number;
   maxGuests: number;
+  bedrooms: number;
+  beds: number;
+  bathrooms: number;
   tags: string[];
   instantBookable: boolean;
   amenities: string[];

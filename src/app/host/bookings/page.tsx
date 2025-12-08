@@ -34,6 +34,8 @@ interface Booking {
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'expired';
   checkIn: string;
   checkOut: string;
+  checkInTime?: string;   // Custom check-in time (e.g., "16:00")
+  checkOutTime?: string;  // Calculated check-out time (e.g., "15:00")
   guests: {
     adults: number;
     children: number;
@@ -100,7 +102,8 @@ const HostBookingsPage: React.FC = () => {
       const response = await apiClient.getHostBookings();
       
       if (response.success && response.data) {
-        setBookings(response.data.bookings || []);
+        const data = response.data as any;
+        setBookings(data.bookings || []);
       } else {
         setError('Failed to load bookings');
       }
@@ -116,7 +119,16 @@ const HostBookingsPage: React.FC = () => {
     try {
       setUpdatingBooking(bookingId);
       
-      const response = await apiClient.updateBookingStatus(bookingId, { status, reason });
+      // Use appropriate API method based on status
+      let response;
+      if (status === 'confirmed') {
+        response = await apiClient.acceptBooking(bookingId);
+      } else if (status === 'cancelled' && reason) {
+        response = await apiClient.rejectBooking(bookingId, reason);
+      } else {
+        // Fallback to updateBookingStatus with just the status string (not object)
+        response = await apiClient.updateBookingStatus(bookingId, status);
+      }
       
       if (response.success) {
         // Update the booking in the local state
@@ -420,6 +432,34 @@ const HostBookingsPage: React.FC = () => {
                               <span>{formatDate(booking.checkIn)} - {formatDate(booking.checkOut)}</span>
                               <span className="font-semibold text-gray-900">{formatPrice(booking.totalAmount)}</span>
                             </div>
+                            
+                            {/* Check-in/out Times */}
+                            {(booking.checkInTime || booking.checkOutTime) && (
+                              <div className="flex items-center gap-3 mt-1 text-xs">
+                                {booking.checkInTime && (
+                                  <span className="text-blue-600 flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    In: {(() => {
+                                      const [h, m] = booking.checkInTime.split(':').map(Number);
+                                      const period = h >= 12 ? 'PM' : 'AM';
+                                      const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                                      return `${hour}:${m.toString().padStart(2, '0')} ${period}`;
+                                    })()}
+                                  </span>
+                                )}
+                                {booking.checkOutTime && (
+                                  <span className="text-purple-600 flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    Out: {(() => {
+                                      const [h, m] = booking.checkOutTime.split(':').map(Number);
+                                      const period = h >= 12 ? 'PM' : 'AM';
+                                      const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                                      return `${hour}:${m.toString().padStart(2, '0')} ${period}`;
+                                    })()}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                             
                             {/* Check-in Status */}
                             {booking.checkedIn && (

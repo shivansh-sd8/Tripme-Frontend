@@ -31,6 +31,31 @@ interface Booking {
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   createdAt: string;
   specialRequests?: string;
+  // Hourly booking fields
+  hourlyExtension?: {
+    hours: number;
+    rate: number;
+    totalHours: number;
+  };
+  bookingType?: 'daily' | '24hour' | 'hourly';
+  is24Hour?: boolean;
+  checkOutTime?: string;
+  // Pricing breakdown
+  pricingBreakdown?: {
+    customerBreakdown: {
+      baseAmount: number;
+      cleaningFee: number;
+      serviceFee: number;
+      securityDeposit: number;
+      hourlyExtension: number;
+      discountAmount: number;
+      subtotal: number;
+      platformFee: number;
+      processingFee: number;
+      gst: number;
+      totalAmount: number;
+    };
+  };
 }
 
 const getStatusColor = (status: string) => {
@@ -259,9 +284,20 @@ export default function BookingsPage() {
                         <MapPin className="w-4 h-4" />
                         <span>{booking.propertyId?.location?.city || ''}{booking.propertyId?.location?.city && booking.propertyId?.location?.state ? ', ' : ''}{booking.propertyId?.location?.state || ''}</span>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-500 mb-2">
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-2">
                         <span>Check-in: {formatDate(booking.checkIn)}</span>
                         <span>Check-out: {formatDate(booking.checkOut)}</span>
+                        {booking.hourlyExtension?.hours && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                            <Clock className="w-3 h-3" />
+                            +{booking.hourlyExtension.hours}h extension
+                          </span>
+                        )}
+                        {booking.bookingType === '24hour' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                            24-Hour Booking
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
                         <Users className="w-4 h-4" />
@@ -275,6 +311,58 @@ export default function BookingsPage() {
                         <span>Total:</span>
                         <span>{formatPrice(booking.totalAmount)}</span>
                       </div>
+                      
+                      {/* Pricing Breakdown Collapsible */}
+                      {booking.pricingBreakdown && (
+                        <details className="mt-3 text-sm">
+                          <summary className="cursor-pointer text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1">
+                            <span>View Price Breakdown</span>
+                          </summary>
+                          <div className="mt-2 p-3 bg-gray-50 rounded-lg space-y-1.5 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Base Amount</span>
+                              <span className="font-medium">{formatPrice(booking.pricingBreakdown.customerBreakdown.baseAmount)}</span>
+                            </div>
+                            {booking.pricingBreakdown.customerBreakdown.cleaningFee > 0 && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Cleaning Fee</span>
+                                <span>{formatPrice(booking.pricingBreakdown.customerBreakdown.cleaningFee)}</span>
+                              </div>
+                            )}
+                            {booking.pricingBreakdown.customerBreakdown.serviceFee > 0 && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Service Fee</span>
+                                <span>{formatPrice(booking.pricingBreakdown.customerBreakdown.serviceFee)}</span>
+                              </div>
+                            )}
+                            {booking.pricingBreakdown.customerBreakdown.hourlyExtension > 0 && (
+                              <div className="flex justify-between text-blue-600">
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  Hourly Extension
+                                </span>
+                                <span className="font-medium">+{formatPrice(booking.pricingBreakdown.customerBreakdown.hourlyExtension)}</span>
+                              </div>
+                            )}
+                            {booking.pricingBreakdown.customerBreakdown.discountAmount > 0 && (
+                              <div className="flex justify-between text-green-600">
+                                <span>Discount</span>
+                                <span>-{formatPrice(booking.pricingBreakdown.customerBreakdown.discountAmount)}</span>
+                              </div>
+                            )}
+                            <div className="border-t border-gray-200 pt-1.5 mt-1.5">
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Fees & Taxes</span>
+                                <span>{formatPrice(
+                                  (booking.pricingBreakdown.customerBreakdown.platformFee || 0) +
+                                  (booking.pricingBreakdown.customerBreakdown.processingFee || 0) +
+                                  (booking.pricingBreakdown.customerBreakdown.gst || 0)
+                                )}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </details>
+                      )}
                     </div>
                     <div className="flex gap-3 mt-6">
                       <Button

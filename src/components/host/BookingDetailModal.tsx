@@ -34,6 +34,8 @@ interface DetailedBooking {
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'expired';
   checkIn: string;
   checkOut: string;
+  checkInTime?: string;  // Custom check-in time (e.g., "16:00")
+  checkOutTime?: string; // Calculated check-out time (e.g., "21:00")
   guests: {
     adults: number;
     children: number;
@@ -450,12 +452,36 @@ const BookingDetailModal: React.FC<BookingDetailModalProps> = ({
                           <p className="font-semibold text-gray-900">
                             {booking.listing ? formatDate(booking.checkIn) : formatDateTime(booking.timeSlot?.startTime || '')}
                           </p>
+                          {/* Show check-in time if available */}
+                          {booking.checkInTime && (
+                            <p className="text-sm text-blue-600 font-medium flex items-center gap-1 mt-1">
+                              <Clock className="w-3 h-3" />
+                              {(() => {
+                                const [h, m] = booking.checkInTime.split(':').map(Number);
+                                const period = h >= 12 ? 'PM' : 'AM';
+                                const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                                return `${hour}:${m.toString().padStart(2, '0')} ${period}`;
+                              })()}
+                            </p>
+                          )}
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Check-out</p>
                           <p className="font-semibold text-gray-900">
                             {booking.listing ? formatDate(booking.checkOut) : formatDateTime(booking.timeSlot?.endTime || '')}
                           </p>
+                          {/* Show check-out time if available */}
+                          {booking.checkOutTime && (
+                            <p className="text-sm text-purple-600 font-medium flex items-center gap-1 mt-1">
+                              <Clock className="w-3 h-3" />
+                              {(() => {
+                                const [h, m] = booking.checkOutTime.split(':').map(Number);
+                                const period = h >= 12 ? 'PM' : 'AM';
+                                const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                                return `${hour}:${m.toString().padStart(2, '0')} ${period}`;
+                              })()}
+                            </p>
+                          )}
                         </div>
                       </div>
 

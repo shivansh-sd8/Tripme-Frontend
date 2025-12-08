@@ -147,6 +147,15 @@ interface BookingDetails {
   refundStatus?: 'pending' | 'completed' | 'failed' | 'not_applicable';
   checkedIn?: boolean;
   checkedOut?: boolean;
+  // Hourly booking fields
+  hourlyExtension?: {
+    hours: number;
+    rate: number;
+    totalHours: number;
+  };
+  bookingType?: 'daily' | '24hour' | 'hourly';
+  is24Hour?: boolean;
+  checkOutTime?: string;
   pricingBreakdown?: {
     customerBreakdown: {
     baseAmount: number;
@@ -940,6 +949,21 @@ export default function BookingDetailsPage() {
                     {formatCurrency(booking.pricingBreakdown?.customerBreakdown?.securityDeposit || booking.listing?.pricing?.securityDeposit || 0)}
                   </span>
                     </div>
+                
+                {/* Hourly Extension */}
+                {((booking.pricingBreakdown?.customerBreakdown?.hourlyExtension ?? 0) > 0 || (booking.hourlyExtension?.hours ?? 0) > 0) && (
+                  <div className="flex justify-between items-center py-2 bg-blue-50 rounded-lg px-3 -mx-3">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-blue-500" />
+                      <span className="text-sm text-blue-700">
+                        Hourly Extension ({booking.hourlyExtension?.hours ?? 0}h)
+                      </span>
+                    </div>
+                    <span className="text-sm font-medium text-blue-600">
+                      +{formatCurrency(booking.pricingBreakdown?.customerBreakdown?.hourlyExtension ?? 0)}
+                    </span>
+                  </div>
+                )}
                 
                 {/* Discount */}
                 {booking.discountAmount > 0 && (
