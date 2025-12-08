@@ -596,20 +596,35 @@ export default function AdminDashboard() {
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activities</h3>
               <div className="space-y-4">
-                {(recentActivities?.users ?? []).slice(0, 3).map((user, index) => (
-                  <div key={index} className="flex items-center space-x-3 p-3 bg-gray-100/50 rounded-xl">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                      <span className="text-sm font-bold text-white">{user.name.charAt(0)}</span>
+                {(() => {
+                  // Use recentActivities?.users with defensive checks
+                  let safeUsers: any[] = [];
+                  
+                  if (Array.isArray(recentActivities?.users)) {
+                    safeUsers = recentActivities.users;
+                  } else {
+                    safeUsers = [];
+                  }
+                  
+                  if (safeUsers.length === 0) {
+                    return <p className="text-gray-500 text-sm text-center py-4">No recent user activities</p>;
+                  }
+                  
+                  return safeUsers.slice(0, 3).map((user, index) => (
+                    <div key={index} className="flex items-center space-x-3 p-3 bg-gray-100/50 rounded-xl">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                        <span className="text-sm font-bold text-white">{user.name?.charAt(0) || 'U'}</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-gray-900 font-medium">{user.name || 'Unknown User'}</p>
+                        <p className="text-gray-600 text-sm">{user.role || 'guest'} • {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</p>
+                      </div>
+                      {user.kyc?.status === 'pending' && (
+                        <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">KYC Pending</span>
+                      )}
                     </div>
-                    <div className="flex-1">
-                      <p className="text-gray-900 font-medium">{user.name}</p>
-                      <p className="text-gray-600 text-sm">{user.role} • {new Date(user.createdAt).toLocaleDateString()}</p>
-                    </div>
-                    {user.kyc?.status === 'pending' && (
-                      <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">KYC Pending</span>
-                    )}
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
             </div>
 
