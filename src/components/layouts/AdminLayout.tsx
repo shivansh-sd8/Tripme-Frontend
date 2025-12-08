@@ -168,7 +168,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               <div className="flex-shrink-0">
                 <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                   <span className="text-lg font-bold text-white">
-                    {user.name?.charAt(0).toUpperCase()}
+                    {user?.name?.charAt(0)?.toUpperCase() || 'A'}
                   </span>
                 </div>
               </div>
@@ -236,7 +236,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               <div className="flex-shrink-0">
                 <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                   <span className="text-lg font-bold text-white">
-                    {user.name?.charAt(0).toUpperCase()}
+                    {user?.name?.charAt(0)?.toUpperCase() || 'A'}
                   </span>
                 </div>
               </div>
