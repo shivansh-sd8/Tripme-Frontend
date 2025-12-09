@@ -2,11 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     // Warning: This allows production builds to successfully complete even if
     // your project has type errors.
@@ -29,6 +24,9 @@ const nextConfig: NextConfig = {
     ],
   },
   serverExternalPackages: ['mongoose'],
+  // Turbopack configuration for Next.js 16 (empty config to silence webpack warning)
+  turbopack: {},
+  // Keep webpack config for backward compatibility when explicitly using webpack
   webpack: (config) => {
     config.externals = [...(config.externals || []), 'canvas', 'jsdom'];
     return config;
