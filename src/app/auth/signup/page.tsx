@@ -194,7 +194,7 @@ export default function SignupPage() {
 
       {/* Right Side - Form */}
       <div className="w-full lg:w-1/2 flex items-start justify-center p-4 overflow-y-auto pt-16">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 border-0">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
@@ -202,7 +202,7 @@ export default function SignupPage() {
               <img 
                 src="/logo.png" 
                 alt="TripMe Logo" 
-                className="h-12 w-auto"
+                className="h-20 w-auto"
               />
             </div>
           </Link>
