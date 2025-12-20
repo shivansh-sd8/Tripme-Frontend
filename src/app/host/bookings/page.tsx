@@ -214,7 +214,7 @@ const HostBookingsPage: React.FC = () => {
   // Filter bookings
   const filteredBookings = bookings.filter(booking => {
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
-    const matchesSearch = booking.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = (booking.user?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (booking.listing?.title || booking.service?.title || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesSearch;
   });
@@ -426,7 +426,7 @@ const HostBookingsPage: React.FC = () => {
                               {booking.listing?.title || booking.service?.title}
                             </h3>
                             <p className="text-sm text-gray-600 mb-2">
-                              {booking.user.name} • {booking.guests.adults} guests
+                              {booking.user?.name || 'Guest'} • {booking.guests.adults} guests
                             </p>
                             <div className="flex items-center gap-4 text-sm text-gray-600">
                               <span>{formatDate(booking.checkIn)} - {formatDate(booking.checkOut)}</span>

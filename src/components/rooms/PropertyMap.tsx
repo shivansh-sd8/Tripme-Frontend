@@ -1,31 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { MapPin, Navigation, ExternalLink } from 'lucide-react';
-import dynamic from 'next/dynamic';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
 
-// Dynamically import Leaflet components to avoid SSR issues
-const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
-const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
-const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
-
-// Custom property marker icon using home.png (same as PropertyForm)
-// Create icon only on client side to avoid SSR issues
-const createPropertyMarkerIcon = () => {
-  if (typeof window === 'undefined') return null;
-  return new L.Icon({
-    iconUrl: '/home.png',
-    iconSize: [48, 60],
-    iconAnchor: [24, 60],
-    popupAnchor: [0, -60],
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png',
-    shadowSize: [61, 61],
-    shadowAnchor: [18, 61],
-  });
-};
+// Google Maps type declarations
+declare global {
+  interface Window {
+    google: any;
+  }
+}
 
 interface PropertyMapProps {
   address: string;
@@ -88,6 +71,8 @@ const getDefaultCoordinates = (cityName: string) => {
   return cityCoords[cityName] || { lat: 28.6139, lng: 77.2090 }; // Default to Delhi
 };
 
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyB9JgH59f8fK3xzaBfFB6T19u4qGEUeLOM';
+
 export default function PropertyMap({ 
   address, 
   city, 
@@ -95,9 +80,14 @@ export default function PropertyMap({
   country = 'India',
   coordinates 
 }: PropertyMapProps) {
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const infoWindowRef = useRef<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [mapContainerReady, setMapContainerReady] = useState(false);
 
   // Ensure we're on the client side
   useEffect(() => {
@@ -131,16 +121,203 @@ export default function PropertyMap({
   };
 
   const coords = getCoordinates();
-  const mapCenter: [number, number] = [coords.lat, coords.lng];
+
+  // Load Google Maps script
+  useEffect(() => {
+    if (!isClient) return;
+
+    if (!GOOGLE_MAPS_API_KEY) {
+      setMapError('Google Maps API key is not configured');
+      setIsLoading(false);
+      return;
+    }
+
+    // Check if already loaded
+    if (window.google && window.google.maps) {
+      console.log('✅ Google Maps already loaded');
+      setIsLoading(false);
+      return;
+    }
+
+    // Check if script is already being loaded
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (existingScript) {
+      console.log('⏳ Google Maps script already loading, waiting...');
+      const checkLoaded = setInterval(() => {
+        if (window.google && window.google.maps) {
+          clearInterval(checkLoaded);
+          console.log('✅ Google Maps loaded (existing script)');
+          setIsLoading(false);
+        }
+      }, 100);
+      
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        clearInterval(checkLoaded);
+        if (!window.google || !window.google.maps) {
+          setMapError('Failed to load Google Maps');
+          setIsLoading(false);
+        }
+      }, 10000);
+      
+      return;
+    }
+
+    // Load Google Maps script
+    console.log('🔄 Loading Google Maps script...');
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    
+    script.onload = () => {
+      console.log('✅ Google Maps loaded successfully');
+      setIsLoading(false);
+    };
+    
+    script.onerror = () => {
+      console.error('❌ Failed to load Google Maps');
+      setMapError('Failed to load Google Maps. Please check your API key.');
+      setIsLoading(false);
+    };
+    
+    document.head.appendChild(script);
+  }, [isClient]);
+
+  // Initialize map when Google Maps is loaded and mapRef is ready
+  useEffect(() => {
+    if (!isClient) {
+      console.log('⏳ Waiting for client...');
+      return;
+    }
+
+    if (!window.google || !window.google.maps) {
+      console.log('⏳ Waiting for Google Maps...');
+      return;
+    }
+
+    if (mapInstanceRef.current) {
+      console.log('✅ Map already initialized');
+      return;
+    }
+
+    if (!mapContainerReady || !mapRef.current) {
+      console.log('⏳ Waiting for map container...', { mapContainerReady, hasRef: !!mapRef.current });
+      return;
+    }
+
+
+    // Get current coordinates
+    const currentCoords = getCoordinates();
+    
+    if (!currentCoords.lat || !currentCoords.lng || isNaN(currentCoords.lat) || isNaN(currentCoords.lng)) {
+      console.warn('⚠️ Invalid coordinates, cannot initialize map:', currentCoords);
+      return;
+    }
+
+    console.log('🗺️ Initializing Google Map with coordinates:', currentCoords);
+    console.log('🗺️ Map container ready:', !!mapRef.current);
+    console.log('🗺️ Map container dimensions:', mapRef.current?.offsetWidth, 'x', mapRef.current?.offsetHeight);
+
+    try {
+      
+      // Create map instance
+      const map = new window.google.maps.Map(mapRef.current, {
+        center: { lat: currentCoords.lat, lng: currentCoords.lng },
+        zoom: 14,
+        mapTypeControl: true,
+        streetViewControl: true,
+        fullscreenControl: true,
+        zoomControl: true,
+        styles: [
+          {
+            featureType: 'poi',
+            elementType: 'labels',
+            stylers: [{ visibility: 'on' }]
+          }
+        ]
+      });
+
+      mapInstanceRef.current = map;
+
+      // Create custom marker icon (using home icon)
+      const markerIcon = {
+        url: '/home.png',
+        scaledSize: new window.google.maps.Size(48, 60),
+        anchor: new window.google.maps.Point(24, 60),
+        origin: new window.google.maps.Point(0, 0)
+      };
+
+      // Create marker
+      const marker = new window.google.maps.Marker({
+        position: { lat: currentCoords.lat, lng: currentCoords.lng },
+        map: map,
+        title: `${address}, ${city}, ${state}`,
+        icon: markerIcon,
+        animation: window.google.maps.Animation.DROP
+      });
+
+      markerRef.current = marker;
+
+      // Create info window
+      const infoWindow = new window.google.maps.InfoWindow({
+        content: `
+          <div style="padding: 8px; min-width: 200px;">
+            <h3 style="font-weight: bold; margin-bottom: 4px; color: #1f2937;">Property Location</h3>
+            <p style="margin: 0; color: #4b5563; font-size: 14px;">${address}</p>
+            <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 12px;">${city}, ${state}</p>
+          </div>
+        `
+      });
+
+      infoWindowRef.current = infoWindow;
+
+      // Open info window on marker click
+      marker.addListener('click', () => {
+        infoWindow.open(map, marker);
+      });
+
+      // Open info window initially
+      infoWindow.open(map, marker);
+
+        console.log('✅ Google Map initialized successfully');
+        setIsLoading(false);
+        setMapError(null);
+      } catch (error) {
+        console.error('❌ Error initializing Google Map:', error);
+        console.error('Error details:', error);
+        setMapError('Failed to initialize map: ' + (error instanceof Error ? error.message : String(error)));
+        setIsLoading(false);
+      }
+  }, [isClient, mapContainerReady, coords.lat, coords.lng, address, city, state]);
+
+  // Update map when coordinates change
+  useEffect(() => {
+    if (mapInstanceRef.current && markerRef.current && infoWindowRef.current && window.google) {
+      const newPosition = { lat: coords.lat, lng: coords.lng };
+      mapInstanceRef.current.setCenter(newPosition);
+      markerRef.current.setPosition(newPosition);
+      
+      // Update info window content
+      infoWindowRef.current.setContent(`
+        <div style="padding: 8px; min-width: 200px;">
+          <h3 style="font-weight: bold; margin-bottom: 4px; color: #1f2937;">Property Location</h3>
+          <p style="margin: 0; color: #4b5563; font-size: 14px;">${address}</p>
+          <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 12px;">${city}, ${state}</p>
+        </div>
+      `);
+      
+      infoWindowRef.current.open(mapInstanceRef.current, markerRef.current);
+    }
+  }, [coords.lat, coords.lng, address, city, state]);
 
   // Debug logging
   useEffect(() => {
     console.log('PropertyMap coordinates:', {
       received: coordinates,
       processed: coords,
-      mapCenter
     });
-  }, [coordinates, coords, mapCenter]);
+  }, [coordinates, coords]);
 
   const openInMaps = () => {
     const query = encodeURIComponent(`${address}, ${city}, ${state}, ${country}`);
@@ -193,9 +370,11 @@ export default function PropertyMap({
                 <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-600 mb-2">Map unavailable</p>
                 <p className="text-sm text-gray-500 mb-3">
-                  {!coords.lat || !coords.lng || isNaN(coords.lat) || isNaN(coords.lng) 
+                  {!GOOGLE_MAPS_API_KEY 
+                    ? 'Google Maps API key not configured' 
+                    : !coords.lat || !coords.lng || isNaN(coords.lat) || isNaN(coords.lng) 
                     ? 'Invalid coordinates' 
-                    : 'Unable to load map'
+                    : mapError || 'Unable to load map'
                   }
                 </p>
                 <button
@@ -206,7 +385,7 @@ export default function PropertyMap({
                 </button>
               </div>
             </div>
-          ) : !isClient ? (
+          ) : !isClient || isLoading ? (
             <div className="h-96 bg-gray-100 rounded-xl flex items-center justify-center">
               <div className="text-center">
                 <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
@@ -214,31 +393,20 @@ export default function PropertyMap({
               </div>
             </div>
           ) : (
-            <div className="h-96 bg-gray-100 rounded-xl overflow-hidden">
-              <MapContainer
-                center={mapCenter}
-                zoom={14}
-                style={{ height: '100%', width: '100%' }}
-                scrollWheelZoom={true}
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                <Marker
-                  position={mapCenter}
-                  icon={createPropertyMarkerIcon()}
-                >
-                  <Popup>
-                    <div className="text-center">
-                      <h3 className="font-semibold text-gray-900 mb-1">Property Location</h3>
-                      <p className="text-sm text-gray-600">{address}</p>
-                      <p className="text-sm text-gray-500">{city}, {state}</p>
-                    </div>
-                  </Popup>
-                </Marker>
-              </MapContainer>
-            </div>
+            <div 
+              ref={(el) => {
+                mapRef.current = el;
+                if (el && !mapContainerReady) {
+                  setMapContainerReady(true);
+                }
+              }}
+              className="h-96 bg-gray-100 rounded-xl overflow-hidden"
+              style={{ 
+                minHeight: '384px',
+                width: '100%',
+                height: '100%'
+              }}
+            />
           )}
         </div>
 
