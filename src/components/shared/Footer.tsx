@@ -110,13 +110,36 @@ export default function Footer() {
                 Support
               </h3>
               <ul className="space-y-2">
-                {['Help Center', 'Contact Us', 'Trust & Safety', 'Accessibility', 'Cancellation Policy', 'Report Issue'].map((item) => (
-                  <li key={item}>
-                    <a href="#" className="text-gray-600 hover:text-purple-600 transition-colors duration-200 flex items-center group">
-                      <span className="group-hover:translate-x-1 transition-transform duration-200">{item}</span>
-                    </a>
-                  </li>
-                ))}
+                <li>
+                  <Link href="/contact" className="text-gray-600 hover:text-purple-600 transition-colors duration-200 flex items-center group">
+                    <span className="group-hover:translate-x-1 transition-transform duration-200">Contact Us</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/about-hosting" className="text-gray-600 hover:text-purple-600 transition-colors duration-200 flex items-center group">
+                    <span className="group-hover:translate-x-1 transition-transform duration-200">About Hosting</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/about" className="text-gray-600 hover:text-purple-600 transition-colors duration-200 flex items-center group">
+                    <span className="group-hover:translate-x-1 transition-transform duration-200">About Us</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/refund-cancellation" className="text-gray-600 hover:text-purple-600 transition-colors duration-200 flex items-center group">
+                    <span className="group-hover:translate-x-1 transition-transform duration-200">Cancellation Policy</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/refund-cancellation" className="text-gray-600 hover:text-purple-600 transition-colors duration-200 flex items-center group">
+                    <span className="group-hover:translate-x-1 transition-transform duration-200">Refund Policy</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/become-host" className="text-gray-600 hover:text-purple-600 transition-colors duration-200 flex items-center group">
+                    <span className="group-hover:translate-x-1 transition-transform duration-200">Become a Host</span>
+                  </Link>
+                </li>
               </ul>
             </div>
 
@@ -154,10 +177,11 @@ export default function Footer() {
           {/* Bottom section */}
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="flex flex-wrap items-center gap-6 text-sm text-gray-600">
-              <a href="#" className="hover:text-purple-600 transition-colors duration-200">Privacy Policy</a>
-              <a href="#" className="hover:text-purple-600 transition-colors duration-200">Terms of Service</a>
-              <a href="#" className="hover:text-purple-600 transition-colors duration-200">Cookie Policy</a>
-              <a href="#" className="hover:text-purple-600 transition-colors duration-200">Sitemap</a>
+              <Link href="/privacy" className="hover:text-purple-600 transition-colors duration-200">Privacy Policy</Link>
+              <Link href="/terms" className="hover:text-purple-600 transition-colors duration-200">Terms of Service</Link>
+              <Link href="/refund-cancellation" className="hover:text-purple-600 transition-colors duration-200">Refund Policy</Link>
+              <Link href="/about" className="hover:text-purple-600 transition-colors duration-200">About Us</Link>
+              <Link href="/contact" className="hover:text-purple-600 transition-colors duration-200">Contact</Link>
             </div>
             
             <div className="flex items-center space-x-4">

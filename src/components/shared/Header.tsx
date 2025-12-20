@@ -31,9 +31,10 @@ interface HeaderProps {
   searchExpanded?: boolean;
   onSearchToggle?: (expanded: boolean) => void;
   onSearch?: (location: any, guestsCount?: number, checkInDate?: string, checkOutDate?: string) => void;
+  hideSearch?: boolean;
 }
 
-const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSearch }: HeaderProps = {}) => {
+const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSearch, hideSearch = false }: HeaderProps = {}) => {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isAuthenticated, isLoading, logout, refreshUser } = useAuth();
@@ -135,7 +136,8 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
   // When search is expanded, show full header regardless of scroll state
   // Show search bar on stories page only when expanded
   // On search page, keep search compressed by default unless explicitly expanded
-  const shouldShowFullHeader = (!scrolled || searchExpanded) && (pathname !== '/stories' || searchExpanded) && (pathname !== '/search' || searchExpanded);
+  // If hideSearch is true, always show full header (navigation) without search form
+  const shouldShowFullHeader = hideSearch ? true : ((!scrolled || searchExpanded) && (pathname !== '/stories' || searchExpanded) && (pathname !== '/search' || searchExpanded));
 
   return (
     <header className={`w-full z-50 fixed top-0 left-0 right-0 transition-all duration-500 ease-in-out header-container ${
@@ -501,8 +503,8 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
           </div>
         )}
 
-        {/* Search Bar - Show when not scrolled or search expanded */}
-        {shouldShowFullHeader && (
+        {/* Search Bar - Show when not scrolled or search expanded, unless hideSearch is true */}
+        {shouldShowFullHeader && !hideSearch && (
           <div className="flex justify-center w-full pb-3">
             <div className="w-full max-w-4xl">
               <AirbnbSearchForm variant="compact" activeCategory={activeCategory} onSearch={onSearch} />
