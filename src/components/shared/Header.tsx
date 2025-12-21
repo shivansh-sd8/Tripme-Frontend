@@ -31,17 +31,10 @@ interface HeaderProps {
   searchExpanded?: boolean;
   onSearchToggle?: (expanded: boolean) => void;
   onSearch?: (location: any, guestsCount?: number, checkInDate?: string, checkOutDate?: string) => void;
-<<<<<<< Updated upstream
   hideSearch?: boolean;
 }
 
 const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSearch, hideSearch = false }: HeaderProps = {}) => {
-=======
-  hideSearchBar?: boolean;
-}
-
-const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSearch, hideSearchBar = false }: HeaderProps = {}) => {
->>>>>>> Stashed changes
   const router = useRouter();
   const pathname = usePathname();
   const { user, isAuthenticated, isLoading, logout, refreshUser } = useAuth();
@@ -143,15 +136,8 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
   // When search is expanded, show full header regardless of scroll state
   // Show search bar on stories page only when expanded
   // On search page, keep search compressed by default unless explicitly expanded
-<<<<<<< Updated upstream
   // If hideSearch is true, always show full header (navigation) without search form
   const shouldShowFullHeader = hideSearch ? true : ((!scrolled || searchExpanded) && (pathname !== '/stories' || searchExpanded) && (pathname !== '/search' || searchExpanded));
-=======
-  // If hideSearchBar is true, always show full header (navigation links) instead of search bar
-  const shouldShowFullHeader = hideSearchBar 
-    ? true 
-    : (!scrolled || searchExpanded) && (pathname !== '/stories' || searchExpanded) && (pathname !== '/search' || searchExpanded);
->>>>>>> Stashed changes
 
   return (
     <header className={`w-full z-50 fixed top-0 left-0 right-0 transition-all duration-500 ease-in-out header-container ${
@@ -226,7 +212,7 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                 <span className="font-medium text-base">Stories</span>
               </button>
             </div>
-          ) : !hideSearchBar ? (
+          ) : (
             <div className="hidden lg:flex items-center transition-all duration-500 ease-in-out">
               <div 
                 className="bg-white border border-gray-300 rounded-full shadow-sm hover:shadow-md transition-all duration-500 ease-in-out p-1 cursor-pointer"
@@ -270,7 +256,7 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                 </div>
               </div>
             </div>
-          ) : null}
+          )}
 
           {/* Desktop Actions - Right Side */}
           <div className={`hidden lg:flex items-center gap-4 ${
@@ -517,13 +503,8 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
           </div>
         )}
 
-<<<<<<< Updated upstream
         {/* Search Bar - Show when not scrolled or search expanded, unless hideSearch is true */}
         {shouldShowFullHeader && !hideSearch && (
-=======
-        {/* Search Bar - Show when not scrolled or search expanded */}
-        {shouldShowFullHeader && !hideSearchBar && (
->>>>>>> Stashed changes
           <div className="flex justify-center w-full pb-3">
             <div className="w-full max-w-4xl">
               <AirbnbSearchForm variant="compact" activeCategory={activeCategory} onSearch={onSearch} />

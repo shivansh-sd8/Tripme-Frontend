@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Briefcase, 
@@ -20,15 +20,31 @@ import ImageUpload from '../ui/ImageUpload';
 import { Service, ServicePricing, Location } from '@/types';
 import { SERVICE_TYPE_OPTIONS } from '@/config/constants';
 import { apiClient } from '@/infrastructure/api/clients/api-client';
+import dynamic from 'next/dynamic';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import { useRef, useCallback } from 'react';
 
-// Google Maps type declarations
-declare global {
-  interface Window {
-    google: any;
-  }
-}
+// Dynamic imports for Leaflet components
+const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
+const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
+const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
+const useMapEvents = dynamic(() => import('react-leaflet').then(mod => mod.useMapEvents), { ssr: false });
 
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyB9JgH59f8fK3xzaBfFB6T19u4qGEUeLOM';
+// Marker icon configuration
+const markerIcon = L.icon({
+  iconUrl: '/images/marker-icon.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowUrl: '/images/marker-shadow.png',
+  shadowSize: [41, 41]
+});
+
+// Mapbox constants
+const MAPBOX_API_URL = 'https://api.mapbox.com/geocoding/v5/mapbox.places';
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
 // Validation rules matching backend model
 const VALIDATION_RULES = {
@@ -81,216 +97,57 @@ interface ServiceFormProps {
   isEditMode?: boolean;
 }
 
-// Google Maps Location Picker Component
-function GoogleMapLocationPicker({ 
-  coordinates, 
-  setCoordinates 
-}: { 
-  coordinates: [number, number]; 
-  setCoordinates: (coords: [number, number]) => void;
-}) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
-  const infoWindowRef = useRef<any>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [mapReady, setMapReady] = useState(false);
-
-  // Load Google Maps script
-  useEffect(() => {
-    if (window.google && window.google.maps) {
-      setIsLoaded(true);
-      return;
-    }
-
-    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
-    if (existingScript) {
-      existingScript.addEventListener('load', () => setIsLoaded(true));
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => setIsLoaded(true);
-    document.head.appendChild(script);
-  }, []);
-
-  // Initialize map
-  useEffect(() => {
-    if (!isLoaded || !mapRef.current || mapInstanceRef.current) return;
-
-    const defaultCenter = coordinates[0] !== 0 && coordinates[1] !== 0 
-      ? { lat: coordinates[1], lng: coordinates[0] }
-      : { lat: 20.5937, lng: 78.9629 }; // Default: India
-
-    const map = new window.google.maps.Map(mapRef.current, {
-      center: defaultCenter,
-      zoom: coordinates[0] !== 0 && coordinates[1] !== 0 ? 14 : 5,
-      mapTypeControl: true,
-      streetViewControl: true,
-      fullscreenControl: true,
-      zoomControl: true,
-    });
-
-    mapInstanceRef.current = map;
-
-    // Create marker icon
-    const markerIcon = {
-      url: '/images/marker-icon.png',
-      scaledSize: new window.google.maps.Size(25, 41),
-      anchor: new window.google.maps.Point(12, 41),
-    };
-
-    // Create marker if coordinates exist
-    if (coordinates[0] !== 0 && coordinates[1] !== 0) {
-      const marker = new window.google.maps.Marker({
-        position: { lat: coordinates[1], lng: coordinates[0] },
-        map: map,
-        icon: markerIcon,
-        draggable: true,
-        title: 'Drag me to adjust the exact location',
-      });
-
-      markerRef.current = marker;
-
-      // Info window
-      const infoWindow = new window.google.maps.InfoWindow({
-        content: '<div style="padding: 8px;">Drag me to adjust the exact location</div>',
-      });
-      infoWindowRef.current = infoWindow;
-      infoWindow.open(map, marker);
-
-      // Handle marker drag
-      marker.addListener('dragend', (e: any) => {
-        const position = e.latLng;
-        setCoordinates([position.lng(), position.lat()]);
-      });
-    }
-
-    // Handle map click
-    map.addListener('click', (e: any) => {
-      const position = e.latLng;
-      setCoordinates([position.lng(), position.lat()]);
-
-      // Update or create marker
-      if (markerRef.current) {
-        markerRef.current.setPosition(position);
-        if (infoWindowRef.current) {
-          infoWindowRef.current.open(map, markerRef.current);
-        }
-      } else {
-        const marker = new window.google.maps.Marker({
-          position: position,
-          map: map,
-          icon: markerIcon,
-          draggable: true,
-          title: 'Drag me to adjust the exact location',
-        });
-        markerRef.current = marker;
-
-        const infoWindow = new window.google.maps.InfoWindow({
-          content: '<div style="padding: 8px;">Drag me to adjust the exact location</div>',
-        });
-        infoWindowRef.current = infoWindow;
-        infoWindow.open(map, marker);
-
-        marker.addListener('dragend', (e: any) => {
-          const pos = e.latLng;
-          setCoordinates([pos.lng(), pos.lat()]);
-        });
-      }
-    });
-
-    setMapReady(true);
-  }, [isLoaded, coordinates, setCoordinates]);
-
-  // Update marker position when coordinates change externally
-  useEffect(() => {
-    if (mapInstanceRef.current && markerRef.current && coordinates[0] !== 0 && coordinates[1] !== 0) {
-      const position = { lat: coordinates[1], lng: coordinates[0] };
-      markerRef.current.setPosition(position);
-      mapInstanceRef.current.setCenter(position);
-      if (infoWindowRef.current) {
-        infoWindowRef.current.open(mapInstanceRef.current, markerRef.current);
-      }
-    }
-  }, [coordinates]);
-
-  return (
-    <div 
-      ref={mapRef}
-      style={{ height: '100%', width: '100%', minHeight: '320px' }}
-    />
-  );
+// Add a component for map click events and draggable marker
+function LocationMarker({ setCoordinates, coordinates }: { setCoordinates: (coords: [number, number]) => void, coordinates: [number, number] }) {
+  // @ts-expect-error - useMapEvents is dynamically imported
+  useMapEvents({
+    click(e: any) {
+      setCoordinates([e.latlng.lng, e.latlng.lat]);
+    },
+  });
+  return coordinates[0] !== 0 && coordinates[1] !== 0 ? (
+    <Marker
+      position={[coordinates[1], coordinates[0]]}
+      icon={markerIcon}
+      draggable={true}
+      eventHandlers={{
+        dragend: (e: any) => {
+          const marker = e.target;
+          const latlng = marker.getLatLng();
+          setCoordinates([latlng.lng, latlng.lat]);
+        },
+      }}
+    >
+      <Popup>Drag me to adjust the exact location</Popup>
+    </Marker>
+  ) : null;
 }
 
-// Google Maps search box component
+// Map search box component
 function MapSearchBox({ onSelect }: { onSelect: (coords: [number, number], address: string) => void }) {
   const [query, setQuery] = React.useState('');
   const [results, setResults] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [showDropdown, setShowDropdown] = React.useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const autocompleteServiceRef = useRef<any>(null);
-
-  // Initialize Google Places Autocomplete Service
-  useEffect(() => {
-    if (window.google && window.google.maps && window.google.maps.places) {
-      autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
-    }
-  }, []);
 
   const fetchSuggestions = useCallback(async (input: string) => {
     if (!input || input.length < 2) {
       setResults([]);
       return;
     }
-
-    // Wait for Google Maps to load
-    if (!window.google || !window.google.maps || !window.google.maps.places) {
-      // Load script if needed
-      if (!document.querySelector('script[src*="maps.googleapis.com"]')) {
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
-        script.async = true;
-        script.defer = true;
-        script.onload = () => {
-          autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
-          fetchSuggestions(input);
-        };
-        document.head.appendChild(script);
-      }
-      return;
-    }
-
     setLoading(true);
     try {
-      if (!autocompleteServiceRef.current) {
-        autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
-      }
-
-      autocompleteServiceRef.current.getPlacePredictions(
-        {
-          input: input,
-          componentRestrictions: { country: 'in' },
-          types: ['geocode', 'establishment'],
-        },
-        (predictions: any[], status: any) => {
-          if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
-            setResults(predictions.map((prediction: any) => ({
-              label: prediction.description,
-              placeId: prediction.place_id,
-            })));
-          } else {
-            setResults([]);
-          }
-          setLoading(false);
-        }
-      );
+      const url = `${MAPBOX_API_URL}/${encodeURIComponent(input)}.json?access_token=${MAPBOX_TOKEN}&autocomplete=true&limit=5&country=IN`;
+      const res = await fetch(url);
+      const data = await res.json();
+      setResults((data.features || []).map((feature: any) => ({
+        label: feature.place_name,
+        coordinates: feature.center,
+      })));
     } catch (e) {
       setResults([]);
+    } finally {
       setLoading(false);
     }
   }, []);
@@ -321,33 +178,10 @@ function MapSearchBox({ onSelect }: { onSelect: (coords: [number, number], addre
               key={idx}
               type="button"
               className="w-full text-left px-4 py-3 hover:bg-indigo-50 focus:bg-indigo-100 rounded-xl transition-all text-gray-900 font-medium"
-              onClick={async () => {
+              onClick={() => {
+                onSelect([result.coordinates[0], result.coordinates[1]], result.label);
                 setQuery(result.label);
                 setShowDropdown(false);
-                
-                // Get place details using place_id
-                if (result.placeId && window.google && window.google.maps && window.google.maps.places) {
-                  const service = new window.google.maps.places.PlacesService(document.createElement('div'));
-                  service.getDetails(
-                    { placeId: result.placeId },
-                    (place: any, status: any) => {
-                      if (status === window.google.maps.places.PlacesServiceStatus.OK && place.geometry) {
-                        const coords: [number, number] = [place.geometry.location.lng(), place.geometry.location.lat()];
-                        onSelect(coords, result.label);
-                      } else {
-                        // Fallback: try to geocode the address
-                        const geocoder = new window.google.maps.Geocoder();
-                        geocoder.geocode({ address: result.label }, (results: any, status: any) => {
-                          if (status === window.google.maps.GeocoderStatus.OK && results && results[0]) {
-                            const location = results[0].geometry.location;
-                            const coords: [number, number] = [location.lng(), location.lat()];
-                            onSelect(coords, result.label);
-                          }
-                        });
-                      }
-                    }
-                  );
-                }
               }}
             >
               {result.label}
@@ -850,10 +684,21 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, isEditMode }) =>
           
           <label className="block text-base font-semibold text-gray-900 mb-2">Pin service location on map</label>
           <div className="w-full h-80 rounded-xl overflow-hidden border-2 border-gray-200 shadow-lg">
-            <GoogleMapLocationPicker
-              coordinates={formData.location.coordinates}
-              setCoordinates={(coords: [number, number]) => handleLocationChange('coordinates', coords)}
-            />
+            <MapContainer
+              center={formData.location.coordinates[0] !== 0 && formData.location.coordinates[1] !== 0 ? [formData.location.coordinates[1], formData.location.coordinates[0]] : [20.5937, 78.9629]} // Default: India
+              zoom={formData.location.coordinates[0] !== 0 && formData.location.coordinates[1] !== 0 ? 14 : 5}
+              style={{ height: '100%', width: '100%' }}
+              scrollWheelZoom={true}
+            >
+              <TileLayer
+                attribution="&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <LocationMarker
+                setCoordinates={(coords: [number, number]) => handleLocationChange('coordinates', coords)}
+                coordinates={formData.location.coordinates}
+              />
+            </MapContainer>
           </div>
           <p className="text-sm text-gray-700 mt-2">Search for an address or click on the map to set the exact location. This will be used for search and directions.</p>
           <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">Selected Coordinates: <span className="font-mono font-medium">{formData.location.coordinates[1]}, {formData.location.coordinates[0]}</span></div>

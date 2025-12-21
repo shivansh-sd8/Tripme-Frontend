@@ -60,8 +60,8 @@ export default function PricingBreakdown({
     hostEarning: passedHostEarning
   } = pricing;
 
-  // Use backend-calculated baseAmount if available, otherwise calculate from basePrice * nights
-  const baseAmount = passedBaseAmount ?? (basePrice * nights);
+  // Use ONLY backend-calculated values - NO FRONTEND CALCULATIONS
+  const baseAmount = passedBaseAmount ?? 0;
   const extraGuestCost = extraGuestPrice * extraGuests * nights; // Simple display calculation only
   const hostFees = cleaningFee + serviceFee; // Simple display calculation only
   

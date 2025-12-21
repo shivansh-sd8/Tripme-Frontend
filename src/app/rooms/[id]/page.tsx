@@ -16,7 +16,7 @@ import { createPortal } from 'react-dom';
 import PropertyAvailabilityCalendar from "@/components/rooms/PropertyAvailabilityCalendar";
 import dynamic from 'next/dynamic';
 
-// Dynamically import PropertyMap to avoid SSR issues with Google Maps
+// Dynamically import PropertyMap to avoid SSR issues with Leaflet
 const PropertyMap = dynamic(() => import("@/components/rooms/PropertyMap"), { 
   ssr: false,
   loading: () => (
@@ -383,46 +383,6 @@ export default function PropertyDetailsPage() {
       lastAutoAdjustedDate.current = null;
     }
   }, [dateRange.startDate]); // Only run on date change, not time change
-
-  // Initialize dates from search params if available
-  useEffect(() => {
-    const checkInParam = searchParams.get('checkIn');
-    const checkOutParam = searchParams.get('checkOut');
-    
-    if (checkInParam) {
-      try {
-        const checkInDate = new Date(checkInParam);
-        if (!isNaN(checkInDate.getTime())) {
-          setDateRange(prev => ({
-            ...prev,
-            startDate: checkInDate,
-            key: 'selection'
-          }));
-          setSelectionStep('checkout');
-        }
-      } catch (error) {
-        console.error('Error parsing checkIn param:', error);
-      }
-    }
-    
-    if (checkOutParam && checkInParam) {
-      try {
-        const checkOutDate = new Date(checkOutParam);
-        const checkInDate = new Date(checkInParam);
-        if (!isNaN(checkOutDate.getTime()) && !isNaN(checkInDate.getTime()) && checkOutDate > checkInDate) {
-          setDateRange(prev => ({
-            ...prev,
-            startDate: checkInDate,
-            endDate: checkOutDate,
-            key: 'selection'
-          }));
-          setSelectionStep('complete');
-        }
-      } catch (error) {
-        console.error('Error parsing checkOut param:', error);
-      }
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     if (!id) return;
@@ -1408,50 +1368,9 @@ export default function PropertyDetailsPage() {
               <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
                 <PropertyAvailabilityCalendar 
                   propertyId={id as string}
-                  checkInDate={dateRange.startDate}
-                  checkOutDate={dateRange.endDate}
-                  selectionStep={selectionStep}
                   onDateSelect={(date) => {
-                    console.log('Selected date from calendar:', date);
-                    
-                    if (selectionStep === 'checkin') {
-                      // Select check-in date
-                      const newDateRange = {
-                        ...dateRange,
-                        startDate: new Date(date),
-                        endDate: null,
-                        key: 'selection'
-                      };
-                      setDateRange(newDateRange);
-                      setSelectionStep('checkout');
-                    } else if (selectionStep === 'checkout') {
-                      // Select check-out date
-                      if (date > dateRange.startDate) {
-                        const newDateRange = {
-                          ...dateRange,
-                          endDate: new Date(date),
-                          key: 'selection'
-                        };
-                        setDateRange(newDateRange);
-                        setSelectionStep('complete');
-                      } else if (date < dateRange.startDate) {
-                        // New date is before start date, make it new start date
-                        setDateRange({
-                          startDate: new Date(date),
-                          endDate: null,
-                          key: 'selection'
-                        });
-                        setSelectionStep('checkin');
-                      }
-                    } else {
-                      // Both dates selected, start over with new check-in date
-                      setDateRange({
-                        startDate: new Date(date),
-                        endDate: null,
-                        key: 'selection'
-                      });
-                      setSelectionStep('checkin');
-                    }
+                    console.log('Selected date:', date);
+                    // You can add logic here to update booking dates
                   }}
                   isHostView={isOwnProperty} // Show booking details only for property owner
                 />
