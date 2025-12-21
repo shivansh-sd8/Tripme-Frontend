@@ -9,9 +9,6 @@ interface PropertyAvailabilityCalendarProps {
   onDateSelect?: (date: Date) => void;
   selectedDate?: Date;
   isHostView?: boolean; // If true, show booking details (times, guest name)
-  checkInDate?: Date | null;
-  checkOutDate?: Date | null;
-  selectionStep?: 'checkin' | 'checkout' | 'complete';
 }
 
 interface AvailabilityData {
@@ -41,34 +38,13 @@ export default function PropertyAvailabilityCalendar({
   propertyId, 
   onDateSelect, 
   selectedDate,
-  isHostView = false, // Default to guest view (no booking details)
-  checkInDate,
-  checkOutDate,
-  selectionStep = 'checkin'
+  isHostView = false // Default to guest view (no booking details)
 }: PropertyAvailabilityCalendarProps) {
   const [availability, setAvailability] = useState<AvailabilityData>({});
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDateState, setSelectedDateState] = useState<Date | null>(selectedDate || null);
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
-
-  // Sync selectedDateState with checkInDate when provided
-  useEffect(() => {
-    if (checkInDate) {
-      setSelectedDateState(checkInDate);
-      // Navigate calendar to show check-in date month
-      setCurrentMonth(checkInDate);
-    } else if (selectedDate) {
-      setSelectedDateState(selectedDate);
-    }
-  }, [checkInDate, selectedDate]);
-
-  // Navigate calendar to show check-out date month if available
-  useEffect(() => {
-    if (checkOutDate) {
-      setCurrentMonth(checkOutDate);
-    }
-  }, [checkOutDate]);
 
   // Format time to 12-hour format
   const formatTime12Hour = (timeStr: string | undefined) => {
@@ -319,15 +295,8 @@ export default function PropertyAvailabilityCalendar({
         const dayData = availability[dateKey];
         const isCurrentMonth = isSameMonth(day, monthStart);
         const isSelected = selectedDateState && isSameDay(day, selectedDateState);
-        const isCheckIn = checkInDate && isSameDay(day, checkInDate);
-        const isCheckOut = checkOutDate && isSameDay(day, checkOutDate);
         const isTodayDate = isToday(day);
         const isPastDate = isPast(day) && !isTodayDate;
-        
-        // Check if date is between check-in and check-out (for range highlighting)
-        const isInRange = checkInDate && checkOutDate && 
-          day > checkInDate && day < checkOutDate && 
-          isCurrentMonth && !isPastDate;
         
         // Determine status - both host and guest default to unavailable (host must explicitly set as available)
         const status = dayData?.status || 'unavailable';
@@ -335,8 +304,7 @@ export default function PropertyAvailabilityCalendar({
         const style = getStatusStyle(status, hasHourRestrictions);
         
         // Can only select available dates that are not in the past
-        // Also allow selecting partially-available dates (for checkout dates with maintenance)
-        const isSelectable = isCurrentMonth && !isPastDate && (status === 'available' || status === 'partially-available');
+        const isSelectable = isCurrentMonth && !isPastDate && status === 'available';
 
         const clonedDay = day;
         
@@ -347,14 +315,10 @@ export default function PropertyAvailabilityCalendar({
               relative min-h-[48px] p-1 rounded-lg transition-all duration-200 cursor-pointer
               ${!isCurrentMonth ? 'opacity-30' : ''}
               ${isPastDate ? 'opacity-40 cursor-not-allowed' : ''}
-              ${isCheckIn ? 'ring-2 ring-blue-500 ring-offset-1 bg-blue-50' : ''}
-              ${isCheckOut ? 'ring-2 ring-green-500 ring-offset-1 bg-green-50' : ''}
-              ${isInRange ? 'bg-indigo-100 border-indigo-300 border' : ''}
-              ${isSelected && !isCheckIn && !isCheckOut && !isInRange ? 'ring-2 ring-indigo-500 ring-offset-1' : ''}
-              ${isTodayDate && !isCheckIn && !isCheckOut && !isInRange ? 'ring-2 ring-blue-400' : ''}
-              ${isCurrentMonth && !isPastDate && !isCheckIn && !isCheckOut && !isInRange ? style.bg : ''}
-              ${isCurrentMonth && !isPastDate && !isCheckIn && !isCheckOut && !isInRange ? `border ${style.border}` : ''}
-              ${isCurrentMonth && !isPastDate && (isCheckIn || isCheckOut) ? 'border-2' : ''}
+              ${isSelected ? 'ring-2 ring-indigo-500 ring-offset-1' : ''}
+              ${isTodayDate ? 'ring-2 ring-blue-400' : ''}
+              ${isCurrentMonth && !isPastDate ? style.bg : 'bg-gray-50'}
+              ${isCurrentMonth && !isPastDate ? `border ${style.border}` : ''}
             `}
             onClick={() => {
               if (isSelectable) {
@@ -365,20 +329,8 @@ export default function PropertyAvailabilityCalendar({
             onMouseEnter={() => setHoveredDate(dateKey)}
             onMouseLeave={() => setHoveredDate(null)}
           >
-            {/* Check-in/Check-out labels */}
-            {isCheckIn && isCurrentMonth && (
-              <div className="absolute top-0 left-0 right-0 text-[8px] font-bold text-blue-700 bg-blue-200 rounded-t-lg px-1 text-center">
-                Check-in
-              </div>
-            )}
-            {isCheckOut && isCurrentMonth && (
-              <div className="absolute top-0 left-0 right-0 text-[8px] font-bold text-green-700 bg-green-200 rounded-t-lg px-1 text-center">
-                Check-out
-              </div>
-            )}
-            
             {/* Date number */}
-            <div className={`text-sm font-medium text-center ${isCurrentMonth ? (isCheckIn || isCheckOut || isInRange ? 'text-gray-900' : style.text) : 'text-gray-400'} ${(isCheckIn || isCheckOut) ? 'mt-1' : ''}`}>
+            <div className={`text-sm font-medium text-center ${isCurrentMonth ? style.text : 'text-gray-400'}`}>
               {format(day, 'd')}
             </div>
             

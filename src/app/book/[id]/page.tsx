@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { apiClient } from "@/infrastructure/api/clients/api-client";
 import { useAuth } from "@/core/store/auth-context";
@@ -56,22 +56,22 @@ import {
   Info,
   MessageCircle
 } from "lucide-react";
-import { start } from "repl";
 
-// Payment Modal Component with Razorpay Integration
+// Payment Modal Component
 const PaymentModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (paymentData: any) => void;
+  onSuccess: () => void;
   amount: number;
   loading: boolean;
-  bookingId?: string | null;
-  propertyId?: string;
-  user?: any;
-}> = ({ isOpen, onClose, onSuccess, amount, loading, bookingId, propertyId, user }) => {
-  const [paymentStep, setPaymentStep] = useState<'init' | 'processing' | 'success' | 'error'>('init');
-  const [error, setError] = useState('');
-  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+}> = ({ isOpen, onClose, onSuccess, amount, loading }) => {
+  const [paymentStep, setPaymentStep] = useState<'card' | 'processing' | 'success'>('card');
+  const [cardData, setCardData] = useState({
+    number: '',
+    expiry: '',
+    cvv: '',
+    name: ''
+  });
 
   const formatPrice = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -80,119 +80,16 @@ const PaymentModal: React.FC<{
     }).format(amount);
   };
 
-  // Load Razorpay script
-  useEffect(() => {
-    if (!isOpen || razorpayLoaded) return;
-
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    script.onload = () => {
-      setRazorpayLoaded(true);
-      console.log('✅ Razorpay script loaded');
-    };
-    script.onerror = () => {
-      setError('Failed to load Razorpay. Please refresh the page.');
-      console.error('❌ Failed to load Razorpay script');
-    };
-    document.body.appendChild(script);
-
-    return () => {
-      // Cleanup script on unmount
-      const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
-      if (existingScript) {
-        document.body.removeChild(existingScript);
-      }
-    };
-  }, [isOpen, razorpayLoaded]);
-
   const handlePayment = async () => {
     setPaymentStep('processing');
-    setError('');
-
-    try {
-      console.log('🔄 Creating Razorpay order...', { bookingId, amount, propertyId });
-      
-      // Create Razorpay order (bookingId is temporary, actual booking created after payment)
-      const orderResponse = await apiClient.createRazorpayOrder(bookingId || null, amount, 'INR', propertyId);
-      
-      console.log('📦 Order response:', orderResponse);
-      
-      if (!orderResponse.success || !orderResponse.data) {
-        const errorMsg = orderResponse.error || orderResponse.message || 'Failed to create payment order';
-        console.error('❌ Order creation failed:', errorMsg);
-        throw new Error(errorMsg);
-      }
-
-      const { orderId, key } = orderResponse.data;
-
-      // Initialize Razorpay checkout
-      const options = {
-        key: key,
-        amount: Math.round(amount * 100), // Convert to paise
-        currency: 'INR',
-        name: 'TripMe',
-        description: `Payment for booking${propertyId ? ` - Property ${propertyId}` : ''}`,
-        order_id: orderId,
-        handler: async function (response: any) {
-          console.log('✅ Razorpay payment success:', response);
-          
-          // Payment successful - call onSuccess with payment data
-          onSuccess({
-            razorpayOrderId: response.razorpay_order_id,
-            razorpayPaymentId: response.razorpay_payment_id,
-            razorpaySignature: response.razorpay_signature,
-            razorpayPaymentDetails: response
-          });
-          
-          setPaymentStep('success');
-          setTimeout(() => {
-            onClose();
-          }, 2000);
-        },
-        prefill: {
-          name: user?.name || '',
-          email: user?.email || '',
-          contact: user?.phone || ''
-        },
-        theme: {
-          color: '#1f2937'
-        },
-        modal: {
-          ondismiss: function() {
-            setPaymentStep('init');
-            console.log('Payment modal closed');
-          }
-        }
-      };
-
-      // Check if Razorpay is available
-      if (!(window as any).Razorpay) {
-        throw new Error('Razorpay script not loaded. Please refresh the page.');
-      }
-
-      // Open Razorpay checkout
-      console.log('🚀 Opening Razorpay checkout with options:', { ...options, key: '***' });
-      const razorpay = new (window as any).Razorpay(options);
-      
-      razorpay.on('payment.failed', function (response: any) {
-        console.error('❌ Razorpay payment failed:', response);
-        setError(response.error?.description || response.error?.reason || 'Payment failed. Please try again.');
-        setPaymentStep('error');
-      });
-
-      razorpay.on('payment.authorized', function (response: any) {
-        console.log('✅ Payment authorized:', response);
-      });
-      
-      // Open the Razorpay checkout popup
-      razorpay.open();
-      console.log('✅ Razorpay checkout opened');
-    } catch (error: any) {
-      console.error('❌ Error initiating Razorpay payment:', error);
-      setError(error.message || 'Failed to initiate payment. Please try again.');
-      setPaymentStep('error');
-    }
+    // Simulate payment processing
+    setTimeout(() => {
+      setPaymentStep('success');
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+      }, 2000);
+    }, 3000);
   };
 
   if (!isOpen) return null;
@@ -209,7 +106,7 @@ const PaymentModal: React.FC<{
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Complete Payment</h2>
-                <p className="text-sm text-gray-600">Secure payment via Razorpay</p>
+                <p className="text-sm text-gray-600">Secure payment via Stripe</p>
               </div>
             </div>
             <button
@@ -223,7 +120,7 @@ const PaymentModal: React.FC<{
 
         {/* Content */}
         <div className="p-6">
-          {paymentStep === 'init' && (
+          {paymentStep === 'card' && (
             <div className="space-y-6">
               {/* Amount Display */}
               <div className="text-center p-4 bg-gradient-to-r from-gray-50 to-slate-50 rounded-2xl">
@@ -231,12 +128,54 @@ const PaymentModal: React.FC<{
                 <p className="text-3xl font-bold text-gray-900">{formatPrice(amount)}</p>
               </div>
 
-              {/* Payment Info */}
+              {/* Card Form */}
               <div className="space-y-4">
-                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                  <p className="text-sm text-blue-800">
-                    You will be redirected to Razorpay's secure payment gateway to complete your payment.
-                  </p>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Card Number</label>
+                  <input
+                    type="text"
+                    placeholder="1234 5678 9012 3456"
+                    value={cardData.number}
+                    onChange={(e) => setCardData({ ...cardData, number: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-400 focus:border-gray-400 text-lg font-mono"
+                    maxLength={19}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Expiry</label>
+                    <input
+                      type="text"
+                      placeholder="MM/YY"
+                      value={cardData.expiry}
+                      onChange={(e) => setCardData({ ...cardData, expiry: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
+                      maxLength={5}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">CVV</label>
+                    <input
+                      type="text"
+                      placeholder="123"
+                      value={cardData.cvv}
+                      onChange={(e) => setCardData({ ...cardData, cvv: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
+                      maxLength={4}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Cardholder Name</label>
+                  <input
+                    type="text"
+                    placeholder="John Doe"
+                    value={cardData.name}
+                    onChange={(e) => setCardData({ ...cardData, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
+                  />
                 </div>
               </div>
 
@@ -246,21 +185,14 @@ const PaymentModal: React.FC<{
                 <p className="text-sm text-gray-600">Your payment is secured with SSL encryption</p>
               </div>
 
-              {/* Error Display */}
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
-                  <p className="text-sm text-red-800">{error}</p>
-                </div>
-              )}
-
               {/* Pay Button */}
               <Button
                 onClick={handlePayment}
-                disabled={loading || !razorpayLoaded}
-                className="w-full bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-800 hover:to-gray-900 text-white font-semibold py-4 rounded-xl text-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-800 hover:to-gray-900 text-white font-semibold py-4 rounded-xl text-lg shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 <CreditCard className="w-5 h-5 mr-2" />
-                {!razorpayLoaded ? 'Loading Razorpay...' : `Pay ${formatPrice(amount)}`}
+                Pay {formatPrice(amount)}
               </Button>
             </div>
           )}
@@ -273,40 +205,13 @@ const PaymentModal: React.FC<{
             </div>
           )}
 
-          {paymentStep === 'processing' && (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 border-4 border-gray-200 border-t-gray-600 rounded-full animate-spin mx-auto mb-6"></div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Opening Payment Gateway</h3>
-              <p className="text-gray-600">Please wait while we redirect you to Razorpay...</p>
-            </div>
-          )}
-
           {paymentStep === 'success' && (
             <div className="text-center py-12">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle2 className="w-8 h-8 text-green-600" />
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle2 className="w-8 h-8 text-gray-600" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Payment Successful!</h3>
               <p className="text-gray-600">Your booking has been confirmed</p>
-            </div>
-          )}
-
-          {paymentStep === 'error' && (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <AlertCircle className="w-8 h-8 text-red-600" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Payment Failed</h3>
-              <p className="text-gray-600 mb-4">{error || 'An error occurred during payment'}</p>
-              <Button
-                onClick={() => {
-                  setPaymentStep('init');
-                  setError('');
-                }}
-                className="bg-gray-700 text-white px-6 py-2 rounded-lg"
-              >
-                Try Again
-              </Button>
             </div>
           )}
         </div>
@@ -330,34 +235,15 @@ export default function BookingPage() {
   const [blockedDates, setBlockedDates] = useState<string[]>([]);
   const [blockingTimer, setBlockingTimer] = useState<NodeJS.Timeout | null>(null);
   const [blockingExpiry, setBlockingExpiry] = useState<Date | null>(null);
-  const [isRedirecting, setIsRedirecting] = useState(false); // Flag to prevent conflicting redirects
   // Platform fee rate is now handled by backend API
 
-  
-  // Helper function to parse date string to LOCAL midnight (not UTC)
-  // new Date('YYYY-MM-DD') creates UTC midnight which shifts by 1 day in IST
-  const parseDateToLocal = (dateInput: string | Date | undefined): Date => {
-    if (!dateInput) return new Date();
-    if (dateInput instanceof Date) return dateInput;
-    
-    // If it's an ISO string like '2025-12-29T18:30:00.000Z', parse it properly
-    if (dateInput.includes('T')) {
-      const date = new Date(dateInput);
-      // Return a new date at local midnight for the local date
-      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    }
-    
-    // If it's a date-only string like '2025-12-29', parse to local midnight
-    const [year, month, day] = dateInput.split('-').map(Number);
-    return new Date(year, month - 1, day);
-  };
   
   // Booking state - initialize from context or defaults
   const [bookingData, setBookingData] = useState(() => {
     if (contextBookingData && contextBookingData.propertyId === id) {
       return {
-        checkIn: parseDateToLocal(contextBookingData.startDate),
-        checkOut: contextBookingData.endDate ? parseDateToLocal(contextBookingData.endDate) : new Date(Date.now() + 24 * 60 * 60 * 1000),
+        checkIn: contextBookingData.startDate ? new Date(contextBookingData.startDate) : new Date(),
+        checkOut: contextBookingData.endDate ? new Date(contextBookingData.endDate) : new Date(Date.now() + 24 * 60 * 60 * 1000),
         guests: contextBookingData.guests || { adults: 1, children: 0, infants: 0 },
         specialRequests: contextBookingData.specialRequests || '',
         contactInfo: {
@@ -418,37 +304,17 @@ export default function BookingPage() {
       checkOut: bookingData.checkOut,
       guests: bookingData.guests,
       hourlyExtension: bookingData.hourlyExtension,
-      checkInTime: bookingData.checkInTime
-      // checkOutDateTime: bookingData.checkOutDateTime, // DEBUG: Check if checkInTime is passed
+      checkInTime: bookingData.checkInTime // DEBUG: Check if checkInTime is passed
     });
   }, [bookingData]);
 
-  // Redirect to property page if no booking data (but not if we're redirecting after payment)
+  // Redirect to property page if no booking data
   useEffect(() => {
-    // Don't redirect if we're in the process of redirecting after payment
-    if (isRedirecting) {
-      return;
-    }
     if (!contextBookingData || contextBookingData.propertyId !== id) {
       router.push(`/rooms/${id}`);
     }
-  }, [contextBookingData, id, router, isRedirecting]);
-  const [priceBreakdown, setPriceBreakdown] = useState<{
-    basePrice: number;
-    serviceFee: number;
-    cleaningFee: number;
-    securityDeposit: number;
-    extraGuestCost: number;
-    hourlyExtensionCost: number;
-    platformFee: number;
-    gst: number;
-    processingFee: number;
-    taxes: number;
-    total: number;
-    nights: number;
-    subtotal: number;
-    pricingToken?: string;
-  }>({
+  }, [contextBookingData, id, router]);
+  const [priceBreakdown, setPriceBreakdown] = useState({
     basePrice: 0,
     serviceFee: 0,
     cleaningFee: 0,
@@ -535,121 +401,8 @@ export default function BookingPage() {
     };
   }, [blockedDates, id, user?._id]);
 
-  // Track if we've initialized the available date
-  const dateInitializedRef = useRef(false);
-
-  // Initial load: Fetch availability and set check-in to next available date if today is booked
-  useEffect(() => {
-    if (!id || isLoading || dateInitializedRef.current) return;
-    
-    console.log('🚀 Initializing available date check...');
-    
-    const initializeAvailableDate = async () => {
-      try {
-        const response = await apiClient.getAvailability(id as string);
-        console.log('📊 Initial availability response:', response);
-        
-        if (response.success && response.data) {
-          const availabilityData = response.data.availability || [];
-          setAvailability(availabilityData);
-          
-          console.log('📅 Availability data loaded:', availabilityData.length, 'dates');
-          
-          // Check if current check-in date (today) is available
-          setBookingData(prev => {
-            const currentCheckIn = prev.checkIn || new Date();
-            const currentCheckInStr = currentCheckIn.toLocaleDateString('en-CA');
-            
-            console.log('🔍 Checking if initial check-in date is available:', currentCheckInStr);
-            
-            // Find the availability record for current check-in date
-            const currentDateAvailability = availabilityData.find((a: any) => {
-              let availabilityDateStr: string;
-              if (typeof a.date === 'string') {
-                const parsedDate = new Date(a.date);
-                availabilityDateStr = parsedDate.toLocaleDateString('en-CA');
-              } else if (a.date instanceof Date) {
-                availabilityDateStr = a.date.toLocaleDateString('en-CA');
-              } else {
-                const parsedDate = new Date(a.date);
-                availabilityDateStr = parsedDate.toLocaleDateString('en-CA');
-              }
-              return availabilityDateStr === currentCheckInStr;
-            });
-            
-            console.log('📋 Current date availability record:', currentDateAvailability);
-            
-            if (currentDateAvailability) {
-              console.log('📊 Current date status:', currentDateAvailability.status);
-              
-              // If date is booked, maintenance, or unavailable, find next available
-              if (currentDateAvailability.status === 'booked' || 
-                  currentDateAvailability.status === 'maintenance' || 
-                  currentDateAvailability.status === 'unavailable') {
-                console.log('⚠️ Initial check-in date is not available (status:', currentDateAvailability.status, '), finding next available date...');
-                const nextAvailableDate = findNextAvailableDate(availabilityData, currentCheckIn);
-                
-                if (nextAvailableDate) {
-                  const newCheckOutDate = new Date(nextAvailableDate);
-                  newCheckOutDate.setDate(nextAvailableDate.getDate() + 1);
-                  
-                  console.log(`✅ Initializing check-in date to ${nextAvailableDate.toLocaleDateString('en-CA')}`);
-                  
-                  dateInitializedRef.current = true;
-                  
-                  return {
-                    ...prev,
-                    checkIn: nextAvailableDate,
-                    checkOut: newCheckOutDate
-                  };
-                } else {
-                  console.log('❌ No available date found');
-                }
-              } else if (currentDateAvailability.status === 'available') {
-                console.log('✅ Initial check-in date is available');
-              }
-            } else {
-              // Date not found in availability - might not be available
-              console.log('⚠️ Initial check-in date not found in availability data, finding next available date...');
-              const nextAvailableDate = findNextAvailableDate(availabilityData, currentCheckIn);
-              
-              if (nextAvailableDate) {
-                const newCheckOutDate = new Date(nextAvailableDate);
-                newCheckOutDate.setDate(nextAvailableDate.getDate() + 1);
-                
-                console.log(`✅ Initializing check-in date to ${nextAvailableDate.toLocaleDateString('en-CA')}`);
-                
-                dateInitializedRef.current = true;
-                
-                return {
-                  ...prev,
-                  checkIn: nextAvailableDate,
-                  checkOut: newCheckOutDate
-                };
-              }
-            }
-            
-            dateInitializedRef.current = true;
-            return prev; // No change needed
-          });
-        }
-      } catch (error) {
-        console.error('❌ Failed to initialize available date:', error);
-        dateInitializedRef.current = true; // Mark as initialized even on error to prevent retries
-      }
-    };
-    
-    initializeAvailableDate();
-  }, [id, isLoading]); // Only run once when component mounts and id is available
-
   // Check availability when user arrives on booking page (but don't block dates yet)
   useEffect(() => {
-    // Skip if date initialization hasn't completed yet
-    if (!dateInitializedRef.current) {
-      console.log('⏳ Waiting for date initialization to complete...');
-      return;
-    }
-    
     console.log('🔍 Availability check useEffect triggered');
     console.log('🔍 Current state:', {
       id,
@@ -682,34 +435,25 @@ export default function BookingPage() {
     if (bookingError === 'Please log in to continue with your booking.') {
       setBookingError('');
     }
-
-   
     
     // Just check availability, don't block dates yet
     checkAvailability();
-  }, [id, bookingData.checkIn, bookingData.checkOut, bookingData.hourlyExtension, isAuthenticated, user?._id, isLoading]);
+  }, [id, bookingData.checkIn, bookingData.checkOut, isAuthenticated, user?._id, isLoading]);
 
   // Update timer display every minute
   useEffect(() => {
     if (!blockingExpiry) return;
     
     const timerInterval = setInterval(() => {
-      // Don't revert if booking is in progress (payment succeeded, booking being created)
-      if (bookingLoading) {
-        console.log('⏸️ Skipping expiry check - booking in progress');
-        return;
-      }
-      
       const timeLeft = blockingExpiry.getTime() - Date.now();
       if (timeLeft <= 0) {
         // Timer expired, revert dates
-        console.log('⏰ Blocking expiry timer expired, reverting dates');
         revertBlockedDates();
       }
-    }, 10000); // Check every 10 seconds for more responsive expiry
+    }, 60000); // Check every minute
     
     return () => clearInterval(timerInterval);
-  }, [blockingExpiry, bookingLoading]);
+  }, [blockingExpiry]);
 
   // Real-time timer update for better UX
   const [currentTime, setCurrentTime] = useState(Date.now());
@@ -728,12 +472,6 @@ export default function BookingPage() {
   const revertBlockedDates = async () => {
     if (!id || blockedDates.length === 0) return;
     
-    // Don't revert if booking is in progress (payment succeeded, booking being created)
-    if (bookingLoading) {
-      console.log('⏸️ Skipping date revert - booking in progress');
-      return;
-    }
-    
     console.log('Starting to revert blocked dates...');
     console.log('Dates to revert:', blockedDates);
     
@@ -750,10 +488,7 @@ export default function BookingPage() {
         setBlockingTimer(null);
       }
       
-      // Only show error if booking is not in progress
-      if (!bookingLoading) {
-        setBookingError('Your date reservation has expired. Please select new dates.');
-      }
+      setBookingError('Your date reservation has expired. Please select new dates.');
     } catch (error) {
       console.error('Failed to revert blocked dates:', error);
     }
@@ -791,12 +526,8 @@ export default function BookingPage() {
   };
 
   // Refresh availability data from backend
-  // Pass currentBlockedDates parameter to avoid relying on stale blockedDates state
-  const refreshAvailabilityData = async (currentBlockedDates?: string[]) => {
+  const refreshAvailabilityData = async () => {
     if (!id) return;
-    
-    // Use passed dates or fall back to state (which may be stale due to async updates)
-    const effectiveBlockedDates = currentBlockedDates || blockedDates;
     
     try {
       console.log('Calling getAvailability for property:', id);
@@ -804,35 +535,9 @@ export default function BookingPage() {
       console.log('getAvailability response:', response);
       
       if (response.success && response.data) {
-        const availabilityData = response.data.availability || [];
-        setAvailability(availabilityData);
-        console.log('Availability data refreshed:', availabilityData);
-        console.log('Current blocked dates (effective):', effectiveBlockedDates);
-        
-        // Check if current check-in date is available, if not find next available
-        // Use a local check that considers the effective blocked dates
-        const checkInDateStr = bookingData.checkIn?.toLocaleDateString('en-CA');
-        const isCheckInBlocked = effectiveBlockedDates.includes(checkInDateStr || '');
-        
-        if (bookingData.checkIn && !isCheckInBlocked && !isDateAvailable(bookingData.checkIn, availabilityData)) {
-          console.log('⚠️ Current check-in date is not available after refresh, finding next available date...');
-          const nextAvailableDate = findNextAvailableDate(availabilityData, bookingData.checkIn);
-          
-          if (nextAvailableDate) {
-            const newCheckOutDate = new Date(nextAvailableDate);
-            newCheckOutDate.setDate(nextAvailableDate.getDate() + 1);
-            
-            console.log(`🔄 Auto-updating check-in date to ${nextAvailableDate.toLocaleDateString('en-CA')}`);
-            
-            setBookingData(prev => ({
-              ...prev,
-              checkIn: nextAvailableDate,
-              checkOut: newCheckOutDate
-            }));
-          }
-        } else if (isCheckInBlocked) {
-          console.log('✅ Check-in date is blocked by current user, keeping selected dates');
-        }
+        setAvailability(response.data.availability || []);
+        console.log('Availability data refreshed:', response.data.availability);
+        console.log('Current blocked dates state:', blockedDates);
       }
     } catch (error) {
       console.error('Failed to refresh availability:', error);
@@ -842,100 +547,6 @@ export default function BookingPage() {
   // Helper function to get user ID consistently
   const getUserId = (user: UserType | null): string | undefined => {
     return user?.id || user?._id;
-  };
-
-  // Helper function to find the next available date from availability data
-  const findNextAvailableDate = (availabilityData: any[], startFromDate?: Date): Date | null => {
-    if (!availabilityData || availabilityData.length === 0) return null;
-    
-    const startDate = startFromDate || new Date();
-    const today = new Date(startDate);
-    today.setHours(0, 0, 0, 0); // Reset time to start of day
-    
-    // Look ahead up to 90 days for an available date
-    for (let i = 0; i < 90; i++) {
-      const checkDate = new Date(today);
-      checkDate.setDate(today.getDate() + i);
-      const dateStr = checkDate.toLocaleDateString('en-CA');
-      
-      // Find availability record for this date
-      const dateAvailability = availabilityData.find((a: any) => {
-        let availabilityDateStr: string;
-        if (typeof a.date === 'string') {
-          const parsedDate = new Date(a.date);
-          availabilityDateStr = parsedDate.toLocaleDateString('en-CA');
-        } else if (a.date instanceof Date) {
-          availabilityDateStr = a.date.toLocaleDateString('en-CA');
-        } else {
-          const parsedDate = new Date(a.date);
-          availabilityDateStr = parsedDate.toLocaleDateString('en-CA');
-        }
-        return availabilityDateStr === dateStr;
-      });
-      
-      // Skip booked, maintenance, and unavailable dates
-      if (dateAvailability && (
-        dateAvailability.status === 'booked' || 
-        dateAvailability.status === 'maintenance' || 
-        dateAvailability.status === 'unavailable'
-      )) {
-        continue; // Skip this date, check next
-      }
-      
-      // Check if date is available
-      if (dateAvailability && dateAvailability.status === 'available') {
-        console.log(`✅ Found next available date: ${dateStr}`);
-        return checkDate;
-      }
-      
-      // Also allow dates that are blocked by current user
-      if (dateAvailability && dateAvailability.status === 'blocked' && blockedDates.includes(dateStr)) {
-        console.log(`✅ Found next available date (blocked by current user): ${dateStr}`);
-        return checkDate;
-      }
-      
-      // If date doesn't exist in availability data, skip it (not available)
-      if (!dateAvailability) {
-        continue; // Skip dates not in availability model
-      }
-    }
-    
-    console.log('⚠️ No available date found in next 90 days');
-    return null;
-  };
-
-  // Helper function to check if a date is available
-  const isDateAvailable = (date: Date, availabilityData: any[]): boolean => {
-    if (!availabilityData || availabilityData.length === 0) return false;
-    
-    const dateStr = date.toLocaleDateString('en-CA');
-    
-    const dateAvailability = availabilityData.find((a: any) => {
-      let availabilityDateStr: string;
-      if (typeof a.date === 'string') {
-        const parsedDate = new Date(a.date);
-        availabilityDateStr = parsedDate.toLocaleDateString('en-CA');
-      } else if (a.date instanceof Date) {
-        availabilityDateStr = a.date.toLocaleDateString('en-CA');
-      } else {
-        const parsedDate = new Date(a.date);
-        availabilityDateStr = parsedDate.toLocaleDateString('en-CA');
-      }
-      return availabilityDateStr === dateStr;
-    });
-    
-    if (!dateAvailability) return false;
-    
-    // Explicitly exclude booked, maintenance, and unavailable dates
-    if (dateAvailability.status === 'booked' || 
-        dateAvailability.status === 'maintenance' || 
-        dateAvailability.status === 'unavailable') {
-      return false;
-    }
-    
-    // Date is available if status is 'available' or blocked by current user
-    return dateAvailability.status === 'available' || 
-           (dateAvailability.status === 'blocked' && blockedDates.includes(dateStr));
   };
 
   // Manual trigger for date blocking (for debugging)
@@ -977,41 +588,12 @@ export default function BookingPage() {
     try {
       const response = await apiClient.getAvailability(id as string);
       if (response.success && response.data) {
-        const availabilityData = response.data.availability || [];
-        setAvailability(availabilityData);
+        setAvailability(response.data.availability || []);
         
-        console.log('Availability data received:', availabilityData);
+        console.log('Availability data received:', response.data.availability);
         const checkInDate = bookingData.checkIn instanceof Date ? bookingData.checkIn : new Date(bookingData.checkIn);
         const checkOutDate = bookingData.checkOut instanceof Date ? bookingData.checkOut : new Date(bookingData.checkOut);
         console.log('Checking availability for dates:', checkInDate.toLocaleDateString('en-CA'), 'to', checkOutDate.toLocaleDateString('en-CA'));
-        
-        // Check if current check-in date is available
-        if (!isDateAvailable(checkInDate, availabilityData)) {
-          console.log('⚠️ Current check-in date is not available, finding next available date...');
-          const nextAvailableDate = findNextAvailableDate(availabilityData, checkInDate);
-          
-          if (nextAvailableDate) {
-            // Calculate check-out date (1 day after check-in by default)
-            const newCheckOutDate = new Date(nextAvailableDate);
-            newCheckOutDate.setDate(nextAvailableDate.getDate() + 1);
-            
-            console.log(`🔄 Auto-updating check-in date from ${checkInDate.toLocaleDateString('en-CA')} to ${nextAvailableDate.toLocaleDateString('en-CA')}`);
-            
-            setBookingData(prev => ({
-              ...prev,
-              checkIn: nextAvailableDate,
-              checkOut: newCheckOutDate
-            }));
-            
-            // Return early - we'll check again with the new dates
-            setAvailabilityLoading(false);
-            return false; // Will trigger another check with new dates
-          } else {
-            setBookingError('No available dates found. Please try selecting dates manually.');
-            setAvailabilityLoading(false);
-            return false;
-          }
-        }
         
         // Check if all selected dates are available
         const startDate = new Date(bookingData.checkIn);
@@ -1188,7 +770,9 @@ export default function BookingPage() {
         cleaningFee: pricing.cleaningFee,
         securityDeposit: pricing.securityDeposit,
         extraGuestCost: pricing.extraGuestCost,
-        hourlyExtensionCost: pricing.hourlyExtension || 0,
+        extraGuestPrice: pricing.extraGuestPrice,
+        extraGuests: pricing.extraGuests,
+        hourlyExtension: pricing.hourlyExtension,
         platformFee: pricing.platformFee,
         gst: pricing.gst,
         processingFee: pricing.processingFee,
@@ -1196,18 +780,11 @@ export default function BookingPage() {
         total: pricing.totalAmount,
         nights: pricing.nights,
         subtotal: pricing.subtotal,
-        // Security token for validation - ensures backend uses this exact price for the current dates
+        hostSubtotal: pricing.hostSubtotal,
+        discountAmount: pricing.discountAmount,
+        // Security token for validation
         pricingToken: response.data.security.pricingToken
       };
-      
-      console.log('💰 New price breakdown with token:', {
-        total: newPriceBreakdown.total,
-        token: newPriceBreakdown.pricingToken?.substring(0, 8) + '...',
-        dates: {
-          checkIn: bookingData.checkIn instanceof Date ? bookingData.checkIn.toLocaleDateString('en-CA') : bookingData.checkIn,
-          checkOut: bookingData.checkOut instanceof Date ? bookingData.checkOut.toLocaleDateString('en-CA') : bookingData.checkOut
-        }
-      });
       
       console.log('✅ Secure price breakdown calculated:', newPriceBreakdown);
       setPriceBreakdown(newPriceBreakdown);
@@ -1288,9 +865,7 @@ export default function BookingPage() {
       const endDate = new Date(bookingData.checkOut);
       const currentDate = new Date(startDate);
       const datesToBlock: string[] = [];
-      console.log("start date", startDate);
-      console.log("end date", endDate);
-      console.log("current date", currentDate);
+      
       while (currentDate < endDate) {
         const dateStr = currentDate.toLocaleDateString('en-CA');
         datesToBlock.push(dateStr);
@@ -1311,8 +886,7 @@ export default function BookingPage() {
       setBlockedDates(datesToBlock);
       
       // Refresh availability data to show blocked status
-      // Pass datesToBlock directly to avoid relying on stale state
-      await refreshAvailabilityData(datesToBlock);
+      await refreshAvailabilityData();
       
       // Start 15-minute timer
       const expiryTime = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
@@ -1376,22 +950,16 @@ export default function BookingPage() {
       return;
     }
 
-    console.log('✅ All validations passed, checking availability before proceeding...');
+    console.log('✅ All validations passed, checking availability...');
 
-    // IMPORTANT: Check availability BEFORE blocking dates and showing payment modal
-    // This ensures user can't proceed with booking if dates are not available
+    // Check availability before proceeding
     console.log('🔍 Starting availability check...');
-    setAvailabilityLoading(true);
     const isAvailable = await checkAvailability();
-    setAvailabilityLoading(false);
     console.log('📅 Availability check result:', isAvailable);
     
     if (!isAvailable) {
-      console.log('❌ Dates not available, cannot proceed with booking');
-      // Error message is already set by checkAvailability() function
-      if (!bookingError) {
-        setBookingError('Selected dates are not available. Please choose different dates.');
-      }
+      console.log('❌ Dates not available');
+      console.log('❌ Current booking error:', bookingError);
       return;
     }
 
@@ -1400,17 +968,7 @@ export default function BookingPage() {
     try {
       // Block dates now that user is initiating payment
       await blockDatesForPayment();
-      // Clear any validation errors before showing payment modal
-      setValidationErrors({});
-      setBookingError('');
-      // Extend blocking expiry when payment modal opens (user is actively paying)
-      // This gives more time for payment processing
-      if (blockingExpiry) {
-        const extendedExpiry = new Date(Date.now() + 20 * 60 * 1000); // Extend to 20 minutes
-        setBlockingExpiry(extendedExpiry);
-        console.log('⏰ Extended blocking expiry for payment:', extendedExpiry);
-      }
-      setShowPaymentModal(true);
+    setShowPaymentModal(true);
     } catch (error) {
       console.error('❌ Failed to block dates for payment:', error);
       // Error is already set in blockDatesForPayment function
@@ -1419,44 +977,24 @@ export default function BookingPage() {
   };
 
   // Handle payment success
-  const handlePaymentSuccess = async (paymentData?: any) => {
+  const handlePaymentSuccess = async () => {
     setBookingLoading(true);
     setBookingError('');
-    setValidationErrors({}); // Clear validation errors when payment succeeds
 
     try {
-      // Clear the blocking timer and expiry IMMEDIATELY when payment succeeds
-      // This prevents the expiry check from triggering while booking is being created
+      // Clear the blocking timer since payment is successful
       if (blockingTimer) {
         clearTimeout(blockingTimer);
         setBlockingTimer(null);
       }
-      // Clear expiry immediately to prevent "reservation expired" error
-      setBlockingExpiry(null);
       
       // Ensure dates are Date objects before converting to ISO string
-      const checkInDate = bookingData.checkIn instanceof Date ? bookingData.checkIn : parseDateToLocal(bookingData.checkIn);
-      const checkOutDate = bookingData.checkOut instanceof Date ? bookingData.checkOut : parseDateToLocal(bookingData.checkOut);
-      
-      // Format date for backend - send LOCAL date as UTC midnight so backend interprets correctly
-      // This ensures Dec 29 local is sent as '2025-12-29T00:00:00.000Z'
-      const formatDateForBackend = (date: Date): string => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}T00:00:00.000Z`;
-      };
-      
-      const checkInISO = formatDateForBackend(checkInDate);
-      const checkOutISO = formatDateForBackend(checkOutDate);
+      const checkInDate = bookingData.checkIn instanceof Date ? bookingData.checkIn : new Date(bookingData.checkIn);
+      const checkOutDate = bookingData.checkOut instanceof Date ? bookingData.checkOut : new Date(bookingData.checkOut);
       
       console.log('📅 Date validation:', {
         checkIn: checkInDate,
         checkOut: checkOutDate,
-        checkInLocal: checkInDate.toLocaleDateString('en-CA'),
-        checkOutLocal: checkOutDate.toLocaleDateString('en-CA'),
-        checkInISO: checkInISO,
-        checkOutISO: checkOutISO,
         checkInType: typeof bookingData.checkIn,
         checkOutType: typeof bookingData.checkOut,
         checkInIsDate: bookingData.checkIn instanceof Date,
@@ -1466,21 +1004,12 @@ export default function BookingPage() {
       // New flow: Process payment and create booking in one call
       const bookingPayload = {
         propertyId: id,
-        checkIn: checkInISO,
-        checkOut: checkOutISO,
+        checkIn: checkInDate.toISOString(),
+        checkOut: checkOutDate.toISOString(),
         guests: bookingData.guests,
         specialRequests: bookingData.specialRequests,
         contactInfo: bookingData.contactInfo,
-        paymentMethod: bookingData.paymentMethod || 'card', // Use selected payment method
-        // Razorpay payment data
-        ...(paymentData && {
-          paymentData: {
-            razorpayOrderId: paymentData.razorpayOrderId,
-            razorpayPaymentId: paymentData.razorpayPaymentId,
-            razorpaySignature: paymentData.razorpaySignature,
-            razorpayPaymentDetails: paymentData.razorpayPaymentDetails
-          }
-        }),
+        paymentMethod: 'card', // Use 'card' as expected by backend validation
         // NEW: Include custom check-in time for 23-hour checkout calculation
         ...(bookingData.checkInTime && { checkInTime: bookingData.checkInTime }),
         ...(bookingData.couponCode && bookingData.couponCode.trim() && { couponCode: bookingData.couponCode.trim() }),
@@ -1491,14 +1020,10 @@ export default function BookingPage() {
             totalHours: bookingData.hourlyExtension
           }
         }),
-        // Include pricing token for backend validation (prevents price manipulation)
-        ...(priceBreakdown?.pricingToken && { pricingToken: priceBreakdown.pricingToken }),
         // Do not include extra 24-hour specific fields; backend infers from dates and hourlyExtension
       };
 
       console.log('🚀 Processing payment and creating booking with payload:', bookingPayload);
-      console.log('💰 Current price breakdown:', priceBreakdown);
-      console.log('🔒 Pricing token being sent:', priceBreakdown?.pricingToken ? priceBreakdown.pricingToken.substring(0, 8) + '...' : 'NONE');
       console.log('🕐 DEBUG - bookingData.checkInTime:', bookingData.checkInTime);
       console.log('🕐 DEBUG - payload checkInTime:', bookingPayload.checkInTime);
       console.log('📅 Blocked dates to confirm:', blockedDates);
@@ -1506,8 +1031,6 @@ export default function BookingPage() {
       console.log('🔐 Authentication status:', { isAuthenticated, userId: user?._id, userEmail: user?.email });
       
       const response = await apiClient.processPaymentAndCreateBooking(bookingPayload);
-      
-      console.log('📋 Backend response:', JSON.stringify(response, null, 2));
       
       if (response.success) {
         console.log('✅ Payment processed and booking created successfully:', response.data);
@@ -1517,83 +1040,24 @@ export default function BookingPage() {
         // The backend's processPaymentAndCreateBooking already updates dates from 'blocked' to 'booked'
         console.log('✅ Availability already confirmed by backend during payment processing');
 
-        // Extract booking ID for redirect
-        const bookingId = response.data.booking._id;
-        
-        // Set redirecting flag to prevent conflicting useEffect
-        setIsRedirecting(true);
-        
         // Clear blocked dates state since they're now booked
         setBlockedDates([]);
         setBlockingExpiry(null);
         
-        // Clear any errors before redirecting
-        setBookingError('');
-        setValidationErrors({});
-        
-        // Redirect to specific booking details page with success parameter
-        router.push(`/bookings/${bookingId}?success=true`);
-        
-        // Clear booking context data after redirect is initiated
+        // Clear booking context data
         clearBookingData();
+        
+        // Show success message and redirect to bookings page
+        router.push('/bookings?success=true');
       } else {
-        // Extract detailed error message from response
-        const errorMessage = response.message || response.error || 'Failed to process payment and create booking';
-        const errorDetails = response.errors ? JSON.stringify(response.errors) : '';
-        throw new Error(errorDetails ? `${errorMessage}: ${errorDetails}` : errorMessage);
+        throw new Error(response.message || 'Failed to process payment and create booking');
       }
     } catch (error: any) {
       console.error('❌ Error in handlePaymentSuccess:', error);
-      console.error('❌ Error details:', {
-        message: error.message,
-        status: error.status,
-        errors: error.errors,
-        response: error.response,
-        fullError: JSON.stringify(error, null, 2)
-      });
+      setBookingError(error.message || 'Failed to process payment and create booking');
       
-      // Extract error message properly
-      let errorMessage = 'Failed to process payment and create booking';
-      let errorDetails: string[] = [];
-      
-      if (error.message) {
-        errorMessage = error.message;
-      } else if (error.response?.message) {
-        errorMessage = error.response.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      }
-      
-      // Extract error details
-      if (Array.isArray(error.errors)) {
-        errorDetails = error.errors;
-      } else if (Array.isArray(error.response?.errors)) {
-        errorDetails = error.response.errors;
-      } else if (error.errors && typeof error.errors === 'object') {
-        errorDetails = Object.values(error.errors).map(e => String(e));
-      } else if (error.response?.errors && typeof error.response.errors === 'object') {
-        errorDetails = Object.values(error.response.errors).map(e => String(e));
-      }
-      
-      // Format final error message
-      const finalErrorMessage = errorDetails.length > 0 
-        ? `${errorMessage}: ${errorDetails.join(', ')}`
-        : errorMessage;
-      
-      console.error('❌ Final error message:', finalErrorMessage);
-      setBookingError(finalErrorMessage);
-      
-      // IMPORTANT: Payment succeeded, so don't revert dates immediately
-      // The payment was successful, so dates should remain blocked
-      // If booking creation failed, admin will need to process refund manually
-      // Extend blocking expiry to give time for resolution
-      console.log('⚠️ Payment succeeded but booking creation failed. Dates remain blocked.');
-      if (blockingExpiry) {
-        const extendedExpiry = new Date(Date.now() + 30 * 60 * 1000); // Extend to 30 minutes
-        setBlockingExpiry(extendedExpiry);
-        console.log('⏰ Extended blocking expiry due to booking creation failure:', extendedExpiry);
-      }
-      // Don't revert dates - payment was successful, need manual intervention
+      // If booking fails, revert blocked dates back to available
+      await revertBlockedDates();
     } finally {
       setBookingLoading(false);
     }
@@ -1605,26 +1069,13 @@ export default function BookingPage() {
       await getSecurePricing();
     };
     updatePricing();
-  }, [bookingData.checkIn, bookingData.checkOut, bookingData.hourlyExtension,bookingData.guests , property, couponData]);
+  }, [bookingData.checkIn, bookingData.checkOut, bookingData.hourlyExtension, property, couponData]);
 
-  // Clear availability state and invalidate old pricing token when dates or extension change
+  // Clear availability state when dates change
   useEffect(() => {
     setBookingError('');
     setAvailability([]);
-    
-    // Clear pricing token when dates/extension change to force fresh price calculation
-    // This ensures we don't use stale pricing tokens from previous date selections
-    setPriceBreakdown(prev => ({
-      ...prev,
-      pricingToken: undefined, // Invalidate old token
-      total: 0 // Reset total to show loading state
-    }));
-    
-    // Note: Price updates immediately when dates/guests change (via getSecurePricing useEffect)
-    // Availability is checked ONLY when user clicks "Book" button (in handleBooking function)
-    // This allows users to see prices even if dates might not be available,
-    // but prevents booking if dates are not available
-  }, [bookingData.checkIn, bookingData.checkOut, bookingData.hourlyExtension]);
+  }, [bookingData.checkIn, bookingData.checkOut]);
 
   // Update booking data when coupon code changes
   useEffect(() => {
@@ -1676,7 +1127,7 @@ export default function BookingPage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
-        <Header hideSearchBar={true} />
+        <Header />
         <div className="pt-24 flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-gray-200 border-t-gray-600 rounded-full animate-spin mx-auto mb-6"></div>
@@ -1695,7 +1146,7 @@ export default function BookingPage() {
   if (error || !property) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
-        <Header hideSearchBar={true} />
+        <Header />
         <div className="pt-24 flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -1715,7 +1166,7 @@ export default function BookingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
-      <Header hideSearchBar={true} />
+      <Header />
       
       {/* Main Content */}
       <main className="pt-24 pb-12">
@@ -1803,13 +1254,6 @@ export default function BookingPage() {
                               month: 'short', 
                               day: 'numeric' 
                             })}
-                            {(() => {
-                              const checkInTime = bookingData.checkInTime || property?.checkInTime || '15:00';
-                              const [hours, minutes] = checkInTime.split(':').map(Number);
-                              const time = new Date();
-                              time.setHours(hours, minutes, 0);
-                              return `, ${time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
-                            })()}
                           </span>
                         </div>
                         <div className="flex justify-between">
@@ -1820,27 +1264,8 @@ export default function BookingPage() {
                               month: 'short', 
                               day: 'numeric' 
                             })}
-
-                          {(() => {
-                              const checkInTime = bookingData.checkInTime || property?.checkInTime || '15:00';
-                              const [checkInHours, checkInMinutes] = checkInTime.split(':').map(Number);
-                              // Checkout = check-in time - 1 hour + extension
-                              let checkoutHours = checkInHours - 1;
-                              if (checkoutHours < 0) checkoutHours = 23;
-                              if (bookingData.hourlyExtension) {
-                                checkoutHours = (checkoutHours + bookingData.hourlyExtension) % 24;
-                              }
-                              const time = new Date();
-                              time.setHours(checkoutHours, checkInMinutes, 0);
-                              return `,  ${time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
-                            })()}
-
-                           
-
-
                           </span>
                         </div>
-                        
                         <div className="flex justify-between border-t border-gray-100 pt-2">
                           <span className="text-gray-600">Duration:</span>
                           <span className="font-semibold text-indigo-600">
@@ -1946,13 +1371,7 @@ export default function BookingPage() {
                             const day = String(bookingData.checkIn.getDate()).padStart(2, '0');
                             return `${year}-${month}-${day}`;
                           })()}
-                          onChange={(e) => {
-                            // Parse date string to LOCAL midnight (not UTC)
-                            // new Date('YYYY-MM-DD') creates UTC midnight which shifts by 1 day in IST
-                            const [year, month, day] = e.target.value.split('-').map(Number);
-                            const localDate = new Date(year, month - 1, day); // Creates LOCAL midnight
-                            updateLocalBookingData({ checkIn: localDate });
-                          }}
+                          onChange={(e) => updateLocalBookingData({ checkIn: new Date(e.target.value) })}
                           min={(() => {
                             const today = new Date();
                             const year = today.getFullYear();
@@ -1963,22 +1382,10 @@ export default function BookingPage() {
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-400 focus:border-gray-400 text-lg font-medium bg-white text-gray-900 shadow-sm"
                           style={{ color: '#111827' }}
                         />
-                        <div className="mt-2 text-sm text-gray-600 flex items-center gap-2">
-                          <Clock3 className="w-4 h-4" />
-                          <span>
-                            {(() => {
-                              const checkInTime = bookingData.checkInTime || property?.checkInTime || '15:00';
-                              const [hours, minutes] = checkInTime.split(':').map(Number);
-                              const time = new Date();
-                              time.setHours(hours, minutes, 0);
-                              return `Check-in time: ${time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
-                            })()}
-                          </span>
-                        </div>
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Check-out <span className="text-red-500"></span>
+                          Check-out <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="date"
@@ -1988,13 +1395,7 @@ export default function BookingPage() {
                             const day = String(bookingData.checkOut.getDate()).padStart(2, '0');
                             return `${year}-${month}-${day}`;
                           })()}
-                          onChange={(e) => {
-                            // Parse date string to LOCAL midnight (not UTC)
-                            // new Date('YYYY-MM-DD') creates UTC midnight which shifts by 1 day in IST
-                            const [year, month, day] = e.target.value.split('-').map(Number);
-                            const localDate = new Date(year, month - 1, day); // Creates LOCAL midnight
-                            updateLocalBookingData({ checkOut: localDate });
-                          }}
+                          onChange={(e) => updateLocalBookingData({ checkOut: new Date(e.target.value) })}
                           min={(() => {
                             const year = bookingData.checkIn.getFullYear();
                             const month = String(bookingData.checkIn.getMonth() + 1).padStart(2, '0');
@@ -2004,24 +1405,6 @@ export default function BookingPage() {
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-400 focus:border-gray-400 text-lg font-medium bg-white text-gray-900 shadow-sm"
                           style={{ color: '#111827' }}
                         />
-                        <div className="mt-2 text-sm text-gray-600 flex items-center gap-2">
-                          <Clock3 className="w-4 h-4" />
-                          <span>
-                            {(() => {
-                              const checkInTime = bookingData.checkInTime || property?.checkInTime || '15:00';
-                              const [checkInHours, checkInMinutes] = checkInTime.split(':').map(Number);
-                              // Checkout = check-in time - 1 hour + extension
-                              let checkoutHours = checkInHours - 1;
-                              if (checkoutHours < 0) checkoutHours = 23;
-                              if (bookingData.hourlyExtension) {
-                                checkoutHours = (checkoutHours + bookingData.hourlyExtension) % 24;
-                              }
-                              const time = new Date();
-                              time.setHours(checkoutHours, checkInMinutes, 0);
-                              return `Check-out time: ${time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
-                            })()}
-                          </span>
-                        </div>
                       </div>
                     </div>
                     
@@ -2471,10 +1854,10 @@ export default function BookingPage() {
                     
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {[
-                        { value: 'card', label: 'Credit/Debit Card', icon: '💳', color: 'blue' },
-                        { value: 'razorpay', label: 'Razorpay', icon: '💳', color: 'indigo' },
-                        { value: 'upi', label: 'UPI', icon: '📱', color: 'green' },
-                        { value: 'net_banking', label: 'Net Banking', icon: '🏦', color: 'gray' }
+                        { value: 'card', label: 'Credit Card', icon: '💳', color: 'blue' },
+                        { value: 'paypal', label: 'PayPal', icon: '🅿️', color: 'indigo' },
+                        { value: 'apple_pay', label: 'Apple Pay', icon: '🍎', color: 'gray' },
+                        { value: 'google_pay', label: 'Google Pay', icon: 'G', color: 'green' }
                       ].map((method) => (
                         <div
                           key={method.value}
@@ -2500,9 +1883,9 @@ export default function BookingPage() {
                       <div className="flex items-start gap-2">
                         <Lock className="w-4 h-4 text-gray-600 mt-0.5" />
                         <div>
-                          <div className="font-medium text-gray-800 text-sm">Secure Payment via Razorpay</div>
+                          <div className="font-medium text-gray-800 text-sm">Secure Payment</div>
                           <div className="text-gray-600 text-xs mt-1">
-                            All payment methods are processed securely through Razorpay. You'll enter payment details in the secure checkout window.
+                            Your payment information is encrypted and secure.
                           </div>
                         </div>
                       </div>
@@ -2763,18 +2146,17 @@ export default function BookingPage() {
                     console.log('🖱️ ===========================================');
                     console.log('🖱️ COMPLETE BOOKING BUTTON CLICKED!');
                     console.log('🖱️ ===========================================');
-                    // console.log('🖱️ Booking data',bookingData);
-                    // console.log('🖱️ Button disabled state:', !bookingData.agreeToTerms || bookingLoading || availabilityLoading);
-                    // console.log('🖱️ agreeToTerms:', bookingData.agreeToTerms);
-                    // console.log('🖱️ bookingLoading:', bookingLoading);
-                    // console.log('🖱️ availabilityLoading:', availabilityLoading);
-                    // console.log('🖱️ isAuthenticated:', isAuthenticated);
+                    console.log('🖱️ Button disabled state:', !bookingData.agreeToTerms || bookingLoading || availabilityLoading);
+                    console.log('🖱️ agreeToTerms:', bookingData.agreeToTerms);
+                    console.log('🖱️ bookingLoading:', bookingLoading);
+                    console.log('🖱️ availabilityLoading:', availabilityLoading);
+                    console.log('🖱️ isAuthenticated:', isAuthenticated);
                     console.log('🖱️ user:', user);
                     console.log('🖱️ bookingData:', bookingData);
-                    // console.log('🖱️ property:', property);
-                    // console.log('🖱️ priceBreakdown:', priceBreakdown);
+                    console.log('🖱️ property:', property);
+                    console.log('🖱️ priceBreakdown:', priceBreakdown);
                     console.log('🖱️ validationErrors:', validationErrors);
-                    // console.log('🖱️ bookingError:', bookingError);
+                    console.log('🖱️ bookingError:', bookingError);
                     console.log('🖱️ ===========================================');
                     handleBooking();
                   }}
@@ -2820,17 +2202,10 @@ export default function BookingPage() {
       {/* Payment Modal */}
       <PaymentModal
         isOpen={showPaymentModal}
-        onClose={() => {
-          // If payment modal is closed without payment, keep the expiry timer running
-          // User can still complete payment within the remaining time
-          setShowPaymentModal(false);
-        }}
+        onClose={() => setShowPaymentModal(false)}
         onSuccess={handlePaymentSuccess}
-        amount={priceBreakdown?.total || 0}
+        amount={priceBreakdown.total}
         loading={bookingLoading}
-        bookingId={null}
-        propertyId={id as string}
-        user={user}
       />
     </div>
   );

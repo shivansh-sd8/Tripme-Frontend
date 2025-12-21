@@ -419,9 +419,9 @@ export default function HostBookingDetailPage() {
                   <User className="w-6 h-6 text-gray-500" />
                       </div>
                 <div className="flex-1">
-                  <h4 className="font-medium text-gray-900">{booking.user?.name || 'Guest'}</h4>
-                  <p className="text-sm text-gray-500 mb-2">{booking.user?.email || 'No email'}</p>
-                  {booking.user?.phone && (
+                  <h4 className="font-medium text-gray-900">{booking.user.name}</h4>
+                  <p className="text-sm text-gray-500 mb-2">{booking.user.email}</p>
+                  {booking.user.phone && (
                     <p className="text-sm text-gray-500 mb-3">{booking.user.phone}</p>
                   )}
                   <div className="flex space-x-2">
@@ -643,10 +643,10 @@ export default function HostBookingDetailPage() {
                     <Mail className="w-4 h-4 text-gray-500" />
                     <span className="text-sm text-gray-700">Email</span>
                           </div>
-                  <span className="text-sm font-medium text-gray-900">{booking.user?.email || 'No email'}</span>
+                  <span className="text-sm font-medium text-gray-900">{booking.user.email}</span>
                 </div>
                 
-                          {booking.user?.phone && (
+                          {booking.user.phone && (
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div className="flex items-center space-x-3">
                       <Phone className="w-4 h-4 text-gray-500" />
@@ -661,7 +661,7 @@ export default function HostBookingDetailPage() {
                     <User className="w-4 h-4 text-gray-500" />
                     <span className="text-sm text-gray-700">Full Name</span>
                   </div>
-                  <span className="text-sm font-medium text-gray-900">{booking.user?.name || 'Guest'}</span>
+                  <span className="text-sm font-medium text-gray-900">{booking.user.name}</span>
                 </div>
                         </div>
                       </div>
