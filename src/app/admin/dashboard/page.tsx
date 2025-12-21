@@ -726,8 +726,8 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-           {/*System Health */ } 
-            {/* <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+            {/* System Health */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">System Health</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-gray-100/50 rounded-xl">
@@ -746,42 +746,7 @@ export default function AdminDashboard() {
                   <span className="text-gray-600 text-sm">{Math.round(systemHealth.memoryUsage.heapUsed / 1024 / 1024)}MB</span>
                 </div>
               </div>
-            </div> */}
-
-            
-<div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
-  <h3 className="text-lg font-semibold text-gray-900 mb-4">System Health</h3>
-  <div className="space-y-4">
-
-    <div className="flex items-center justify-between p-3 bg-gray-100/50 rounded-xl">
-      <div className="flex items-center space-x-3">
-        <div className={`h-3 w-3 rounded-full ${systemHealth?.database === 'connected' ? 'bg-green-500' : 'bg-red-500'}`} />
-        <span className="text-gray-900">Database</span>
-      </div>
-      <span className="text-gray-600 text-sm capitalize">{systemHealth?.database ?? "Unknown"}</span>
-    </div>
-
-    <div className="flex items-center justify-between p-3 bg-gray-100/50 rounded-xl">
-      <span className="text-gray-900">Uptime</span>
-      <span className="text-gray-600 text-sm">
-        {systemHealth?.uptime
-          ? `${Math.floor(systemHealth.uptime / 3600)}h ${Math.floor((systemHealth.uptime % 3600) / 60)}m`
-          : "N/A"}
-      </span>
-    </div>
-
-    <div className="flex items-center justify-between p-3 bg-gray-100/50 rounded-xl">
-      <span className="text-gray-900">Memory Usage</span>
-      <span className="text-gray-600 text-sm">
-        {Math.round(((systemHealth?.memoryUsage?.heapUsed ?? 0) / 1024 / 1024))}MB
-      </span>
-    </div>
-
-  </div>
-</div>
-
-         
-         
+            </div>
           </div>
 
           {/* Performance Metrics */}

@@ -809,7 +809,10 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                     className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
                     value={format(singleDate, 'yyyy-MM-dd')}
                     onChange={e => {
-                      const selectedDate = new Date(e.target.value);
+                      // Parse date string to LOCAL midnight (not UTC)
+                      // new Date('YYYY-MM-DD') creates UTC midnight which shifts by 1 day in some timezones
+                      const [year, month, day] = e.target.value.split('-').map(Number);
+                      const selectedDate = new Date(year, month - 1, day); // Creates LOCAL midnight
                       const today = new Date(new Date().setHours(0, 0, 0, 0));
                       if (selectedDate >= today) {
                         setSingleDate(selectedDate);

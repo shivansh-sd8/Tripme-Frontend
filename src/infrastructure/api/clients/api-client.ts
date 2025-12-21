@@ -47,14 +47,22 @@ class ApiClient {
       const response = await fetch(url, config);
       const data = await response.json();
 
-      console.log(`🔍 API Response: ${response.status}`, data);
+      // console.log(`🔍 API Response: ${response.status}`, data);
+      // console.log(`🔍 API Response data type:`, typeof data);
+      // console.log(`🔍 API Response data stringified:`, JSON.stringify(data, null, 2));
 
       if (!response.ok) {
-        throw {
+        const error: any = {
           status: response.status,
-          message: data.message || 'Request failed',
+          message: data.message || data.error || 'Request failed',
+          errors: data.errors || [],
           details: data.details,
+          response: data
         };
+        console.error('❌ API Error object:', error);
+        console.error('❌ API Error message:', error.message);
+        console.error('❌ API Error errors:', error.errors);
+        throw error;
       }
 
       return data;
@@ -494,6 +502,13 @@ class ApiClient {
     return this.request('/bookings', {
       method: 'POST',
       body: JSON.stringify(enhancedBookingData),
+    });
+  }
+
+  async createRazorpayOrder(bookingId: string | null, amount: number, currency: string = 'INR', propertyId?: string): Promise<ApiResponse<any>> {
+    return this.request('/payments/create-order', {
+      method: 'POST',
+      body: JSON.stringify({ bookingId, propertyId, amount, currency }),
     });
   }
 

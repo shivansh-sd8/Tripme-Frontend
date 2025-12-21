@@ -126,11 +126,7 @@ export default function BookingsPage() {
   useEffect(() => {
     if (searchParams.get('success') === 'true') {
       setShowSuccessMessage(true);
-      // Auto-hide success message after 5 seconds
-      const timer = setTimeout(() => {
-        setShowSuccessMessage(false);
-      }, 5000);
-      return () => clearTimeout(timer);
+      // Don't auto-hide - let user dismiss manually for better UX
     }
   }, [searchParams]);
 
@@ -180,22 +176,38 @@ export default function BookingsPage() {
             <p className="text-gray-600 text-lg">Manage your upcoming and past trips</p>
           </div>
 
-          {/* Success Message */}
+          {/* Enhanced Success Message */}
           {showSuccessMessage && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-                <div>
-                  <h3 className="text-sm font-medium text-green-800">Booking Confirmed!</h3>
-                  <p className="text-sm text-green-700 mt-1">
+            <div className="mb-8 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl shadow-lg">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
+                  <CheckCircle className="w-7 h-7 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-green-900 mb-1">Booking Confirmed!</h3>
+                  <p className="text-green-800 mb-3">
                     Your booking has been successfully created and payment processed.
                   </p>
+                  {filteredBookings.length > 0 && (
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => {
+                        // Navigate to the most recent booking (first in list)
+                        const latestBooking = filteredBookings[0];
+                        router.push(`/bookings/${latestBooking._id}`);
+                      }}
+                    >
+                      View Booking Details
+                    </Button>
+                  )}
                 </div>
                 <button
                   onClick={() => setShowSuccessMessage(false)}
-                  className="ml-auto text-green-600 hover:text-green-800"
+                  className="text-green-600 hover:text-green-800 transition-colors p-1 hover:bg-white rounded-full flex-shrink-0"
+                  aria-label="Dismiss"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>

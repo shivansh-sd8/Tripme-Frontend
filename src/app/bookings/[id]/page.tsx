@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
+  X,
   Star,
   Phone,
   Mail,
@@ -221,13 +222,15 @@ export default function BookingDetailsPage() {
   useEffect(() => {
     if (searchParams.get('success') === 'true') {
       setShowSuccessMessage(true);
-      // Auto-hide success message after 5 seconds
-      const timer = setTimeout(() => {
-        setShowSuccessMessage(false);
-      }, 5000);
-      return () => clearTimeout(timer);
+      // Auto-scroll to success section when it appears
+      setTimeout(() => {
+        const successSection = document.getElementById('booking-success-section');
+        if (successSection) {
+          successSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
     }
-  }, [searchParams]);
+  }, [searchParams, booking]);
 
   useEffect(() => {
     if (id) {
@@ -483,6 +486,46 @@ export default function BookingDetailsPage() {
     });
   };
 
+  // Calculate checkout time based on check-in time and booking type
+  const getCheckoutTime = (): string => {
+    // If booking has explicit checkout time, use it
+    if (booking?.checkOutTime) {
+      return booking.checkOutTime;
+    }
+
+    // For 24-hour bookings, calculate checkout time (check-in + 23 hours)
+    if (booking?.is24Hour && booking?.checkIn) {
+      const checkInDate = new Date(booking.checkIn);
+      const checkInTime = booking.listing?.checkInTime || '3:00 PM';
+      
+      // Parse check-in time
+      const [timePart, period] = checkInTime.split(' ');
+      const [hours, minutes] = timePart.split(':').map(Number);
+      let checkInHours = hours;
+      if (period === 'PM' && hours !== 12) checkInHours += 12;
+      if (period === 'AM' && hours === 12) checkInHours = 0;
+      
+      // Set check-in time on the check-in date
+      checkInDate.setHours(checkInHours, minutes || 0, 0, 0);
+      
+      // Add 23 hours for checkout
+      const checkoutDate = new Date(checkInDate);
+      checkoutDate.setHours(checkoutDate.getHours() + 23);
+      
+      // Format checkout time
+      const checkoutHours = checkoutDate.getHours();
+      const checkoutMinutes = checkoutDate.getMinutes();
+      const checkoutPeriod = checkoutHours >= 12 ? 'PM' : 'AM';
+      const displayHours = checkoutHours > 12 ? checkoutHours - 12 : (checkoutHours === 0 ? 12 : checkoutHours);
+      const displayMinutes = checkoutMinutes.toString().padStart(2, '0');
+      
+      return `${displayHours}:${displayMinutes} ${checkoutPeriod}`;
+    }
+
+    // Fallback to listing's default checkout time or 11:00 AM
+    return booking?.listing?.checkOutTime || '11:00 AM';
+  };
+
   const getAmenityIcon = (amenity: string) => {
     const iconMap: Record<string, any> = {
       'wifi': <Wifi className="w-5 h-5" />,
@@ -583,29 +626,133 @@ export default function BookingDetailsPage() {
           </div>
         </div>
 
-        {/* Success Message */}
-        {showSuccessMessage && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center">
-              <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-              <div>
-                <h3 className="text-sm font-medium text-green-800">Booking Confirmed!</h3>
-                <p className="text-sm text-green-700 mt-1">
-                  Your booking has been successfully created and payment processed.
-                </p>
+        {/* Airbnb-Style Success Section */}
+        {showSuccessMessage && booking && (
+          <div 
+            id="booking-success-section"
+            className="mb-8 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-2xl shadow-lg border-2 border-green-200 overflow-hidden"
+          >
+            <div className="p-8">
+              {/* Header with Success Icon */}
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                    <CheckCircle className="w-10 h-10 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-900 mb-1">Booking Confirmed!</h2>
+                    <p className="text-gray-600 text-lg">Your reservation is confirmed</p>
+                  </div>
                 </div>
                 <button
-                onClick={() => setShowSuccessMessage(false)}
-                className="ml-auto text-green-600 hover:text-green-800"
-              >
-                <X className="w-4 h-4" />
+                  onClick={() => setShowSuccessMessage(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-white rounded-full"
+                  aria-label="Dismiss"
+                >
+                  <X className="w-5 h-5" />
                 </button>
+              </div>
+
+              {/* Confirmation Code */}
+              <div className="mb-6">
+                <p className="text-sm text-gray-600 mb-1">Confirmation Code</p>
+                <p className="text-2xl font-mono font-bold text-gray-900">#{booking._id?.slice(-8).toUpperCase() || 'UNKNOWN'}</p>
+              </div>
+
+              {/* Quick Summary Card */}
+              <div className="bg-white rounded-xl p-6 mb-6 shadow-md border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Summary</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Property</p>
+                    <p className="font-semibold text-gray-900">{booking.listing?.title || 'Property'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Dates</p>
+                    <p className="font-semibold text-gray-900">
+                      {formatDate(booking.checkIn)} - {formatDate(booking.checkOut)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Guests</p>
+                    <p className="font-semibold text-gray-900">
+                      {booking.guests.adults + booking.guests.children + booking.guests.infants} guest{booking.guests.adults + booking.guests.children + booking.guests.infants !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Total Amount</p>
+                    <p className="font-semibold text-gray-900 text-lg">{formatCurrency(booking.totalAmount, booking.currency)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Confirmation */}
+              <div className="flex items-center gap-3 mb-6 p-4 bg-green-100 rounded-lg border border-green-200">
+                <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-green-800">Payment Processed</p>
+                  <p className="text-sm text-green-700">
+                    {booking.paymentStatus === 'paid' 
+                      ? 'Your payment has been successfully processed.' 
+                      : 'Payment is being processed.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* What's Next Section */}
+              <div className="bg-blue-50 rounded-xl p-6 mb-6 border border-blue-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <Info className="w-5 h-5 text-blue-600" />
+                  What's Next?
+                </h3>
+                <ul className="space-y-2 text-gray-700">
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600 mt-1">•</span>
+                    <span>Check-in instructions will be sent to your email</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600 mt-1">•</span>
+                    <span>The host will confirm your booking shortly</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600 mt-1">•</span>
+                    <span>You can view full booking details below</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => {
+                    // TODO: Implement download receipt functionality
+                    console.log('Download receipt');
+                  }}
+                  className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
+                >
+                  <Download className="w-5 h-5" />
+                  Download Receipt
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSuccessMessage(false);
+                    const detailsSection = document.getElementById('booking-details');
+                    if (detailsSection) {
+                      detailsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }}
+                  className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg"
+                >
+                  <Eye className="w-5 h-5" />
+                  View Full Details
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
         )}
 
         {/* Modern Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div id="booking-details" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Property & Details */}
           <div className="lg:col-span-2 space-y-6">
             {/* Property Card */}
@@ -678,7 +825,7 @@ export default function BookingDetailsPage() {
                     <div className="text-right">
                       <div className="text-sm font-semibold text-gray-900">{formatDate(booking.checkOut)}</div>
                       <div className="text-xs text-green-600">
-                        {booking.checkOutTime ? `Before ${booking.checkOutTime}` : `Before ${booking.listing?.checkOutTime || '11:00 AM'}`}
+                        Before {getCheckoutTime()}
                         {booking.hourlyExtension?.hours && (
                           <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                             +{booking.hourlyExtension.hours}h extension
