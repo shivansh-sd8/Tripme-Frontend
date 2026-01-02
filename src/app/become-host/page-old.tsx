@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import ProtectedRoute from "@/components/shared/ProtectedRoute";
 import HostHeader from "@/components/shared/HostHeader";
 import Footer from "@/components/shared/Footer";
-import BecomeHostLanding from "@/components/host/BecomeHostLanding";
+import BecomeHostContent from "@/components/host/BecomeHostContent";
 
 export const metadata: Metadata = {
   title: "Become a Host",
@@ -15,11 +15,10 @@ export default function BecomeHostPage() {
       <div className="min-h-screen bg-gray-50">
         <HostHeader />
         <main className="pt-20">
-          <BecomeHostLanding />
+          <BecomeHostContent />
         </main>
         <Footer />
       </div>
     </ProtectedRoute>
   );
 } 
-

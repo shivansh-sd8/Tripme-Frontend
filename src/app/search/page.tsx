@@ -434,6 +434,10 @@ function SearchPageContent() {
                       stay={stay}
                       onMouseEnter={() => setHoveredPropertyId(stay.id)}
                       onMouseLeave={() => setHoveredPropertyId(null)}
+                      guests={guests}
+                      checkIn={checkIn}
+                      checkOut={checkOut}
+                     
                     />
                   ))}
                 </div>
@@ -583,8 +587,14 @@ function SearchPageContent() {
                   <div className="space-y-3 pt-4">
                     <button
                       onClick={() => {
+                   console.log('Params:', { guests, checkIn, checkOut });
+                    const params = new URLSearchParams();
+                     if (guests) params.set('guests', guests.toString());
+                      if (checkIn) params.set('checkIn', checkIn);
+                      if (checkOut) params.set('checkOut', checkOut);
+   
                         setShowPropertyModal(false);
-                        router.push(`/rooms/${selectedProperty._id}`);
+                        router.push(`/rooms/${selectedProperty._id}?${params.toString()}`);
                       }}
                       className="w-full bg-gradient-to-r from-gray-900 to-black text-white py-4 px-6 rounded-2xl font-semibold hover:from-gray-800 hover:to-gray-900 transition-all duration-200 hover:scale-[1.02] shadow-lg"
                     >

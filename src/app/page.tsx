@@ -433,105 +433,116 @@ export default function Home() {
                   )}
                   
                   {/* Coupon cards container with fixed height */}
-                  <div className="h-80 overflow-hidden">
+                  <div className="h-50 overflow-hidden">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 h-full">
                       {getVisibleCoupons().map((coupon) => (
-                  <div
-                    key={coupon._id}
-                          className="bg-white rounded-2xl shadow-lg p-4 text-center hover:shadow-xl hover:scale-102 transition-all duration-300 relative overflow-hidden h-full flex flex-col"
-                        >
-                          {/* Gradient background overlay */}
-                          <div className="absolute inset-0 bg-gradient-to-br from-purple-50/20 to-blue-50/20 rounded-2xl"></div>
-                          
-                          {/* Top section with coupon icon (left) and days left (right) */}
-                          <div className="relative z-10 flex justify-between items-start mb-3">
-                            {/* Coupon icon - top left */}
-                            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center shadow-md">
-                              <Tag className="w-5 h-5 text-white" />
-                            </div>
-                            
-                            {/* Days left - top right */}
-                            <div className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">
-                              {Math.ceil((new Date(coupon.validTo).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days left
-                            </div>
-                    </div>
-                          
-                          {/* Main content - optimized for fixed height */}
-                          <div className="relative z-10 mb-3 flex-1 min-h-0">
-                            {/* Coupon code with compact styling */}
-                            <h3 className="text-xl font-black text-gray-900 mb-2 tracking-wide">{coupon.code}</h3>
-                            
-                            {/* Discount amount with compact visual hierarchy */}
-                            <div className="mb-2">
-                              <div className="text-2xl font-black text-green-600 mb-1">
-                        {coupon.discountType === 'percentage' ? `${coupon.amount}% OFF` : `₹${coupon.amount} OFF`}
-                      </div>
-                              <div className="inline-flex items-center px-2 py-0.5 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
-                                {coupon.discountType === 'percentage' ? 'Percentage' : 'Fixed Amount'}
-                              </div>
-                            </div>
-                            
-                            {/* Additional details with clear labels - more compact */}
-                            <div className="space-y-0.5">
-                              {coupon.discountType === 'percentage' && coupon.maxDiscount && (
-                                <div className="text-xs text-gray-600">
-                                  <span className="font-medium">Max discount: ₹{coupon.maxDiscount}</span>
-                                </div>
-                      )}
-                      {coupon.minBookingAmount && (
-                                <div className="text-xs text-gray-600">
-                                  <span className="font-medium">Min booking: ₹{coupon.minBookingAmount}</span>
-                                </div>
-                      )}
-                    </div>
-                    </div>
-                    
-                          
-                          {/* Usage section - more compact */}
-                          <div className="relative z-10 mb-3">
-                            {coupon.usageLimit ? (
-                              <div className="bg-gray-50 rounded-lg p-2 border border-gray-100">
-                                <div className="flex justify-between items-center mb-1">
-                                  <span className="text-xs font-medium text-gray-700">Usage</span>
-                                  <span className="text-xs font-bold text-gray-900">{coupon.usedCount || 0} of {coupon.usageLimit}</span>
-                        </div>
-                                <div className="w-full bg-gray-200 rounded-full h-1.5 mb-1">
-                          <div 
-                                    className="bg-gradient-to-r from-purple-500 to-blue-500 h-1.5 rounded-full transition-all duration-500"
-                                    style={{ width: `${Math.min(((coupon.usedCount || 0) / coupon.usageLimit) * 100, 100)}%` }}
-                          ></div>
-                        </div>
-                                <div className="text-center">
-                                  <span className="inline-flex items-center px-1.5 py-0.5 bg-purple-100 text-purple-800 text-xs font-bold rounded-full">
-                                    {Math.round(((coupon.usedCount || 0) / coupon.usageLimit) * 100)}% used
-                                  </span>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="bg-green-50 rounded-lg p-2 border border-green-100">
-                                <div className="flex items-center justify-center">
-                                  <span className="text-green-700 font-bold text-xs">Unlimited usage</span>
-                        </div>
-                      </div>
-                    )}
-                          </div>
-                    
-                          {/* Compact copy button */}
-                          <div className="relative z-10 mt-auto flex justify-center">
-                    <button
-                      onClick={() => copyCouponCode(coupon.code)}
-                              className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-2 rounded-lg font-bold text-xs hover:from-purple-700 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
-                    >
-                              <Copy className="w-3 h-3 inline mr-1" />
-                              {copiedCoupon === coupon.code ? 'Copied!' : 'Copy Code'}
-                    </button>
-                            {copiedCoupon === coupon.code && (
-                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                                <CheckCircle className="w-2 h-2 text-white" />
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                 <div
+  key={coupon._id}
+  className={`group relative rounded-xl border bg-white p-3
+  h-full flex flex-col transition-all duration-300
+  ${copiedCoupon === coupon.code
+    ? 'border-gray-900 ring-1 ring-gray-900'
+    : 'border-gray-200 hover:border-gray-300'}
+  hover:shadow-[0_6px_18px_rgba(0,0,0,0.05)]
+  hover:-translate-y-[1px]`}
+>
+  {/* Hover glass sweep */}
+  <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl">
+    <div className="absolute -left-full top-0 h-full w-1/2
+      bg-gradient-to-r from-transparent via-white/15 to-transparent
+      group-hover:translate-x-[200%]
+      transition-transform duration-[1600ms]" />
+  </div>
+
+  {/* Brand row */}
+  <div className="relative flex items-center justify-between mb-2">
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-8 rounded-md bg-gray-100 overflow-hidden">
+        {coupon.couponImage ? (
+          <img
+            src={coupon.couponImage}
+            alt={coupon.code}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Tag className="w-4 h-4 text-gray-500" />
+          </div>
+        )}
+      </div>
+
+      <span className="text-xs font-semibold text-gray-900">
+        {coupon.discountType === 'percentage'
+          ? `${coupon.amount}% OFF`
+          : `₹${coupon.amount} OFF`}
+      </span>
+    </div>
+
+    <span className="text-[11px] text-gray-500 font-medium">
+      {Math.ceil(
+        (new Date(coupon.validTo).getTime() - Date.now()) /
+          (1000 * 60 * 60 * 24)
+      )}d
+    </span>
+  </div>
+
+  {/* Code */}
+  <h3 className="text-lg font-semibold tracking-tight text-gray-900 mb-0.5">
+    {coupon.code}
+  </h3>
+
+  {/* Conditions */}
+  <div className="flex flex-wrap gap-x-2 text-[11px] text-gray-600 mb-2">
+    {coupon.minBookingAmount && <span>Min ₹{coupon.minBookingAmount}</span>}
+    {coupon.discountType === 'percentage' && coupon.maxDiscount && (
+      <span>Max ₹{coupon.maxDiscount}</span>
+    )}
+  </div>
+
+  {/* Usage */}
+  <div className="mb-3">
+    {coupon.usageLimit ? (
+      <>
+        <div className="flex justify-between text-[11px] text-gray-600 mb-0.5">
+          <span>Usage</span>
+          <span className="font-medium text-gray-900">
+            {coupon.usedCount || 0}/{coupon.usageLimit}
+          </span>
+        </div>
+        <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gray-900 transition-all duration-500"
+            style={{
+              width: `${Math.min(
+                ((coupon.usedCount || 0) / coupon.usageLimit) * 100,
+                100
+              )}%`
+            }}
+          />
+        </div>
+      </>
+    ) : (
+      <span className="inline-flex text-[11px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-md">
+        Unlimited usage
+      </span>
+    )}
+  </div>
+
+  {/* CTA */}
+  <button
+    onClick={() => copyCouponCode(coupon.code)}
+    disabled={copiedCoupon === coupon.code}
+    className={`mt-auto w-full rounded-md py-1.5 text-xs font-semibold transition
+    ${
+      copiedCoupon === coupon.code
+        ? 'bg-gray-100 text-gray-600 cursor-default'
+        : 'bg-gray-900 text-white hover:bg-black'
+    }`}
+  >
+    {copiedCoupon === coupon.code ? 'Applied' : 'Apply'}
+  </button>
+</div>
+
                       ))}
                     </div>
                   </div>

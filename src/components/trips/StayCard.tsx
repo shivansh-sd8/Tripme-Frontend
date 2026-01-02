@@ -11,6 +11,10 @@ interface StayCardProps {
   className?: string;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
+  checkIn?: string;
+  checkOut?: string;
+  guest?: number;
+
 }
 
 const StayCard: React.FC<StayCardProps> = ({
@@ -19,7 +23,10 @@ const StayCard: React.FC<StayCardProps> = ({
   isFavorite = false,
   className,
   onMouseEnter,
-  onMouseLeave
+  onMouseLeave,
+  checkIn,
+  checkOut,
+  guest
 }) => {
   const [currentImage, setCurrentImage] = React.useState(0);
   const [isHovered, setIsHovered] = React.useState(false);
@@ -62,10 +69,20 @@ const StayCard: React.FC<StayCardProps> = ({
     onMouseLeave?.();
   };
 
+
+
   const handleCardClick = () => {
+  const params = new URLSearchParams();
+  params.append('checkIn', checkIn || '');
+  params.append('checkOut', checkOut || '');
+  params.append('guest', guest?.toString() || '');
+
+  window.open(`/rooms/${stay.id}?${params.toString()}`, '_blank');
     // Open property page in new tab
-    window.open(`/rooms/${stay.id}`, '_blank');
+    
   };
+
+  
 
   return (
     <div

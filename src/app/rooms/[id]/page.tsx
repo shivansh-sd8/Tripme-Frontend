@@ -388,7 +388,7 @@ export default function PropertyDetailsPage() {
   useEffect(() => {
     const checkInParam = searchParams.get('checkIn');
     const checkOutParam = searchParams.get('checkOut');
-    
+    console.log("check in params", checkInParam,checkOutParam);
     if (checkInParam) {
       try {
         const checkInDate = new Date(checkInParam);
@@ -625,6 +625,7 @@ export default function PropertyDetailsPage() {
     console.log('🌙 DETAILED Nights calculation:', {
       startDateRaw: dateRange.startDate,
       endDateRaw: dateRange.endDate,
+      
       startDate: startDate?.toISOString(),
       startDateLocal: startDate?.toLocaleDateString(),
       endDate: endDate?.toISOString(),
@@ -669,11 +670,13 @@ export default function PropertyDetailsPage() {
       // Calculate exact check-in and check-out times based on custom check-in time
       const [checkInHour, checkInMinute] = (checkInTimeStr || '15:00').split(':').map(Number);
       const exactCheckIn = new Date(startDate);
+      exactCheckIn.setHours(0,0,0,0);
       exactCheckIn.setHours(checkInHour, checkInMinute, 0, 0);
       
       // Checkout = endDate at (check-in time - 1 hour) + extension
       // Example: Check-in Dec 5 at 4 PM, endDate Dec 7 → Checkout: Dec 7 at 3 PM
       const exactCheckOut = new Date(endDate);
+      exactCheckOut.setHours(0,0,0,0);
       exactCheckOut.setHours(checkInHour - 1, checkInMinute, 0, 0); // Check-in time - 1 hour
       
       // Add extension hours if any
@@ -947,6 +950,378 @@ export default function PropertyDetailsPage() {
       setAvailabilityLoading(false);
     }
   };
+
+
+  // Complete checkAvailability function - Replace your existing one with this
+
+// Complete checkAvailability function - Replace your existing one with this
+
+// const checkAvailability = async () => {
+//   if (!id || selectionStep !== 'complete') {
+//     setAvailabilityError('Please select both check-in and check-out dates');
+//     return;
+//   }
+
+//   // Validate date range
+//   if (!dateRange.startDate || isNaN(dateRange.startDate.getTime())) {
+//     setAvailabilityError('Please select a valid check-in date');
+//     return;
+//   }
+
+//   const startDate = new Date(dateRange.startDate);
+//   const endDate = dateRange.endDate && !isNaN(dateRange.endDate.getTime()) ? new Date(dateRange.endDate) : null;
+
+//   const today = new Date();
+//   today.setHours(0, 0, 0, 0);
+
+//   if (startDate < today) {
+//     setAvailabilityError('Check-in date cannot be in the past');
+//     return;
+//   }
+
+//   if (!endDate || startDate >= endDate) {
+//     setAvailabilityError('Check-out date must be after check-in date');
+//     return;
+//   }
+
+//   // Check minimum nights
+//   let nights = 0;
+//   if (endDate && !isNaN(endDate.getTime()) && startDate && !isNaN(startDate.getTime())) {
+//     const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+//     const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+//     nights = Math.max(0, Math.round((endDay.getTime() - startDay.getTime()) / (1000 * 60 * 60 * 24)));
+//   }
+
+//   console.log('🌙 DETAILED Nights calculation:', {
+//     startDateRaw: dateRange.startDate,
+//     endDateRaw: dateRange.endDate,
+//     startDate: startDate?.toISOString(),
+//     startDateLocal: startDate?.toLocaleDateString(),
+//     endDate: endDate?.toISOString(),
+//     endDateLocal: endDate?.toLocaleDateString(),
+//     diffMs: endDate && startDate ? (endDate.getTime() - startDate.getTime()) : 'N/A',
+//     nights: nights,
+//     propertyMinNights: property?.minNights,
+//     propertyMinNightsType: typeof property?.minNights
+//   });
+
+//   const minNightsRequired = property?.minNights ? Number(property.minNights) : 0;
+//   if (minNightsRequired > 0 && nights < minNightsRequired) {
+//     console.log(`❌ FAILED: ${nights} nights < ${minNightsRequired} minNights`);
+//     setAvailabilityError(`Minimum ${minNightsRequired} nights required`);
+//     return;
+//   }
+
+//   console.log(`✅ PASSED: ${nights} nights >= ${minNightsRequired || 'no minimum'}`);
+
+//   // ✅ FIX: Get the SELECTED check-in time (not default)
+//   const selectedCheckInTime = checkInTimeStr || '15:00';
+//   console.log('📍 Using check-in time:', selectedCheckInTime);
+
+//   // Validate check-in time is after maintenance end (if applicable)
+//   const dateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+//   const maintenanceInfo = maintenanceByDate.get(dateStr);
+//   if (maintenanceInfo) {
+//     const [checkInHour, checkInMinute] = selectedCheckInTime.split(':').map(Number);
+//     const selectedCheckInTimeObj = new Date(startDate);
+//     selectedCheckInTimeObj.setHours(checkInHour, checkInMinute, 0, 0);
+//     if (selectedCheckInTimeObj < maintenanceInfo.availableAfter) {
+//       const maintenanceEndTime = maintenanceInfo.availableAfter.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+//       setAvailabilityError(`Check-in time must be after ${maintenanceEndTime} (maintenance period ends)`);
+//       setAvailabilityLoading(false);
+//       return;
+//     }
+//   }
+
+//   setAvailabilityLoading(true);
+//   setAvailabilityError('');
+
+//   try {
+//     // ✅ FIX: Calculate exact check-in and check-out times using SELECTED time
+//     const [checkInHour, checkInMinute] = selectedCheckInTime.split(':').map(Number);
+//     const exactCheckIn = new Date(startDate);
+//     exactCheckIn.setHours(0, 0, 0, 0);
+//     exactCheckIn.setHours(checkInHour, checkInMinute, 0, 0);
+
+//     // Checkout = endDate at (check-in time - 1 hour) + extension
+//     const exactCheckOut = new Date(endDate);
+//     exactCheckOut.setHours(0, 0, 0, 0);
+//     exactCheckOut.setHours(checkInHour - 1, checkInMinute, 0, 0);
+
+//     // Add extension hours if any
+//     if (hourlyExtension && hourlyExtension > 0) {
+//       exactCheckOut.setHours(exactCheckOut.getHours() + hourlyExtension);
+//     }
+
+//     console.log('⏰ Custom time calculation:', {
+//       checkInTimeStr: selectedCheckInTime,
+//       exactCheckIn: exactCheckIn.toISOString(),
+//       exactCheckOut: exactCheckOut.toISOString(),
+//       checkoutDate: endDate.toLocaleDateString(),
+//       extensionHours: hourlyExtension || 0
+//     });
+
+//     // NEW: Use hourly slot checking for properties with hourly booking enabled
+//     if (property?.hourlyBooking?.enabled) {
+//       console.log('🕐 Using hourly slot availability check with selected time...');
+      
+//       // ✅ FIX: Build ISO strings with SELECTED TIME instead of default
+//       // Start with the same date format that was working, just swap the time
+//       const [selectedHour, selectedMinute] = selectedCheckInTime.split(':').map(Number);
+      
+//       // Build check-in: same date format, selected time
+//       const checkInDate = new Date(dateRange.startDate);
+//       checkInDate.setHours(selectedHour, selectedMinute, 0, 0);
+//       const checkInISO = checkInDate.toISOString();
+      
+//       // Build check-out: checkout date at (selected hour - 1) + extension
+//       const checkOutDate = new Date(dateRange.endDate);
+//       checkOutDate.setHours(selectedHour - 1, selectedMinute, 0, 0);
+//       if (hourlyExtension && hourlyExtension > 0) {
+//         checkOutDate.setHours(checkOutDate.getHours() + hourlyExtension);
+//       }
+//       const checkOutISO = checkOutDate.toISOString();
+      
+//       console.log('📤 Sending to API with SELECTED TIME:', {
+//         selectedTime: selectedCheckInTime,
+//         checkInISO,
+//         checkOutISO,
+//         extensionHours: hourlyExtension || 0
+//       });
+      
+//       const slotResponse = await apiClient.checkTimeSlotAvailability(
+//         id as string,
+//         checkInISO,
+//         checkOutISO,
+//         hourlyExtension || 0
+//       );
+
+//       if (slotResponse.success && slotResponse.data) {
+//         if (slotResponse.data.available) {
+//           console.log('✅ Time slot is available!');
+//           setAvailabilityChecked(true);
+//           setAvailabilityError('');
+
+//           // Get pricing from backend when availability is confirmed
+//           const pricing = await getSecurePricing();
+//           if (pricing) {
+//             console.log('💰 Pricing received from backend:', pricing);
+//             setPriceBreakdown({
+//               basePrice: property?.pricing?.basePrice || 0,
+//               baseAmount: pricing.baseAmount,
+//               serviceFee: pricing.serviceFee,
+//               cleaningFee: pricing.cleaningFee,
+//               securityDeposit: pricing.securityDeposit,
+//               extraGuestCost: pricing.extraGuestCost,
+//               extraGuestPrice: pricing.extraGuestPrice,
+//               extraGuests: pricing.extraGuests,
+//               hourlyExtension: pricing.hourlyExtension,
+//               platformFee: pricing.platformFee,
+//               gst: pricing.gst,
+//               processingFee: pricing.processingFee,
+//               taxes: pricing.gst,
+//               total: pricing.totalAmount,
+//               nights: pricing.nights,
+//               subtotal: pricing.subtotal,
+//               discountAmount: pricing.discountAmount
+//             });
+//           }
+//           setAvailabilityLoading(false);
+//           return;
+//         } else {
+//           // Has conflicts
+//           const conflicts = slotResponse.data.conflicts;
+//           let errorMsg = 'Selected time slot is not available.';
+//           if (conflicts?.dailyConflicts?.length > 0) {
+//             const conflictDates = conflicts.dailyConflicts.map((c: any) => new Date(c.date).toLocaleDateString()).join(', ');
+//             errorMsg = `Dates not available: ${conflictDates}`;
+//           }
+//           if (slotResponse.data.nextAvailableSlot?.start) {
+//             const nextDate = new Date(slotResponse.data.nextAvailableSlot.start);
+//             if (!isNaN(nextDate.getTime())) {
+//               errorMsg += ` Next available: ${nextDate.toLocaleString()}`;
+//             }
+//           }
+//           setAvailabilityError(errorMsg);
+//           setAvailabilityChecked(false);
+//           setAvailabilityLoading(false);
+//           return;
+//         }
+//       }
+//     }
+
+//     // FALLBACK: Traditional daily availability check
+//     const startDateStr = startDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+    
+//     // FIXED: Calculate extended checkout date if hourly extension is selected
+//     let effectiveEndDate = new Date(endDate);
+//     let extendedCheckoutDate = new Date(endDate);
+
+//     if (hourlyExtension && hourlyExtension > 0) {
+//       extendedCheckoutDate = new Date(exactCheckOut.getFullYear(), exactCheckOut.getMonth(), exactCheckOut.getDate());
+//       console.log('⏰ Extended checkout calculation:', {
+//         originalCheckout: endDate.toLocaleDateString(),
+//         extensionHours: hourlyExtension,
+//         extendedCheckoutDateTime: exactCheckOut.toISOString(),
+//         extendedCheckoutDate: extendedCheckoutDate.toLocaleDateString(),
+//         originalEndDate: endDate.toLocaleDateString()
+//       });
+//     }
+
+//     // Check availability up to the day AFTER the extended checkout date
+//     const checkEndDate = new Date(extendedCheckoutDate);
+//     checkEndDate.setDate(checkEndDate.getDate() + 1);
+//     const endDateStr = checkEndDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+
+//     const response = await apiClient.getAvailability(id as string, startDateStr, endDateStr);
+
+//     if (response.success && response.data) {
+//       const availabilityData = response.data.availability || [];
+
+//       console.log('📅 Availability API Response:', {
+//         startDate: startDateStr,
+//         endDate: endDateStr,
+//         recordsCount: availabilityData.length,
+//         records: availabilityData.map((a: any) => ({
+//           date: a.date,
+//           status: a.status,
+//           reason: a.reason
+//         }))
+//       });
+
+//       const currentDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+//       let allAvailable = true;
+//       const conflictingDates: string[] = [];
+
+//       const dateCheckEnd = hourlyExtension && hourlyExtension > 0 ? checkEndDate : new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+//       console.log('🔍 Checking availability:', {
+//         from: currentDate.toLocaleDateString(),
+//         to: dateCheckEnd.toLocaleDateString(),
+//         extensionHours: hourlyExtension || 0,
+//         extendedCheckoutDate: extendedCheckoutDate.toLocaleDateString()
+//       });
+
+//       while (currentDate < dateCheckEnd) {
+//         const dateStr = currentDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+
+//         const dateAvailability = availabilityData.find((a: any) => {
+//           let availabilityDateStr: string;
+//           if (typeof a.date === 'string') {
+//             try {
+//               const parsedDate = new Date(a.date);
+//               if (isNaN(parsedDate.getTime())) {
+//                 console.warn('Invalid date string:', a.date);
+//                 return false;
+//               }
+//               availabilityDateStr = parsedDate.toLocaleDateString('en-CA');
+//             } catch (error) {
+//               console.warn('Error parsing date string:', a.date, error);
+//               return false;
+//             }
+//           } else if (a.date instanceof Date) {
+//             if (isNaN(a.date.getTime())) {
+//               console.warn('Invalid Date object:', a.date);
+//               return false;
+//             }
+//             availabilityDateStr = a.date.toLocaleDateString('en-CA');
+//           } else {
+//             try {
+//               const parsedDate = new Date(a.date);
+//               if (isNaN(parsedDate.getTime())) {
+//                 console.warn('Invalid date value:', a.date);
+//                 return false;
+//               }
+//               availabilityDateStr = parsedDate.toLocaleDateString('en-CA');
+//             } catch (error) {
+//               console.warn('Error parsing date value:', a.date, error);
+//               return false;
+//             }
+//           }
+//           return availabilityDateStr === dateStr;
+//         });
+
+//         if (dateAvailability) {
+//           if (dateAvailability.status === 'booked') {
+//             console.log(`❌ Date ${dateStr} is BOOKED`);
+//             allAvailable = false;
+//             conflictingDates.push(dateStr);
+//           } else if (dateAvailability.status === 'maintenance') {
+//             console.log(`❌ Date ${dateStr} is under MAINTENANCE`);
+//             allAvailable = false;
+//             conflictingDates.push(dateStr);
+//           } else if (dateAvailability.status === 'blocked') {
+//             console.log(`❌ Date ${dateStr} is BLOCKED`);
+//             allAvailable = false;
+//             conflictingDates.push(dateStr);
+//           } else if (dateAvailability.status === 'unavailable') {
+//             console.log(`❌ Date ${dateStr} is UNAVAILABLE`);
+//             allAvailable = false;
+//             conflictingDates.push(dateStr);
+//           } else {
+//             console.log(`✅ Date ${dateStr} is available (status: ${dateAvailability.status})`);
+//           }
+//         } else {
+//           console.log(`✅ Date ${dateStr} - no record, defaulting to AVAILABLE`);
+//         }
+
+//         currentDate.setDate(currentDate.getDate() + 1);
+//       }
+
+//       if (allAvailable) {
+//         setAvailabilityChecked(true);
+//         setAvailabilityError('');
+//         setAvailability(availabilityData);
+
+//         // Get pricing from backend when availability is confirmed
+//         console.log('✅ Availability confirmed, getting pricing from backend...');
+//         const pricing = await getSecurePricing();
+//         if (pricing) {
+//           console.log('💰 Pricing received from backend:', pricing);
+//           setPriceBreakdown({
+//             basePrice: property?.pricing?.basePrice || 0,
+//             baseAmount: pricing.baseAmount,
+//             serviceFee: pricing.serviceFee,
+//             cleaningFee: pricing.cleaningFee,
+//             securityDeposit: pricing.securityDeposit,
+//             extraGuestCost: pricing.extraGuestCost,
+//             extraGuestPrice: pricing.extraGuestPrice,
+//             extraGuests: pricing.extraGuests,
+//             hourlyExtension: pricing.hourlyExtension,
+//             platformFee: pricing.platformFee,
+//             gst: pricing.gst,
+//             processingFee: pricing.processingFee,
+//             taxes: pricing.gst,
+//             total: pricing.totalAmount,
+//             nights: pricing.nights,
+//             subtotal: pricing.subtotal,
+//             discountAmount: pricing.discountAmount
+//           });
+//         }
+//       } else {
+//         // Check if the conflict is due to extension hours
+//         const originalEndStr = endDate.toLocaleDateString('en-CA');
+//         const isExtensionConflict = hourlyExtension && hourlyExtension > 0 && conflictingDates.some(d => d > originalEndStr);
+
+//         if (isExtensionConflict) {
+//           setAvailabilityError(`Cannot add ${hourlyExtension}-hour extension: checkout would overlap with booked dates (${conflictingDates.join(', ')}). Try a shorter extension or different dates.`);
+//         } else {
+//           setAvailabilityError(`Selected dates are not available. Conflicting dates: ${conflictingDates.join(', ')}`);
+//         }
+//         setAvailabilityChecked(false);
+//       }
+//     } else {
+//       setAvailabilityError('Failed to check availability');
+//       setAvailabilityChecked(false);
+//     }
+//   } catch (error: any) {
+//     console.error('Availability check error:', error);
+//     setAvailabilityError(error.message || 'Failed to check availability');
+//     setAvailabilityChecked(false);
+//   } finally {
+//     setAvailabilityLoading(false);
+//   }
+// };
 
   // Date validation function
   const validateDateRange = (startDate: Date | null, endDate: Date | null) => {

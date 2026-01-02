@@ -699,7 +699,7 @@ const HostListingsContent: React.FC = () => {
                 Back to Dashboard
               </Button>
               <Button 
-                onClick={() => router.push('/host/property/new')}
+                onClick={() => router.push('/become-host/about-your-place')}
                 className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium rounded-xl transition-all duration-300 hover:shadow-xl hover:scale-105 border-0 shadow-lg"
               >
                 <Plus className="w-4 h-4 mr-2" />
