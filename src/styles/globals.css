@@ -291,3 +291,163 @@ body {
 .search-overlay::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* ============================================
+   Airbnb-style Calendar Global Overrides
+   These override react-date-range default styles
+   ============================================ */
+
+/* Base calendar wrapper */
+.rdrCalendarWrapper {
+  background: #fff !important;
+  font-family: inherit !important;
+}
+
+/* Month name styling */
+.rdrMonthName {
+  color: #222222 !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+}
+
+/* Week day headers */
+.rdrWeekDay {
+  color: #717171 !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+}
+
+/* All day cells base */
+.rdrDay {
+  background: transparent !important;
+}
+
+.rdrDayNumber {
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+.rdrDayNumber span {
+  color: #222222 !important;
+  font-weight: 400 !important;
+}
+
+/* Selected start date - black circle with WHITE text */
+.rdrStartEdge,
+.rdrEndEdge {
+  background: #f57676 !important;
+  /* border-radius: 50% !important; */
+   top: 3px !important; 
+  bottom: 3px !important;
+  left: 3px !important;
+  right: 3px !important;
+}
+
+.rdrDayStartOfRange .rdrDayNumber span,
+.rdrDayEndOfRange .rdrDayNumber span,
+.rdrDay.rdrDayStartOfRange .rdrDayNumber span,
+.rdrDay.rdrDayEndOfRange .rdrDayNumber span {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  position: relative !important;
+  z-index: 20 !important;
+}
+
+/* Days in range - light gray background */
+.rdrInRange {
+  background: #f7f7f7 !important;
+  top: 3px !important;
+  bottom: 3px !important;
+}
+
+.rdrDayInRange .rdrDayNumber span {
+  color: #222222 !important;
+}
+
+/* Hover state - light gray circle, NO border */
+.rdrDay:not(.rdrDayPassive):not(.rdrDayDisabled):hover .rdrDayNumber {
+  background: #f7f7f7 !important;
+ 
+   /* top: 3px !important; 
+  bottom: 3px !important;
+  left: 3px !important;
+  right: 3px !important; */
+  /* border-radius: 50% !important; */
+}
+
+.rdrDay:not(.rdrDayPassive):not(.rdrDayDisabled):hover .rdrDayNumber span {
+  color: #222222 !important;
+}
+
+/* Remove all preview borders/outlines */
+.rdrDayStartPreview,
+.rdrDayEndPreview,
+.rdrDayInPreview {
+  border: none !important;
+  background: transparent !important;
+}
+
+/* Today indicator - underline */
+.rdrDayToday .rdrDayNumber span::after {
+  background: #222222 !important;
+  bottom: 4px !important;
+}
+
+/* Disabled/past days */
+.rdrDayPassive .rdrDayNumber span,
+.rdrDayDisabled .rdrDayNumber span {
+  color: #b0b0b0 !important;
+}
+
+/* Navigation arrows */
+.rdrNextPrevButton {
+  background: transparent !important;
+  border: none !important;
+}
+
+.rdrNextPrevButton:hover {
+  background: #f7f7f7 !important;
+  border-radius: 50% !important;
+}
+
+/* .rdrNextPrevButton i {
+  border-color: #222222 !important;
+} */
+
+/* .rdrPprevButton i {
+  border-color: #222222 !important;
+} */
+
+/* Hide defined ranges sidebar */
+.rdrDefinedRangesWrapper {
+  display: none !important;
+}
+
+/* Hide date display */
+.rdrDateDisplayWrapper {
+  display: none !important;
+}
+
+/* Month and year pickers */
+.rdrMonthAndYearWrapper {
+  padding-top: 0 !important;
+}
+
+.rdrMonthAndYearPickers select {
+  color: #222222 !important;
+  font-weight: 600 !important;
+}
+
+/* Remove any colored backgrounds from selection */
+.rdrSelected {
+  background: transparent !important;
+}
+
+/* Ensure proper spacing between months */
+.rdrMonth {
+  padding: 0 0.5rem !important;
+}
+
+.rdrMonths.rdrMonthsHorizontal {
+  gap: 2rem !important;
+}

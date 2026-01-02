@@ -1,15 +1,14 @@
-/* Search Calendar Specific Styles */
+/* Search Calendar Specific Styles - Airbnb Theme */
 .searchCalendarWrapper {
   background: #fff !important;
-  border-radius: 1.25rem !important;
-  box-shadow: 0 8px 32px rgba(80, 80, 120, 0.10) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
   border: none !important;
-  padding: 1rem 1.25rem 1.25rem 1.25rem !important;
-  font-size: 16px !important;
+  padding: 0 !important;
+  font-size: 14px !important;
   width: 100% !important;
-  max-height: 80vh !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
+  max-height: none !important;
+  overflow: visible !important;
   box-sizing: border-box !important;
 }
 
@@ -55,7 +54,7 @@
   background: #fff !important;
   border-radius: 0.75rem !important;
   font-weight: 600;
-  color: #7c3aed !important;
+  color: #222222 !important;
   margin-bottom: 0.5rem !important;
 }
 
@@ -109,20 +108,21 @@
   line-height: 1.2 !important;
 }
 
-/* Range selection styles */
+/* Range selection styles - Airbnb black theme */
 .searchCalendarWrapper .rdrDayStartOfRange,
 .searchCalendarWrapper .rdrDay.rdrDayStartOfRange {
-  background: #3b82f6 !important;
+  background: #222222 !important;
   color: #ffffff !important;
   border-radius: 50% !important;
   font-weight: 600 !important;
   border: none !important;
   box-shadow: none !important;
+ 
 }
 
 .searchCalendarWrapper .rdrDayEndOfRange,
 .searchCalendarWrapper .rdrDay.rdrDayEndOfRange {
-  background: #3b82f6 !important;
+  background: #222222 !important;
   color: #ffffff !important;
   border-radius: 50% !important;
   font-weight: 600 !important;
@@ -132,8 +132,8 @@
 
 .searchCalendarWrapper .rdrDayInRange,
 .searchCalendarWrapper .rdrDay.rdrDayInRange {
-  background: #dbeafe !important;
-  color: #1e40af !important;
+  background: #f7f7f7 !important;
+  color: #222222 !important;
   border-radius: 0 !important;
   font-weight: 500 !important;
   border: none !important;
@@ -143,8 +143,8 @@
 
 /* Continuous range styling */
 .searchCalendarWrapper .rdrDayInRange:not(.rdrDayStartOfRange):not(.rdrDayEndOfRange) {
-  background: #dbeafe !important;
-  color: #1e40af !important;
+  background: #f7f7f7 !important;
+  color: #222222 !important;
   border-radius: 0 !important;
   font-weight: 500 !important;
   border: none !important;
@@ -153,8 +153,8 @@
 }
 
 .searchCalendarWrapper .rdrDay[class*="rdrDayInRange"]:not([class*="rdrDayStartOfRange"]):not([class*="rdrDayEndOfRange"]) {
-  background: #dbeafe !important;
-  color: #1e40af !important;
+  background: #f7f7f7 !important;
+  color: #222222 !important;
   border-radius: 0 !important;
   font-weight: 500 !important;
   border: none !important;
@@ -162,48 +162,48 @@
   position: relative !important;
 }
 
-/* Hover states */
+/* Hover states - Airbnb style */
 .searchCalendarWrapper .rdrDay:not(.rdrDayPassive):hover {
-  background: #f0f9ff !important;
-  color: #0369a1 !important;
+  background: #f7f7f7 !important;
+  color: #222222 !important;
   border-radius: 50% !important;
 }
 
 .searchCalendarWrapper .rdrDayPassive {
-  color: #9ca3af !important;
+  color: #b0b0b0 !important;
 }
 
 .searchCalendarWrapper .rdrDayToday {
-  color: #3b82f6 !important;
+  color: #222222 !important;
   font-weight: 600 !important;
 }
 
 .searchCalendarWrapper .rdrDayToday .rdrDayNumber span {
-  border-bottom: 2px solid #0ea5e9 !important;
-  color: #0369a1 !important;
+  border-bottom: 2px solid #222222 !important;
+  color: #222222 !important;
   background: transparent !important;
 }
 
-/* Preview states */
+/* Preview states - Airbnb style */
 .searchCalendarWrapper .rdrDayStartPreview, 
 .searchCalendarWrapper .rdrDayEndPreview, 
 .searchCalendarWrapper .rdrDayInPreview, 
 .searchCalendarWrapper .rdrDayPreview {
-  background: rgba(16, 185, 129, 0.15) !important;
-  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.35) !important;
-  border-radius: 0.75rem !important;
+  background: #f7f7f7 !important;
+  box-shadow: inset 0 0 0 1px #dddddd !important;
+  border-radius: 50% !important;
 }
 
 .searchCalendarWrapper .rdrDay:not(.rdrDayPassive):hover .rdrDayNumber span {
-  background: #f0f9ff !important;
-  color: #0369a1 !important;
+  background: #f7f7f7 !important;
+  color: #222222 !important;
 }
 
-/* Navigation buttons */
+/* Navigation buttons - Airbnb style */
 .searchCalendarWrapper .rdrNextPrevButton {
   background: transparent !important;
-  color: #0369a1 !important;
-  border-radius: 8px !important;
+  color: #222222 !important;
+  border-radius: 50% !important;
   width: 32px !important;
   height: 32px !important;
   margin: 0 0.5rem !important;
@@ -212,18 +212,18 @@
 }
 
 .searchCalendarWrapper .rdrNextPrevButton:hover {
-  background: #f0f9ff !important;
-  color: #0ea5e9 !important;
+  background: #f7f7f7 !important;
+  color: #222222 !important;
 }
 
 .searchCalendarWrapper .rdrDateDisplayWrapper {
   display: none !important;
 }
 
-/* Force continuous range appearance */
+/* Force continuous range appearance - Airbnb style */
 .searchCalendarWrapper .rdrDayInRange {
-  background: #dbeafe !important;
-  color: #1e40af !important;
+  background: #f7f7f7 !important;
+  color: #222222 !important;
   border-radius: 0 !important;
   font-weight: 500 !important;
   border: none !important;
@@ -239,7 +239,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: #dbeafe !important;
+  background: #f7f7f7 !important;
   z-index: -1 !important;
 }
 
