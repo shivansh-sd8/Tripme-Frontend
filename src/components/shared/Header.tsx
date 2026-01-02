@@ -31,14 +31,13 @@ interface HeaderProps {
   searchExpanded?: boolean;
   onSearchToggle?: (expanded: boolean) => void;
   onSearch?: (location: any, guestsCount?: number, checkInDate?: string, checkOutDate?: string) => void;
-  hideSearchBar?: boolean;
+  hideSearch?: boolean;
 }
 
-const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSearch, hideSearchBar = false }: HeaderProps = {}) => {
+const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSearch, hideSearch = false }: HeaderProps = {}) => {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, isLoading, logout, refreshUser, updateUser } = useAuth();
-  const [becomingHost, setBecomingHost] = useState(false);
+  const { user, isAuthenticated, isLoading, logout, refreshUser } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [hideMobileHeader, setHideMobileHeader] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -137,10 +136,8 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
   // When search is expanded, show full header regardless of scroll state
   // Show search bar on stories page only when expanded
   // On search page, keep search compressed by default unless explicitly expanded
-  // If hideSearchBar is true, always show full header (navigation links) instead of search bar
-  const shouldShowFullHeader = hideSearchBar 
-    ? true 
-    : (!scrolled || searchExpanded) && (pathname !== '/stories' || searchExpanded) && (pathname !== '/search' || searchExpanded);
+  // If hideSearch is true, always show full header (navigation) without search form
+  const shouldShowFullHeader = hideSearch ? true : ((!scrolled || searchExpanded) && (pathname !== '/stories' || searchExpanded) && (pathname !== '/search' || searchExpanded));
 
   return (
     <header className={`w-full z-50 fixed top-0 left-0 right-0 transition-all duration-500 ease-in-out header-container ${
@@ -215,7 +212,7 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                 <span className="font-medium text-base">Stories</span>
               </button>
             </div>
-          ) : !hideSearchBar ? (
+          ) : !hideSearch ? (
             <div className="hidden lg:flex items-center transition-all duration-500 ease-in-out">
               <div 
                 className="bg-white border border-gray-300 rounded-full shadow-sm hover:shadow-md transition-all duration-500 ease-in-out p-1 cursor-pointer"
@@ -265,7 +262,7 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
           <div className={`hidden lg:flex items-center gap-4 ${
             !shouldShowFullHeader ? 'pt-1' : ''
           }`}>
-            {/* Host Button - call becomeHost API if not host */}
+            {/* Host Button */}
             {isAuthenticated && user?.role === 'host' ? (
               <Link href="/host/dashboard">
                 <span className="text-gray-700 hover:text-gray-900 font-medium text-sm transition-colors duration-200">
@@ -273,31 +270,11 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                 </span>
               </Link>
             ) : (
-              <button
-                onClick={async () => {
-                  if (!isAuthenticated) {
-                    router.push('/auth/login?redirect=/hosting');
-                    return;
-                  }
-                  setBecomingHost(true);
-                  try {
-                    const response = await apiClient.becomeHost({});
-                    if (response.success && response.data?.user) {
-                      updateUser(response.data.user);
-                    }
-                    router.push('/hosting');
-                  } catch (error) {
-                    console.error('Error becoming host:', error);
-                    router.push('/hosting');
-                  } finally {
-                    setBecomingHost(false);
-                  }
-                }}
-                disabled={becomingHost}
-                className="text-gray-700 hover:text-gray-900 font-medium text-sm transition-colors duration-200 disabled:opacity-50"
-              >
-                {becomingHost ? 'Processing...' : 'Become a host'}
-              </button>
+              <Link href="/become-host">
+                <span className="text-gray-700 hover:text-gray-900 font-medium text-sm transition-colors duration-200">
+                  Become a host
+                </span>
+              </Link>
             )}
             
             {/* User Menu */}
@@ -526,11 +503,11 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
           </div>
         )}
 
-        {/* Search Bar - Show when not scrolled or search expanded */}
-        {shouldShowFullHeader && !hideSearchBar && (
+        {/* Search Bar - Show when not scrolled or search expanded, unless hideSearch is true */}
+        {shouldShowFullHeader && !hideSearch && (
           <div className="flex justify-center w-full pb-3">
             <div className="w-full max-w-4xl">
-              <AirbnbSearchForm variant="compact" activeCategory={activeCategory || undefined} onSearch={onSearch} />
+              <AirbnbSearchForm variant="compact" activeCategory={activeCategory} onSearch={onSearch} />
             </div>
           </div>
         )}

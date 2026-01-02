@@ -58,7 +58,7 @@ export default function AdminSignupPage() {
 
     if (!formData.secretKey) {
       newErrors.secretKey = 'Secret key is required';
-    } else if (formData.secretKey !== 'KEYUR') {
+    } else if (formData.secretKey !== process.env.NEXT_PUBLIC_ADMIN_SECRET_KEY) {
       newErrors.secretKey = 'Invalid secret key';
     }
 
