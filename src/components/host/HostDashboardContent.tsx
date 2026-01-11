@@ -453,7 +453,7 @@ const HostDashboardContent: React.FC = () => {
             {/* Main Action Buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <Button 
-                onClick={() => router.push('/host/property/new')}
+                onClick={() => router.push('/hosting')}
                 className="group h-20 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium rounded-2xl transition-all duration-500 hover:shadow-2xl hover:scale-105 border-0 shadow-xl overflow-hidden relative"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/10 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>

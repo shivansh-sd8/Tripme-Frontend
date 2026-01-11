@@ -699,6 +699,9 @@ export default function BookingDetailsPage() {
                 </div>
               </div>
 
+
+              
+
               {/* What's Next Section */}
               <div className="bg-blue-50 rounded-xl p-6 mb-6 border border-blue-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
@@ -1232,6 +1235,8 @@ export default function BookingDetailsPage() {
                 </div>
               </div>
                   </div>
+
+                  
                   </div>
 
       {/* Cancel Booking Modal */}

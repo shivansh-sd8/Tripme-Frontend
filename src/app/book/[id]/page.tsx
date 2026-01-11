@@ -337,19 +337,21 @@ export default function BookingPage() {
   // Helper function to parse date string to LOCAL midnight (not UTC)
   // new Date('YYYY-MM-DD') creates UTC midnight which shifts by 1 day in IST
   const parseDateToLocal = (dateInput: string | Date | undefined): Date => {
-    if (!dateInput) return new Date();
-    if (dateInput instanceof Date) return dateInput;
+     if (!dateInput) return new Date();
+  return new Date(dateInput); // preserve time
+    // if (!dateInput) return new Date();
+    // if (dateInput instanceof Date) return dateInput;
     
-    // If it's an ISO string like '2025-12-29T18:30:00.000Z', parse it properly
-    if (dateInput.includes('T')) {
-      const date = new Date(dateInput);
-      // Return a new date at local midnight for the local date
-      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    }
+    // // If it's an ISO string like '2025-12-29T18:30:00.000Z', parse it properly
+    // if (dateInput.includes('T')) {
+    //   const date = new Date(dateInput);
+    //   // Return a new date at local midnight for the local date
+    //   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    // }
     
-    // If it's a date-only string like '2025-12-29', parse to local midnight
-    const [year, month, day] = dateInput.split('-').map(Number);
-    return new Date(year, month - 1, day);
+    // // If it's a date-only string like '2025-12-29', parse to local midnight
+    // const [year, month, day] = dateInput.split('-').map(Number);
+    // return new Date(year, month - 1, day);
   };
   
   // Booking state - initialize from context or defaults
@@ -433,6 +435,7 @@ export default function BookingPage() {
       router.push(`/rooms/${id}`);
     }
   }, [contextBookingData, id, router, isRedirecting]);
+
   const [priceBreakdown, setPriceBreakdown] = useState<{
     basePrice: number;
     serviceFee: number;
@@ -790,54 +793,126 @@ export default function BookingPage() {
     }
   };
 
+  const normalizeDate = (d: Date) =>
+  d.toISOString().split('T')[0];
+
   // Refresh availability data from backend
   // Pass currentBlockedDates parameter to avoid relying on stale blockedDates state
-  const refreshAvailabilityData = async (currentBlockedDates?: string[]) => {
-    if (!id) return;
+  // const refreshAvailabilityData = async (currentBlockedDates?: string[]) => {
+  //   if (!id) return;
     
-    // Use passed dates or fall back to state (which may be stale due to async updates)
-    const effectiveBlockedDates = currentBlockedDates || blockedDates;
+  //   // Use passed dates or fall back to state (which may be stale due to async updates)
+  //   const effectiveBlockedDates = currentBlockedDates || blockedDates;
     
-    try {
-      console.log('Calling getAvailability for property:', id);
-      const response = await apiClient.getAvailability(id as string);
-      console.log('getAvailability response:', response);
+  //   try {
+  //     console.log('Calling getAvailability for property:', id);
+  //     const response = await apiClient.getAvailability(id as string);
+  //     console.log('getAvailability response:', response);
       
-      if (response.success && response.data) {
-        const availabilityData = response.data.availability || [];
-        setAvailability(availabilityData);
-        console.log('Availability data refreshed:', availabilityData);
-        console.log('Current blocked dates (effective):', effectiveBlockedDates);
+  //     if (response.success && response.data) {
+  //       const availabilityData = response.data.availability || [];
+  //       setAvailability(availabilityData);
+  //       console.log('Availability data refreshed:', availabilityData);
+  //       console.log('Current blocked dates (effective):', effectiveBlockedDates);
         
-        // Check if current check-in date is available, if not find next available
-        // Use a local check that considers the effective blocked dates
-        const checkInDateStr = bookingData.checkIn?.toLocaleDateString('en-CA');
-        const isCheckInBlocked = effectiveBlockedDates.includes(checkInDateStr || '');
+  //       // Check if current check-in date is available, if not find next available
+  //       // Use a local check that considers the effective blocked dates
+  //       const checkInDateStr = bookingData.checkIn?.toLocaleDateString('en-CA');
+  //       const isCheckInBlocked = effectiveBlockedDates.includes(checkInDateStr || '');
         
-        if (bookingData.checkIn && !isCheckInBlocked && !isDateAvailable(bookingData.checkIn, availabilityData)) {
-          console.log('⚠️ Current check-in date is not available after refresh, finding next available date...');
-          const nextAvailableDate = findNextAvailableDate(availabilityData, bookingData.checkIn);
+  //       if (bookingData.checkIn && !isCheckInBlocked && !isDateAvailable(bookingData.checkIn, availabilityData)) {
+  //         console.log('⚠️ Current check-in date is not available after refresh, finding next available date...');
+  //         const nextAvailableDate = findNextAvailableDate(availabilityData, bookingData.checkIn);
           
-          if (nextAvailableDate) {
-            const newCheckOutDate = new Date(nextAvailableDate);
-            newCheckOutDate.setDate(nextAvailableDate.getDate() + 1);
+  //         if (nextAvailableDate) {
+  //           const newCheckOutDate = new Date(nextAvailableDate);
+  //           newCheckOutDate.setDate(nextAvailableDate.getDate() + 1);
             
-            console.log(`🔄 Auto-updating check-in date to ${nextAvailableDate.toLocaleDateString('en-CA')}`);
+  //           console.log(`🔄 Auto-updating check-in date to ${nextAvailableDate.toLocaleDateString('en-CA')}`);
             
-            setBookingData(prev => ({
-              ...prev,
-              checkIn: nextAvailableDate,
-              checkOut: newCheckOutDate
-            }));
-          }
-        } else if (isCheckInBlocked) {
-          console.log('✅ Check-in date is blocked by current user, keeping selected dates');
-        }
-      }
-    } catch (error) {
-      console.error('Failed to refresh availability:', error);
+  //           setBookingData(prev => ({
+  //             ...prev,
+  //             checkIn: nextAvailableDate,
+  //             checkOut: newCheckOutDate
+  //           }));
+  //         }
+  //       } else if (isCheckInBlocked) {
+  //         console.log('✅ Check-in date is blocked by current user, keeping selected dates');
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error('Failed to refresh availability:', error);
+  //   }
+  // };
+
+  const refreshAvailabilityData = async (currentBlockedDates?: string[]) => {
+  if (!id) return;
+
+  const effectiveBlockedDates = currentBlockedDates || blockedDates;
+
+  try {
+    console.log('Calling getAvailability for property:', id);
+    const response = await apiClient.getAvailability(id as string);
+    console.log('getAvailability response:', response);
+
+    if (!response.success || !response.data) return;
+
+    const availabilityData = response.data.availability || [];
+    setAvailability(availabilityData);
+
+    console.log('Availability data refreshed:', availabilityData);
+    console.log('Current blocked dates (effective):', effectiveBlockedDates);
+
+    if (!bookingData.checkIn) return;
+
+    const checkInDateKey = normalizeDate(bookingData.checkIn);
+    const isCheckInBlocked = effectiveBlockedDates.includes(checkInDateKey);
+
+    // 🔒 DO NOT auto-shift if user already blocked this date
+    if (isCheckInBlocked) {
+      console.log('✅ Check-in date is blocked by current user, keeping selected dates');
+      return;
     }
-  };
+
+    // ✅ Date-only availability check (NO time comparison)
+    const isAvailable = availabilityData.some((a: any) => {
+      const availabilityDateKey = normalizeDate(new Date(a.date));
+      return (
+        availabilityDateKey === checkInDateKey &&
+        (a.status === 'available' || a.status === "partially-available")
+      );
+    });
+
+    if (!isAvailable) {
+      console.log(
+        '⚠️ Check-in date not available after refresh, finding next available date...'
+      );
+
+      const nextAvailableDate = findNextAvailableDate(
+        availabilityData,
+        bookingData.checkIn
+      );
+
+      if (nextAvailableDate) {
+        const newCheckOutDate = new Date(nextAvailableDate);
+        newCheckOutDate.setDate(nextAvailableDate.getDate() + 1);
+
+        console.log(
+          `🔄 Auto-updating check-in date to ${normalizeDate(nextAvailableDate)}`
+        );
+
+        setBookingData(prev => ({
+          ...prev,
+          checkIn: nextAvailableDate,
+          checkOut: newCheckOutDate
+        }));
+      }
+    }
+  } catch (error) {
+    console.error('Failed to refresh availability:', error);
+  }
+};
+
 
   // Helper function to get user ID consistently
   const getUserId = (user: UserType | null): string | undefined => {
@@ -1511,14 +1586,14 @@ export default function BookingPage() {
       
       if (response.success) {
         console.log('✅ Payment processed and booking created successfully:', response.data);
-        console.log('📋 Booking ID from response:', response.data.booking._id);
+        console.log('📋 Booking ID from response:', response.data.bookingDoc._id);
         
         // NOTE: confirmBooking is no longer needed here
         // The backend's processPaymentAndCreateBooking already updates dates from 'blocked' to 'booked'
         console.log('✅ Availability already confirmed by backend during payment processing');
 
         // Extract booking ID for redirect
-        const bookingId = response.data.booking._id;
+        const bookingId = response.data.bookingDoc._id;
         
         // Set redirecting flag to prevent conflicting useEffect
         setIsRedirecting(true);
