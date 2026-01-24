@@ -15,6 +15,11 @@ import { addDays, format, differenceInDays } from 'date-fns';
 import { createPortal } from 'react-dom';
 import PropertyAvailabilityCalendar from "@/components/rooms/PropertyAvailabilityCalendar";
 import dynamic from 'next/dynamic';
+import Link from "next/link";
+import ImageGallery from "@/components/rooms/gallery/ImageGallery";
+import { ReviewsSection } from "@/components/rooms/reviews";
+import HostCard from "@/components/rooms/host-section/hostCard";
+import MobileBookingBar from "@/components/booking/MobileBookingBar";
 
 // Dynamically import PropertyMap to avoid SSR issues with Google Maps
 const PropertyMap = dynamic(() => import("@/components/rooms/PropertyMap"), { 
@@ -94,8 +99,11 @@ import {
   Twitter,
   Loader2,
   RefreshCw,
-  Receipt
+  Receipt,
+  // Link
 } from "lucide-react";
+import { useUI } from "@/core/store/uiContext";
+
 
 export default function PropertyDetailsPage() {
   const router = useRouter();
@@ -109,6 +117,15 @@ export default function PropertyDetailsPage() {
   const [error, setError] = useState("");
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const { setHideBottomNav ,setHideHeader} = useUI();
+  const { hideHeader } = useUI();
+  
+
+const [calendarAnchor, setCalendarAnchor] =
+  useState<'checkin' | 'checkout'>('checkin');
+
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
   
   // Booking state - initialize from context or defaults
   const [dateRange, setDateRange] = useState<{
@@ -137,13 +154,15 @@ export default function PropertyDetailsPage() {
   const [showGuestPicker, setShowGuestPicker] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [showExtras, setShowExtras] = useState(false);
+
   
   // Hourly booking state
   const [hourlyExtension, setHourlyExtension] = useState<number | null>(() => {
     return bookingData?.hourlyExtension || null;
   });
   // 24-hour mode check-in time selector
-  const [checkInTimeStr, setCheckInTimeStr] = useState<string>('15:00');
+  const [checkInTimeStr, setCheckInTimeStr] = useState<string>(property?.checkInTime || '15:00');
   const [hourlyPricing, setHourlyPricing] = useState<any>(null);
   const [specialRequests, setSpecialRequests] = useState(() => {
     return bookingData?.specialRequests || '';
@@ -183,6 +202,11 @@ export default function PropertyDetailsPage() {
       if (bookingData.hourlyExtension) {
         setHourlyExtension(bookingData.hourlyExtension);
       }
+
+  if (bookingData.checkInTime) {
+    setCheckInTimeStr(bookingData.checkInTime);
+  }
+      
       if (bookingData.specialRequests) {
         setSpecialRequests(bookingData.specialRequests);
       }
@@ -197,6 +221,17 @@ export default function PropertyDetailsPage() {
       key: dateRange.key
     });
   }, [dateRange]);
+
+  useEffect(() => {
+  setHideBottomNav(true);
+  setHideHeader(true);
+
+  return () => {
+    setHideBottomNav(false);
+    setHideHeader(false);
+  };
+}, []);
+
 
   // Fetch current platform fee rate immediately
   // Platform fee rate is now handled by backend API
@@ -316,7 +351,29 @@ export default function PropertyDetailsPage() {
   const datePickerRef = useRef<HTMLDivElement>(null);
   const guestPickerRef = useRef<HTMLDivElement>(null);
   const bookingCardRef = useRef<HTMLDivElement>(null);
+  const checkInRef = useRef<HTMLDivElement>(null);
+  const checkOutRef = useRef<HTMLDivElement>(null);
+
   const lastAutoAdjustedDate = useRef<string | null>(null); // Track last date we auto-adjusted for
+
+
+
+const getCalendarPosition = () => {
+  const el =
+    calendarAnchor === 'checkin'
+      ? checkInRef.current
+      : checkOutRef.current;
+
+  if (!el) return { top: 0, left: 0 };
+
+  const rect = el.getBoundingClientRect();
+  return {
+    top: rect.bottom + window.scrollY + 8,
+    left: rect.left + window.scrollX,
+  };
+};
+
+
 
   // Clear availability state when dates OR extension hours change
   // This allows user to try different extensions without refreshing
@@ -509,18 +566,40 @@ export default function PropertyDetailsPage() {
   }, [id]);
 
   // Close dropdowns on outside click
+  // useEffect(() => {
+  //   function handleClickOutside(event: MouseEvent) {
+  //     if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
+  //       setShowDatePicker(false);
+  //     }
+  //     if (guestPickerRef.current && !guestPickerRef.current.contains(event.target as Node)) {
+  //       setShowGuestPicker(false);
+  //     }
+  //   }
+  //   document.addEventListener('mousedown', handleClickOutside);
+  //   return () => document.removeEventListener('mousedown', handleClickOutside);
+
+
+  // }, []);
+
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
-        setShowDatePicker(false);
-      }
-      if (guestPickerRef.current && !guestPickerRef.current.contains(event.target as Node)) {
-        setShowGuestPicker(false);
-      }
+  function handleClickOutside(event: MouseEvent) {
+    const target = event.target as Node;
+
+    if (
+      datePickerRef.current?.contains(target) ||
+      checkInRef.current?.contains(target) ||
+      checkOutRef.current?.contains(target)
+    ) {
+      return; // ✅ don't close
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+
+    setShowDatePicker(false);
+  }
+
+  document.addEventListener('mousedown', handleClickOutside);
+  return () => document.removeEventListener('mousedown', handleClickOutside);
+}, []);
+
 
   const formatPrice = (amount: number, currency: string = 'INR') => {
     return new Intl.NumberFormat('en-IN', {
@@ -595,6 +674,11 @@ export default function PropertyDetailsPage() {
       setAvailabilityError('Please select a valid check-in date');
       return;
     }
+
+    if (!isAuthenticated) {
+      router.push('/auth/login');
+      return;
+    }
     
     const startDate = new Date(dateRange.startDate);
     const endDate = dateRange.endDate && !isNaN(dateRange.endDate.getTime()) ? new Date(dateRange.endDate) : null;
@@ -633,7 +717,8 @@ export default function PropertyDetailsPage() {
       diffMs: endDate && startDate ? (endDate.getTime() - startDate.getTime()) : 'N/A',
       nights: nights,
       propertyMinNights: property?.minNights,
-      propertyMinNightsType: typeof property?.minNights
+      propertyMinNightsType: typeof property?.minNights,
+      checkInTimeStr: checkInTimeStr,
     });
     
     // Only check minNights if property has this requirement set
@@ -667,6 +752,7 @@ export default function PropertyDetailsPage() {
     setAvailabilityError('');
     
     try {
+      console.log('checkAvailability', { checkInTimeStr });
       // Calculate exact check-in and check-out times based on custom check-in time
       const [checkInHour, checkInMinute] = (checkInTimeStr || '15:00').split(':').map(Number);
       const exactCheckIn = new Date(startDate);
@@ -952,376 +1038,8 @@ export default function PropertyDetailsPage() {
   };
 
 
-  // Complete checkAvailability function - Replace your existing one with this
+  
 
-// Complete checkAvailability function - Replace your existing one with this
-
-// const checkAvailability = async () => {
-//   if (!id || selectionStep !== 'complete') {
-//     setAvailabilityError('Please select both check-in and check-out dates');
-//     return;
-//   }
-
-//   // Validate date range
-//   if (!dateRange.startDate || isNaN(dateRange.startDate.getTime())) {
-//     setAvailabilityError('Please select a valid check-in date');
-//     return;
-//   }
-
-//   const startDate = new Date(dateRange.startDate);
-//   const endDate = dateRange.endDate && !isNaN(dateRange.endDate.getTime()) ? new Date(dateRange.endDate) : null;
-
-//   const today = new Date();
-//   today.setHours(0, 0, 0, 0);
-
-//   if (startDate < today) {
-//     setAvailabilityError('Check-in date cannot be in the past');
-//     return;
-//   }
-
-//   if (!endDate || startDate >= endDate) {
-//     setAvailabilityError('Check-out date must be after check-in date');
-//     return;
-//   }
-
-//   // Check minimum nights
-//   let nights = 0;
-//   if (endDate && !isNaN(endDate.getTime()) && startDate && !isNaN(startDate.getTime())) {
-//     const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-//     const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-//     nights = Math.max(0, Math.round((endDay.getTime() - startDay.getTime()) / (1000 * 60 * 60 * 24)));
-//   }
-
-//   console.log('🌙 DETAILED Nights calculation:', {
-//     startDateRaw: dateRange.startDate,
-//     endDateRaw: dateRange.endDate,
-//     startDate: startDate?.toISOString(),
-//     startDateLocal: startDate?.toLocaleDateString(),
-//     endDate: endDate?.toISOString(),
-//     endDateLocal: endDate?.toLocaleDateString(),
-//     diffMs: endDate && startDate ? (endDate.getTime() - startDate.getTime()) : 'N/A',
-//     nights: nights,
-//     propertyMinNights: property?.minNights,
-//     propertyMinNightsType: typeof property?.minNights
-//   });
-
-//   const minNightsRequired = property?.minNights ? Number(property.minNights) : 0;
-//   if (minNightsRequired > 0 && nights < minNightsRequired) {
-//     console.log(`❌ FAILED: ${nights} nights < ${minNightsRequired} minNights`);
-//     setAvailabilityError(`Minimum ${minNightsRequired} nights required`);
-//     return;
-//   }
-
-//   console.log(`✅ PASSED: ${nights} nights >= ${minNightsRequired || 'no minimum'}`);
-
-//   // ✅ FIX: Get the SELECTED check-in time (not default)
-//   const selectedCheckInTime = checkInTimeStr || '15:00';
-//   console.log('📍 Using check-in time:', selectedCheckInTime);
-
-//   // Validate check-in time is after maintenance end (if applicable)
-//   const dateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
-//   const maintenanceInfo = maintenanceByDate.get(dateStr);
-//   if (maintenanceInfo) {
-//     const [checkInHour, checkInMinute] = selectedCheckInTime.split(':').map(Number);
-//     const selectedCheckInTimeObj = new Date(startDate);
-//     selectedCheckInTimeObj.setHours(checkInHour, checkInMinute, 0, 0);
-//     if (selectedCheckInTimeObj < maintenanceInfo.availableAfter) {
-//       const maintenanceEndTime = maintenanceInfo.availableAfter.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
-//       setAvailabilityError(`Check-in time must be after ${maintenanceEndTime} (maintenance period ends)`);
-//       setAvailabilityLoading(false);
-//       return;
-//     }
-//   }
-
-//   setAvailabilityLoading(true);
-//   setAvailabilityError('');
-
-//   try {
-//     // ✅ FIX: Calculate exact check-in and check-out times using SELECTED time
-//     const [checkInHour, checkInMinute] = selectedCheckInTime.split(':').map(Number);
-//     const exactCheckIn = new Date(startDate);
-//     exactCheckIn.setHours(0, 0, 0, 0);
-//     exactCheckIn.setHours(checkInHour, checkInMinute, 0, 0);
-
-//     // Checkout = endDate at (check-in time - 1 hour) + extension
-//     const exactCheckOut = new Date(endDate);
-//     exactCheckOut.setHours(0, 0, 0, 0);
-//     exactCheckOut.setHours(checkInHour - 1, checkInMinute, 0, 0);
-
-//     // Add extension hours if any
-//     if (hourlyExtension && hourlyExtension > 0) {
-//       exactCheckOut.setHours(exactCheckOut.getHours() + hourlyExtension);
-//     }
-
-//     console.log('⏰ Custom time calculation:', {
-//       checkInTimeStr: selectedCheckInTime,
-//       exactCheckIn: exactCheckIn.toISOString(),
-//       exactCheckOut: exactCheckOut.toISOString(),
-//       checkoutDate: endDate.toLocaleDateString(),
-//       extensionHours: hourlyExtension || 0
-//     });
-
-//     // NEW: Use hourly slot checking for properties with hourly booking enabled
-//     if (property?.hourlyBooking?.enabled) {
-//       console.log('🕐 Using hourly slot availability check with selected time...');
-      
-//       // ✅ FIX: Build ISO strings with SELECTED TIME instead of default
-//       // Start with the same date format that was working, just swap the time
-//       const [selectedHour, selectedMinute] = selectedCheckInTime.split(':').map(Number);
-      
-//       // Build check-in: same date format, selected time
-//       const checkInDate = new Date(dateRange.startDate);
-//       checkInDate.setHours(selectedHour, selectedMinute, 0, 0);
-//       const checkInISO = checkInDate.toISOString();
-      
-//       // Build check-out: checkout date at (selected hour - 1) + extension
-//       const checkOutDate = new Date(dateRange.endDate);
-//       checkOutDate.setHours(selectedHour - 1, selectedMinute, 0, 0);
-//       if (hourlyExtension && hourlyExtension > 0) {
-//         checkOutDate.setHours(checkOutDate.getHours() + hourlyExtension);
-//       }
-//       const checkOutISO = checkOutDate.toISOString();
-      
-//       console.log('📤 Sending to API with SELECTED TIME:', {
-//         selectedTime: selectedCheckInTime,
-//         checkInISO,
-//         checkOutISO,
-//         extensionHours: hourlyExtension || 0
-//       });
-      
-//       const slotResponse = await apiClient.checkTimeSlotAvailability(
-//         id as string,
-//         checkInISO,
-//         checkOutISO,
-//         hourlyExtension || 0
-//       );
-
-//       if (slotResponse.success && slotResponse.data) {
-//         if (slotResponse.data.available) {
-//           console.log('✅ Time slot is available!');
-//           setAvailabilityChecked(true);
-//           setAvailabilityError('');
-
-//           // Get pricing from backend when availability is confirmed
-//           const pricing = await getSecurePricing();
-//           if (pricing) {
-//             console.log('💰 Pricing received from backend:', pricing);
-//             setPriceBreakdown({
-//               basePrice: property?.pricing?.basePrice || 0,
-//               baseAmount: pricing.baseAmount,
-//               serviceFee: pricing.serviceFee,
-//               cleaningFee: pricing.cleaningFee,
-//               securityDeposit: pricing.securityDeposit,
-//               extraGuestCost: pricing.extraGuestCost,
-//               extraGuestPrice: pricing.extraGuestPrice,
-//               extraGuests: pricing.extraGuests,
-//               hourlyExtension: pricing.hourlyExtension,
-//               platformFee: pricing.platformFee,
-//               gst: pricing.gst,
-//               processingFee: pricing.processingFee,
-//               taxes: pricing.gst,
-//               total: pricing.totalAmount,
-//               nights: pricing.nights,
-//               subtotal: pricing.subtotal,
-//               discountAmount: pricing.discountAmount
-//             });
-//           }
-//           setAvailabilityLoading(false);
-//           return;
-//         } else {
-//           // Has conflicts
-//           const conflicts = slotResponse.data.conflicts;
-//           let errorMsg = 'Selected time slot is not available.';
-//           if (conflicts?.dailyConflicts?.length > 0) {
-//             const conflictDates = conflicts.dailyConflicts.map((c: any) => new Date(c.date).toLocaleDateString()).join(', ');
-//             errorMsg = `Dates not available: ${conflictDates}`;
-//           }
-//           if (slotResponse.data.nextAvailableSlot?.start) {
-//             const nextDate = new Date(slotResponse.data.nextAvailableSlot.start);
-//             if (!isNaN(nextDate.getTime())) {
-//               errorMsg += ` Next available: ${nextDate.toLocaleString()}`;
-//             }
-//           }
-//           setAvailabilityError(errorMsg);
-//           setAvailabilityChecked(false);
-//           setAvailabilityLoading(false);
-//           return;
-//         }
-//       }
-//     }
-
-//     // FALLBACK: Traditional daily availability check
-//     const startDateStr = startDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
-    
-//     // FIXED: Calculate extended checkout date if hourly extension is selected
-//     let effectiveEndDate = new Date(endDate);
-//     let extendedCheckoutDate = new Date(endDate);
-
-//     if (hourlyExtension && hourlyExtension > 0) {
-//       extendedCheckoutDate = new Date(exactCheckOut.getFullYear(), exactCheckOut.getMonth(), exactCheckOut.getDate());
-//       console.log('⏰ Extended checkout calculation:', {
-//         originalCheckout: endDate.toLocaleDateString(),
-//         extensionHours: hourlyExtension,
-//         extendedCheckoutDateTime: exactCheckOut.toISOString(),
-//         extendedCheckoutDate: extendedCheckoutDate.toLocaleDateString(),
-//         originalEndDate: endDate.toLocaleDateString()
-//       });
-//     }
-
-//     // Check availability up to the day AFTER the extended checkout date
-//     const checkEndDate = new Date(extendedCheckoutDate);
-//     checkEndDate.setDate(checkEndDate.getDate() + 1);
-//     const endDateStr = checkEndDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
-
-//     const response = await apiClient.getAvailability(id as string, startDateStr, endDateStr);
-
-//     if (response.success && response.data) {
-//       const availabilityData = response.data.availability || [];
-
-//       console.log('📅 Availability API Response:', {
-//         startDate: startDateStr,
-//         endDate: endDateStr,
-//         recordsCount: availabilityData.length,
-//         records: availabilityData.map((a: any) => ({
-//           date: a.date,
-//           status: a.status,
-//           reason: a.reason
-//         }))
-//       });
-
-//       const currentDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-//       let allAvailable = true;
-//       const conflictingDates: string[] = [];
-
-//       const dateCheckEnd = hourlyExtension && hourlyExtension > 0 ? checkEndDate : new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-
-//       console.log('🔍 Checking availability:', {
-//         from: currentDate.toLocaleDateString(),
-//         to: dateCheckEnd.toLocaleDateString(),
-//         extensionHours: hourlyExtension || 0,
-//         extendedCheckoutDate: extendedCheckoutDate.toLocaleDateString()
-//       });
-
-//       while (currentDate < dateCheckEnd) {
-//         const dateStr = currentDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
-
-//         const dateAvailability = availabilityData.find((a: any) => {
-//           let availabilityDateStr: string;
-//           if (typeof a.date === 'string') {
-//             try {
-//               const parsedDate = new Date(a.date);
-//               if (isNaN(parsedDate.getTime())) {
-//                 console.warn('Invalid date string:', a.date);
-//                 return false;
-//               }
-//               availabilityDateStr = parsedDate.toLocaleDateString('en-CA');
-//             } catch (error) {
-//               console.warn('Error parsing date string:', a.date, error);
-//               return false;
-//             }
-//           } else if (a.date instanceof Date) {
-//             if (isNaN(a.date.getTime())) {
-//               console.warn('Invalid Date object:', a.date);
-//               return false;
-//             }
-//             availabilityDateStr = a.date.toLocaleDateString('en-CA');
-//           } else {
-//             try {
-//               const parsedDate = new Date(a.date);
-//               if (isNaN(parsedDate.getTime())) {
-//                 console.warn('Invalid date value:', a.date);
-//                 return false;
-//               }
-//               availabilityDateStr = parsedDate.toLocaleDateString('en-CA');
-//             } catch (error) {
-//               console.warn('Error parsing date value:', a.date, error);
-//               return false;
-//             }
-//           }
-//           return availabilityDateStr === dateStr;
-//         });
-
-//         if (dateAvailability) {
-//           if (dateAvailability.status === 'booked') {
-//             console.log(`❌ Date ${dateStr} is BOOKED`);
-//             allAvailable = false;
-//             conflictingDates.push(dateStr);
-//           } else if (dateAvailability.status === 'maintenance') {
-//             console.log(`❌ Date ${dateStr} is under MAINTENANCE`);
-//             allAvailable = false;
-//             conflictingDates.push(dateStr);
-//           } else if (dateAvailability.status === 'blocked') {
-//             console.log(`❌ Date ${dateStr} is BLOCKED`);
-//             allAvailable = false;
-//             conflictingDates.push(dateStr);
-//           } else if (dateAvailability.status === 'unavailable') {
-//             console.log(`❌ Date ${dateStr} is UNAVAILABLE`);
-//             allAvailable = false;
-//             conflictingDates.push(dateStr);
-//           } else {
-//             console.log(`✅ Date ${dateStr} is available (status: ${dateAvailability.status})`);
-//           }
-//         } else {
-//           console.log(`✅ Date ${dateStr} - no record, defaulting to AVAILABLE`);
-//         }
-
-//         currentDate.setDate(currentDate.getDate() + 1);
-//       }
-
-//       if (allAvailable) {
-//         setAvailabilityChecked(true);
-//         setAvailabilityError('');
-//         setAvailability(availabilityData);
-
-//         // Get pricing from backend when availability is confirmed
-//         console.log('✅ Availability confirmed, getting pricing from backend...');
-//         const pricing = await getSecurePricing();
-//         if (pricing) {
-//           console.log('💰 Pricing received from backend:', pricing);
-//           setPriceBreakdown({
-//             basePrice: property?.pricing?.basePrice || 0,
-//             baseAmount: pricing.baseAmount,
-//             serviceFee: pricing.serviceFee,
-//             cleaningFee: pricing.cleaningFee,
-//             securityDeposit: pricing.securityDeposit,
-//             extraGuestCost: pricing.extraGuestCost,
-//             extraGuestPrice: pricing.extraGuestPrice,
-//             extraGuests: pricing.extraGuests,
-//             hourlyExtension: pricing.hourlyExtension,
-//             platformFee: pricing.platformFee,
-//             gst: pricing.gst,
-//             processingFee: pricing.processingFee,
-//             taxes: pricing.gst,
-//             total: pricing.totalAmount,
-//             nights: pricing.nights,
-//             subtotal: pricing.subtotal,
-//             discountAmount: pricing.discountAmount
-//           });
-//         }
-//       } else {
-//         // Check if the conflict is due to extension hours
-//         const originalEndStr = endDate.toLocaleDateString('en-CA');
-//         const isExtensionConflict = hourlyExtension && hourlyExtension > 0 && conflictingDates.some(d => d > originalEndStr);
-
-//         if (isExtensionConflict) {
-//           setAvailabilityError(`Cannot add ${hourlyExtension}-hour extension: checkout would overlap with booked dates (${conflictingDates.join(', ')}). Try a shorter extension or different dates.`);
-//         } else {
-//           setAvailabilityError(`Selected dates are not available. Conflicting dates: ${conflictingDates.join(', ')}`);
-//         }
-//         setAvailabilityChecked(false);
-//       }
-//     } else {
-//       setAvailabilityError('Failed to check availability');
-//       setAvailabilityChecked(false);
-//     }
-//   } catch (error: any) {
-//     console.error('Availability check error:', error);
-//     setAvailabilityError(error.message || 'Failed to check availability');
-//     setAvailabilityChecked(false);
-//   } finally {
-//     setAvailabilityLoading(false);
-//   }
-// };
 
   // Date validation function
   const validateDateRange = (startDate: Date | null, endDate: Date | null) => {
@@ -1462,6 +1180,7 @@ export default function PropertyDetailsPage() {
   };
 
   const handleBooking = async () => {
+    console.log("WHn called",checkInTimeStr);
     if (!isAuthenticated) {
       router.push('/auth/login');
       return;
@@ -1491,6 +1210,8 @@ export default function PropertyDetailsPage() {
         totalPrice: 0 // Will be calculated by backend
       }
     });
+
+    console.log("check in str",checkInTimeStr);
 
     // Navigate to booking page with clean URL (only property ID)
     router.push(`/book/${id}`);
@@ -1600,30 +1321,13 @@ export default function PropertyDetailsPage() {
       <Header />
       
       {/* Main Content */}
-      <main className="pt-40 font-['Inter',system-ui,-apple-system,sans-serif]">
+      <main className={` ${hideHeader ? "pt-0 sm:pt-40" : "pt-40"} font-['Inter',system-ui,-apple-system,sans-serif] overflow-hidden`}>
         {/* Image Gallery */}
         <div className="relative">
-          <div className="grid grid-cols-4 gap-2 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Main large image */}
-            <div className="col-span-4 lg:col-span-2 row-span-2">
-              <img
-                src={property.images?.[selectedImage] || '/logo.png'}
-                alt={property.title}
-                className="w-full h-[400px] lg:h-[500px] object-cover rounded-2xl"
-              />
-            </div>
-            {/* Smaller images */}
-            {property.images?.slice(1, 5).map((img: string, index: number) => (
-              <div key={index} className="col-span-2 lg:col-span-1">
-                <img
-                  src={img}
-                  alt={property.title}
-                  className="w-full h-[200px] lg:h-[245px] object-cover rounded-2xl cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => setSelectedImage(index + 1)}
-                />
-              </div>
-            ))}
-          </div>
+           {/* MOBILE – HORIZONTAL SWIPE */}
+ 
+
+         <ImageGallery images={property.images || []} title={property.title} />
         </div>
 
         {/* Content Container */}
@@ -1719,7 +1423,7 @@ export default function PropertyDetailsPage() {
                   <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
                     <Home className="w-5 h-5 text-white" />
                 </div>
-                  <h2 className="text-3xl font-bold text-gray-900 font-['Inter',system-ui,-apple-system,sans-serif] tracking-tight">About this place</h2>
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 font-['Inter',system-ui,-apple-system,sans-serif] tracking-tight">About this place</h2>
               </div>
                     <div className="text-gray-700 leading-relaxed">
                       {showFullDescription ? (
@@ -1754,33 +1458,82 @@ export default function PropertyDetailsPage() {
                   </div>
 
               {/* Amenities Section */}
-              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-white" />
-                  </div>
-                  <h2 className="text-3xl font-bold text-gray-900 font-['Inter',system-ui,-apple-system,sans-serif] tracking-tight">What this place offers</h2>
+                         
+      <div className="bg-white rounded-2xl shadow-md border p-5 md:p-8">
+        {/* HEADER */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center">
+            <CheckCircle className="w-5 h-5 text-white" />
+          </div>
+          <h2 className="text-xl md:text-3xl font-semibold text-gray-900">
+            What this place offers
+          </h2>
+        </div>
+
+        {/* AMENITIES GRID */}
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
+          {(property.amenities
+            ?.slice(0, isMobile ? 4: showAllAmenities ? property.amenities.length : 8)
+          )?.map((amenity: string) => (
+            <div
+              key={amenity}
+              className="flex items-center gap-2 p-2 rounded-lg"
+            >
+              {getAmenityIcon(amenity)}
+              <span className="text-sm md:text-base text-gray-700 capitalize">
+                {amenity.replace(/-/g, " ")}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* SHOW ALL BUTTON */}
+        {property.amenities?.length > 4 && (
+          <button
+            onClick={() => setShowAllAmenities(true)}
+            className="mt-5 w-full md:w-auto text-center border border-gray-300 rounded-xl px-6 py-3 text-sm font-medium hover:bg-gray-100 transition"
+          >
+            Show all {property.amenities.length} amenities
+          </button>
+        )}
+      </div>
+
+      {/* MOBILE BOTTOM SHEET */}
+      {showAllAmenities && isMobile && (
+        <div className="fixed inset-0 z-50 bg-black/40">
+          <div className="absolute bottom-0 w-full bg-white rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto animate-slideUp">
+            {/* HEADER */}
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-semibold">
+                What this place offers
+              </h3>
+              <button onClick={() => setShowAllAmenities(false)}>
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* FULL AMENITIES LIST */}
+            <div className="grid grid-cols-1 gap-4">
+              {property.amenities?.map((amenity: string) => (
+                <div
+                  key={amenity}
+                  className="flex items-center gap-3"
+                >
+                  {getAmenityIcon(amenity)}
+                  <span className="capitalize text-gray-700">
+                    {amenity.replace(/-/g, " ")}
+                  </span>
                 </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {(showAllAmenities ? property.amenities : property.amenities?.slice(0, 8))?.map((amenity: string) => (
-                        <div key={amenity} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                          {getAmenityIcon(amenity)}
-                          <span className="text-gray-700 capitalize">{amenity.replace(/-/g, ' ')}</span>
-                        </div>
-                      ))}
-                    </div>
-                    {property.amenities?.length > 8 && (
-                      <button
-                        onClick={() => setShowAllAmenities(!showAllAmenities)}
-                        className="text-indigo-600 font-medium mt-4 hover:underline"
-                      >
-                        {showAllAmenities ? 'Show less' : `Show all ${property.amenities.length} amenities`}
-                      </button>
-                    )}
-                  </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+
 
               {/* Availability Calendar Section */}
-              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
+              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 ">
                 <PropertyAvailabilityCalendar 
                   propertyId={id as string}
                   checkInDate={dateRange.startDate}
@@ -1833,7 +1586,7 @@ export default function PropertyDetailsPage() {
               </div>
 
               {/* Reviews Section */}
-              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
+              {/* <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
                     <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center">
@@ -1852,17 +1605,12 @@ export default function PropertyDetailsPage() {
                       <h3 className="text-xl font-semibold text-gray-900 mb-2">No reviews yet</h3>
                       <p className="text-gray-600">Be the first to review this property!</p>
                     </div>
-                  </div>
+              </div> */}
+              <ReviewsSection property={property} />
 
               {/* Location Section with Map */}
-              <div className="mb-12">
-                {console.log('Property location data:', {
-                  location: property.location,
-                  coordinates: property.location?.coordinates,
-                  address: property.location?.address,
-                  city: property.location?.city,
-                  state: property.location?.state
-                })}
+              <div className="mb-10">
+               
                 <PropertyMap
                   address={property.location?.address || 'Address not specified'}
                   city={property.location?.city || 'City not specified'}
@@ -1873,115 +1621,7 @@ export default function PropertyDetailsPage() {
               </div>
 
               {/* Host Section */}
-              <div className="mb-12">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-                    <Users className="w-5 h-5 text-white" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900 font-display">About the host</h2>
-                </div>
-                    <div className="bg-gray-50 rounded-2xl p-6">
-                      <div className="flex items-start gap-4 mb-6">
-                        <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center overflow-hidden">
-                          {property.host?.profileImage ? (
-                            <img 
-                              src={property.host.profileImage} 
-                              alt={property.host.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <Users className="w-10 h-10 text-indigo-600" />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-xl font-bold text-gray-900 mb-1">
-                            Hosted by {property.host?.name || 'TripMe Host'}
-                          </h3>
-                          <div className="flex items-center gap-2 mb-2">
-                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm font-medium text-gray-700">
-                              {property.host?.rating || 4.5} • {property.host?.reviewCount || 0} reviews
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-3">
-                        Member since {property.host?.createdAt ? (() => {
-                          try {
-                            const date = new Date(property.host.createdAt);
-                            return isNaN(date.getTime()) ? '2024' : date.getFullYear();
-                          } catch (error) {
-                            console.warn('Error parsing host creation date:', property.host.createdAt, error);
-                            return '2024';
-                          }
-                        })() : '2024'}
-                          </p>
-                          {property.host?.bio && (
-                            <p className="text-gray-700 text-sm leading-relaxed mb-4">
-                              {property.host.bio}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Host Details Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        {property.host?.location?.city && (
-                          <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
-                            <MapPin className="w-5 h-5 text-gray-500" />
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">Location</div>
-                              <div className="text-sm text-gray-600">
-                                {property.host.location.city}, {property.host.location.state}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {property.host?.languages && property.host.languages.length > 0 && (
-                          <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
-                            <Globe className="w-5 h-5 text-gray-500" />
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">Languages</div>
-                              <div className="text-sm text-gray-600">
-                                {property.host.languages.join(', ')}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {property.host?.phone && (
-                          <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
-                            <Phone className="w-5 h-5 text-gray-500" />
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">Phone</div>
-                              <div className="text-sm text-gray-600">{property.host.phone}</div>
-                            </div>
-                          </div>
-                        )}
-
-                        {property.host?.email && (
-                          <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
-                            <Mail className="w-5 h-5 text-gray-500" />
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">Email</div>
-                              <div className="text-sm text-gray-600">{property.host.email}</div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Contact Actions */}
-                      <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
-                        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                          <MessageCircle className="w-4 h-4" />
-                          Contact host
-                        </button>
-                        <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                          <Phone className="w-4 h-4" />
-                          Call host
-                        </button>
-                      </div>
-                    </div>
-              </div>
+               <HostCard host={property.host} />
 
               {/* House Rules */}
               {property.houseRules?.length > 0 && (
@@ -2000,7 +1640,7 @@ export default function PropertyDetailsPage() {
             </div>
 
             {/* Right Column - Booking Card */}
-            <div className="lg:col-span-1">
+            <div className="hidden lg:col-span-1 lg:block">
               <div className="sticky top-24">
                 <div ref={bookingCardRef} className="bg-white border border-gray-200 rounded-2xl shadow-xl p-6">
                   {/* Price */}
@@ -2025,6 +1665,7 @@ export default function PropertyDetailsPage() {
                     <div className="mb-4 relative">
                       <div className="grid grid-cols-2 gap-2">
                         <div 
+                         ref={checkInRef}
                           className={`border rounded-lg p-3 cursor-pointer transition-all duration-300 ${
                             selectionStep === 'checkin' 
                               ? 'border-indigo-500 bg-indigo-50 shadow-md' 
@@ -2033,7 +1674,9 @@ export default function PropertyDetailsPage() {
                               : 'border-gray-300 hover:border-gray-400'
                           }`}
                           onClick={() => {
+                            // ref={checkInRef}
                             setShowDatePicker(true);
+                            setCalendarAnchor('checkin');
                             setSelectionStep('checkin');
                           }}
                         >
@@ -2049,6 +1692,7 @@ export default function PropertyDetailsPage() {
                           </div>
                         </div>
                         <div 
+                         ref={checkOutRef}
                           className={`border rounded-lg p-3 cursor-pointer transition-all duration-300 ${
                             selectionStep === 'checkout' 
                               ? 'border-indigo-500 bg-indigo-50 shadow-md' 
@@ -2057,7 +1701,9 @@ export default function PropertyDetailsPage() {
                               : 'border-gray-300 hover:border-gray-400'
                           }`}
                           onClick={() => {
+                            ref={checkOutRef}
                             setShowDatePicker(true);
+                            setCalendarAnchor('checkout');
                             setSelectionStep('checkout');
                           }}
                         >
@@ -2117,6 +1763,12 @@ export default function PropertyDetailsPage() {
                               }
                               
                               setCheckInTimeStr(newTime);
+
+                              // updateBookingData({
+                              //   ...bookingData,
+                              //   checkInTime: newTime
+                              // });
+                              
                               // Clear availability when time changes
                               setAvailabilityError('');
                               setAvailabilityChecked(false);
@@ -2293,14 +1945,55 @@ export default function PropertyDetailsPage() {
                       )}
                     
                       {/* Fresh Working Calendar */}
-                      {showDatePicker && (
-                        <div 
-                          ref={datePickerRef}
-                          className="absolute top-full left-0 right-0 z-50 mt-3 bg-white rounded-xl shadow-xl border border-gray-200 p-4"
-                        >
-                          <div className="w-full max-w-sm mx-auto">
-                            {/* Header */}
-                            <div className="flex items-center justify-between mb-4">
+
+                      {showDatePicker &&
+  createPortal(
+    (() => {
+      const pos = getCalendarPosition();
+
+      if (isMobile) {
+        return (
+          <div className="fixed inset-0 z-[1000] bg-white">
+           {/* Mobile Bottom Sheet */}
+<div className="fixed inset-0 z-[1000]">
+  {/* Backdrop */}
+  <div
+    className="absolute inset-0 bg-black/40"
+    onClick={() => setShowDatePicker(false)}
+  />
+
+  {/* Bottom Sheet */}
+  <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl max-h-[90vh] flex flex-col animate-slide-up">
+    
+    {/* Drag Handle */}
+    <div className="flex justify-center pt-3">
+      <div className="w-10 h-1.5 bg-gray-300 rounded-full" />
+    </div>
+
+    {/* Header */}
+    <div className="flex items-center justify-between px-4 py-3 border-b">
+      <h3 className="text-base font-semibold">
+        {selectionStep === 'checkin'
+          ? 'Select check-in date'
+          : selectionStep === 'checkout'
+          ? 'Select check-out date'
+          : 'Select dates'}
+      </h3>
+
+      <button
+        onClick={() => setShowDatePicker(false)}
+        className="p-2 rounded-full hover:bg-gray-100"
+      >
+        ✕
+      </button>
+    </div>
+
+    {/* Calendar Content (Scrollable) */}
+    <div
+      ref={datePickerRef}
+      className="overflow-y-auto px-4 py-4 flex-1"
+    >
+        <div className="flex items-center justify-between mb-4">
                               <button
                                 onClick={() => {
                                   const newMonth = new Date(currentMonth);
@@ -2523,8 +2216,278 @@ export default function PropertyDetailsPage() {
                               </button>
                             </div>
                           </div>
-                        </div>
-                      )}
+      {/* ⬇️ KEEP YOUR EXISTING CALENDAR CODE HERE ⬇️ */}
+      {/* Header (month navigation), grid, date logic — DO NOT CHANGE */}
+    </div>
+
+    {/* Footer (Optional CTA like Airbnb) */}
+    <div className="px-4 py-3 border-t flex gap-3">
+      <button
+        onClick={() => {
+          setSelectionStep('checkin');
+          setDateRange({ startDate: new Date(), endDate: null, key: 'selection' });
+        }}
+        className="flex-1 py-2 text-sm rounded-lg border border-gray-300"
+      >
+        Clear
+      </button>
+
+      <button
+        onClick={() => setShowDatePicker(false)}
+        className="flex-1 py-2 text-sm rounded-lg bg-indigo-600 text-white"
+      >
+        Done
+      </button>
+    </div>
+  </div>
+</div>
+
+        );
+      }
+
+      return (
+        <div
+          ref={datePickerRef}
+          style={{
+            position: 'absolute',
+            top: pos.top,
+            left: pos.left,
+            zIndex: 1000,
+          }}
+          className="bg-white rounded-xl shadow-xl border p-4 w-[360px]"
+        >    <div className="flex items-center justify-between mb-4">
+                              <button
+                                onClick={() => {
+                                  const newMonth = new Date(currentMonth);
+                                  newMonth.setMonth(newMonth.getMonth() - 1);
+                                  setCurrentMonth(newMonth);
+                                }}
+                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                </svg>
+                              </button>
+                              
+                              <h3 className="text-lg font-semibold text-gray-900">
+                                {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                              </h3>
+                              
+                              <button
+                                onClick={() => {
+                                  const newMonth = new Date(currentMonth);
+                                  newMonth.setMonth(newMonth.getMonth() + 1);
+                                  setCurrentMonth(newMonth);
+                                }}
+                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                              </button>
+                            </div>
+
+                            {/* Step Indicator */}
+                            <div className="text-center mb-4 text-sm">
+                              {selectionStep === 'checkin' && (
+                                <span className="text-blue-600 font-medium">Select Check-in Date</span>
+                              )}
+                              {selectionStep === 'checkout' && (
+                                <span className="text-blue-600 font-medium">Select Check-out Date</span>
+                              )}
+                              {selectionStep === 'complete' && (
+                                <span className="text-green-600 font-medium">Dates Selected!</span>
+                              )}
+                            </div>
+
+                            {/* Calendar Grid */}
+                            <div className="grid grid-cols-7 gap-1">
+                              {/* Day Headers */}
+                              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => (
+                                <div key={day} className="text-center text-xs font-medium text-gray-500 py-2">
+                                  {day}
+                                </div>
+                              ))}
+
+                              {/* Calendar Days */}
+                              {(() => {
+                                const year = currentMonth.getFullYear();
+                                const month = currentMonth.getMonth();
+                                const firstDay = new Date(year, month, 1);
+                                const lastDay = new Date(year, month + 1, 0);
+                                const startDate = new Date(firstDay);
+                                startDate.setDate(startDate.getDate() - firstDay.getDay());
+                                
+                                const days = [];
+                                
+                                // Generate all days for the calendar grid (6 weeks x 7 days = 42)
+                                for (let i = 0; i < 42; i++) {
+                                  const date = new Date(startDate);
+                                  date.setDate(startDate.getDate() + i);
+                                  
+                                  const isCurrentMonth = date.getMonth() === month;
+                                  const isToday = date.toDateString() === new Date().toDateString();
+                                  const isPast = date < new Date();
+                                  
+                                  // Check if this date is booked/unavailable
+                                  // FIXED: Use local date format to match bookedDates format
+                                  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                                  const isBooked = bookedDates.has(dateStr);
+                                  
+                                  const isStartDate = dateRange.startDate && 
+                                    dateRange.startDate.toDateString() === date.toDateString();
+                                  const isEndDate = dateRange.endDate && 
+                                    dateRange.endDate.toDateString() === date.toDateString();
+                                  const isInRange = dateRange.startDate && dateRange.endDate &&
+                                    date > dateRange.startDate && date < dateRange.endDate;
+                                  
+                                  // Booked dates are not selectable
+                                  const isSelectable = isCurrentMonth && !isPast && !isBooked;
+                                  
+                                  let className = 'text-center py-2 text-sm rounded-lg transition-colors relative ';
+                                  
+                                  if (!isCurrentMonth) {
+                                    className += 'text-gray-300';
+                                  } else if (isBooked) {
+                                    // Red styling for booked dates
+                                    className += 'bg-red-100 text-red-400 cursor-not-allowed line-through';
+                                  } else if (!isSelectable) {
+                                    className += 'text-gray-400 bg-gray-100';
+                                  } else if (isStartDate || isEndDate) {
+                                    className += 'bg-blue-600 text-white font-semibold';
+                                  } else if (isInRange) {
+                                    className += 'bg-blue-200 text-blue-800';
+                                  } else if (isToday) {
+                                    className += 'bg-blue-100 text-blue-800 font-medium';
+                                  } else {
+                                    className += 'hover:bg-gray-100 cursor-pointer';
+                                  }
+                                  
+                                  days.push(
+                                    <div
+                                      key={date.getTime()}
+                                      className={className}
+                                      title={isBooked ? 'This date is already booked' : undefined}
+                                      onClick={() => {
+                                        if (!isSelectable) return;
+                                        
+                                        console.log('Date clicked:', date.toDateString());
+                                        console.log('Current selectionStep:', selectionStep);
+                                        
+                                        if (selectionStep === 'checkin') {
+                                          // Select check-in date
+                                          console.log('Setting check-in date:', date.toDateString());
+                                          const newDateRange = {
+                                            ...dateRange,
+                                            startDate: new Date(date),
+                                            endDate: null,
+                                            key: 'selection'
+                                          };
+                                          console.log('📅 New date range:', newDateRange);
+                                          console.log('📅 Setting dateRange state...');
+                                          setDateRange(newDateRange);
+                                          console.log('📅 DateRange state updated');
+                                          setSelectionStep('checkout');
+                                        } else if (selectionStep === 'checkout') {
+                                          // Select check-out date
+                                          if (date > dateRange.startDate) {
+                                            console.log('Setting check-out date:', date.toDateString());
+                                            console.log('🔍 Original date:', date);
+                                            console.log('🔍 New Date(date):', new Date(date));
+                                            console.log('🔍 Start date:', dateRange.startDate);
+                                            const newDateRange = {
+                                              ...dateRange,
+                                              endDate: new Date(date),
+                                              key: 'selection'
+                                            };
+                                            console.log('📅 Complete date range:', newDateRange);
+                                            console.log('🔍 Final endDate:', newDateRange.endDate);
+                                            console.log('📅 Setting complete dateRange state...');
+                                            setDateRange(newDateRange);
+                                            console.log('📅 Complete dateRange state updated');
+                                            setSelectionStep('complete');
+                                            setTimeout(() => setShowDatePicker(false), 300);
+                                          } else if (date < dateRange.startDate) {
+                                            // New date is before start date, make it new start date
+                                            console.log('New date before start, making it new start date');
+                                            setDateRange({
+                                              startDate: new Date(date),
+                                              endDate: null,
+                                              key: 'selection'
+                                            });
+                                            setSelectionStep('checkin');
+                                          }
+                                        } else {
+                                          // Both dates selected, start over
+                                          console.log('Starting over with new check-in date');
+                                          setDateRange({
+                                            startDate: new Date(date),
+                                            endDate: null,
+                                            key: 'selection'
+                                          });
+                                          setSelectionStep('checkin');
+                                        }
+                                      }}
+                                    >
+                                      <span>{date.getDate()}</span>
+                                      {/* Red dot indicator for booked dates */}
+                                      {isBooked && isCurrentMonth && (
+                                        <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                                      )}
+                                    </div>
+                                  );
+                                }
+                                
+                                return days;
+                              })()}
+                            </div>
+
+                            {/* Legend for booked dates */}
+                            <div className="mt-3 flex items-center justify-center gap-4 text-xs text-gray-500">
+                              <div className="flex items-center gap-1">
+                                <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                                <span>Booked</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                                <span>Selected</span>
+                              </div>
+                            </div>
+
+                            {/* Reset Button */}
+                            <div className="mt-4 text-center">
+                              <button
+                                onClick={() => {
+                                  const today = new Date();
+                                  const tomorrow = new Date();
+                                  tomorrow.setDate(tomorrow.getDate() + 1);
+                                  
+                                  setDateRange({
+                                    startDate: today,
+                                    endDate: tomorrow,
+                                    key: 'selection'
+                                  });
+                                  setSelectionStep('checkin');
+                                  setAvailabilityChecked(false);
+                                  setAvailabilityError('');
+                                  setAvailability([]);
+                                }}
+                                className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                              >
+                                Reset to Today & Tomorrow
+                              </button>
+                            </div>
+                          
+          {/* calendar content */}
+        </div>
+      );
+    })(),
+    document.body
+  )
+}
+
+                    
+
                     
                       {/* Test Pricing Button removed */}
 
@@ -2643,6 +2606,20 @@ export default function PropertyDetailsPage() {
                   {/* Hourly Booking Extension - Modern Design */}
                   {!isOwnProperty && property?.hourlyBooking?.enabled && nights >= (property?.hourlyBooking?.minStayDays || 1) && (
                     <div className="mb-6">
+
+                      {/* MOBILE ACCORDION HEADER */}
+                          <button
+                            onClick={() => setShowExtras((prev) => !prev)}
+                            className="lg:hidden w-full flex items-center justify-between px-4 py-3 mb-3
+                                      bg-purple-50 border border-purple-200 rounded-xl font-semibold"
+                          >
+                            <span>Add extra hours</span>
+                            <ChevronDown
+                              className={`transition-transform duration-300 ${
+                                showExtras ? "rotate-180" : ""
+                              }`}
+                            />
+                          </button>
                       <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl p-6 border border-purple-200">
                         <div className="flex items-center gap-3 mb-4">
                           <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center">
@@ -2863,6 +2840,25 @@ export default function PropertyDetailsPage() {
                 </div>
               </div>
             </div>
+
+            
+
+            <MobileBookingBar
+            property={property}
+            dateRange={dateRange}
+            nights={nights}
+            pricing={pricing}
+            availabilityChecked={availabilityChecked}
+            availabilityLoading={availabilityLoading}
+            selectionStep={selectionStep}
+            formatPrice={formatPrice}
+            formatDate={formatDate}
+            setShowDatePicker={setShowDatePicker}
+            setSelectionStep={setSelectionStep}
+            checkAvailability={checkAvailability}
+            handleBooking={handleBooking}
+/>
+
           </div>
         </div>
       </main>

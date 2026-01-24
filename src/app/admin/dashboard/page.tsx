@@ -410,44 +410,148 @@ export default function AdminDashboard() {
     }
   }, [recentActivities]);
 
-  const StatCard = ({ title, value, change, icon: Icon, color }: any) => (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:bg-white/90 hover:shadow-2xl transition-all duration-300 group">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-gray-600 text-sm font-medium">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
-          {change && (
-            <div className={`flex items-center mt-2 text-sm ${
-              change > 0 ? 'text-green-600' : 'text-red-600'
-            }`}>
-              {change > 0 ? <TrendingUpIcon className="h-4 w-4 mr-1" /> : <TrendingDownIcon className="h-4 w-4 mr-1" />}
-              {Math.abs(change)}%
-            </div>
-          )}
-        </div>
-        <div className={`p-3 rounded-xl ${color} group-hover:scale-110 transition-transform duration-300`}>
-          <Icon className="h-6 w-6 text-white" />
-        </div>
-      </div>
+  // const StatCard = ({ title, value, change, icon: Icon, color }: any) => (
+  //   <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:bg-white/90 hover:shadow-2xl transition-all duration-300 group">
+  //     <div className="flex items-center justify-between">
+  //       <div>
+  //         <p className="text-gray-600 text-sm font-medium">{title}</p>
+  //         <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+  //         {change && (
+  //           <div className={`flex items-center mt-2 text-sm ${
+  //             change > 0 ? 'text-green-600' : 'text-red-600'
+  //           }`}>
+  //             {change > 0 ? <TrendingUpIcon className="h-4 w-4 mr-1" /> : <TrendingDownIcon className="h-4 w-4 mr-1" />}
+  //             {Math.abs(change)}%
+  //           </div>
+  //         )}
+  //       </div>
+  //       <div className={`p-3 rounded-xl ${color} group-hover:scale-110 transition-transform duration-300`}>
+  //         <Icon className="h-6 w-6 text-white" />
+  //       </div>
+  //     </div>
+  //   </div>
+  // );
+
+
+//   const StatCard = ({ title, value, change, icon: Icon, color }: any) => (
+//   <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 
+//     p-2 md:p-6 // Reduced padding on mobile
+//     hover:bg-white/90 hover:shadow-2xl transition-all duration-300 group justify-center">
+    
+//     <div className="flex flex-col-reverse justify-between gap-3 // Stacked for mobile flow
+//       sm:flex-row sm:items-center sm:gap-0"> 
+      
+//       <div className="min-w-0"> {/* min-w-0 helps truncation work */}
+//         <p className="text-gray-600 text-[10px] xs:text-xs md:text-sm font-medium truncate">
+//           {title}
+//         </p>
+//         <p className="text-xl md:text-3xl font-bold text-gray-900 mt-1 md:mt-2 truncate">
+//           {value}
+//         </p>
+        
+//         {change && (
+//           <div className={`flex items-center mt-1 md:mt-2 text-[10px] md:text-sm font-semibold ${
+//             change > 0 ? 'text-green-600' : 'text-red-600'
+//           }`}>
+//             {change > 0 ? (
+//               <TrendingUpIcon className="h-3 w-3 md:h-4 md:w-4 mr-0.5 md:mr-1" />
+//             ) : (
+//               <TrendingDownIcon className="h-3 w-3 md:h-4 md:w-4 mr-0.5 md:mr-1" />
+//             )}
+//             {Math.abs(change)}%
+//           </div>
+//         )}
+//       </div>
+
+//       {/* Icon: Smaller on mobile, hide on very tiny screens if needed */}
+//       <div className={`self-start sm:self-center p-2 md:p-3 rounded-xl ${color} 
+//         group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
+//         <Icon className="h-4 w-4 md:h-6 md:h-6 text-white" />
+//       </div>
+//     </div>
+//   </div>
+// );
+
+const StatCard = ({ title, value, change, icon: Icon, color }: any) => (
+  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-md border border-white/20 
+    px-2 py-4 md:p-6 /* Minimal horizontal padding on mobile */
+    flex flex-col items-center text-center /* Centering logic */
+    hover:bg-white/90 transition-all duration-300 group">
+    
+    {/* 1. Icon at the top, smaller on mobile */}
+    <div className={`mb-2 p-2 md:p-3 rounded-xl ${color} shadow-lg transition-transform group-hover:scale-110`}>
+      <Icon className="h-4 w-4 md:h-6 md:w-6 text-white" />
     </div>
-  );
+
+    {/* 2. Title - dimmed and small */}
+    <p className="text-gray-500 text-[10px] md:text-sm font-medium uppercase tracking-tight truncate w-full">
+      {title}
+    </p>
+
+    {/* 3. Value - bold and centered */}
+    <p className="text-lg md:text-3xl font-bold text-gray-900 leading-tight mt-0.5">
+      {value}
+    </p>
+    
+    {/* 4. Growth Indicator */}
+    {change && (
+      <div className={`flex items-center justify-center mt-1 text-[10px] md:text-sm font-bold ${
+        change > 0 ? 'text-green-600' : 'text-red-600'
+      }`}>
+        {change > 0 ? <TrendingUpIcon className="h-3 w-3 mr-0.5" /> : <TrendingDownIcon className="h-3 w-3 mr-0.5" />}
+        {Math.abs(change)}%
+      </div>
+    )}
+  </div>
+);
+  // const QuickActionCard = ({ title, count, icon: Icon, color, onClick }: any) => (
+  //   <button
+  //     onClick={onClick}
+  //     className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:bg-white/90 hover:shadow-2xl hover:border-purple-300/50 transition-all duration-300 group text-left w-full"
+  //   >
+  //     <div className="flex items-center justify-between">
+  //       <div>
+  //         <p className="text-gray-600 text-sm font-medium">{title}</p>
+  //         <p className="text-2xl font-bold text-gray-900 mt-2">{count}</p>
+  //       </div>
+  //       <div className={`p-3 rounded-xl ${color} group-hover:scale-110 transition-transform duration-300`}>
+  //         <Icon className="h-6 w-6 text-white" />
+  //       </div>
+  //     </div>
+  //   </button>
+  // );
 
   const QuickActionCard = ({ title, count, icon: Icon, color, onClick }: any) => (
-    <button
-      onClick={onClick}
-      className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:bg-white/90 hover:shadow-2xl hover:border-purple-300/50 transition-all duration-300 group text-left w-full"
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-gray-600 text-sm font-medium">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{count}</p>
-        </div>
-        <div className={`p-3 rounded-xl ${color} group-hover:scale-110 transition-transform duration-300`}>
-          <Icon className="h-6 w-6 text-white" />
-        </div>
-      </div>
-    </button>
-  );
+  <button
+    onClick={onClick}
+    className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-md border border-white/20 
+      px-2 py-4 md:p-6 /* Compact vertical padding */
+      flex flex-col items-center text-center /* Centered for mobile */
+      hover:bg-white/90 hover:shadow-xl transition-all duration-300 
+      active:scale-95 /* Haptic-like feel on tap */
+      group w-full"
+  >
+    {/* 1. Icon - Centered and scaled for mobile */}
+    <div className={`mb-3 p-2 md:p-3 rounded-xl ${color} shadow-lg transition-transform group-hover:scale-110`}>
+      <Icon className="h-4 w-4 md:h-6 md:w-6 text-white" />
+    </div>
+
+    {/* 2. Title - Small and clean */}
+    <p className="text-gray-500 text-[10px] md:text-sm font-medium uppercase tracking-tight truncate w-full">
+      {title}
+    </p>
+
+    {/* 3. Count/Value */}
+    <p className="text-lg md:text-2xl font-bold text-gray-900 leading-tight mt-1">
+      {count}
+    </p>
+
+    {/* Optional: Add a small 'Action' label or arrow if you want to hint it's clickable */}
+    <span className="mt-2 text-[8px] font-bold text-gray-400 uppercase md:hidden">
+      View All
+    </span>
+  </button>
+);
 
   if (loading) {
     return (
@@ -466,8 +570,8 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
-        <div className="max-w-7xl mx-auto space-y-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-3 md:p-6 overflow-x-hidden">
+        <div className="max-w-7xl mx-auto space-y-6 md:space-y-8 overflow-x-hidden">
           {/* Enhanced Header */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
             <div className="flex items-center justify-between">
@@ -475,25 +579,28 @@ export default function AdminDashboard() {
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                   Dashboard
                 </h1>
-                <p className="mt-2 text-lg text-gray-600">
+                <p className="hidden md:block mt-2 text-sm md:text-lg text-gray-600">
                   Welcome back! Here's what's happening with your platform.
                 </p>
-                <div className="mt-4 flex items-center gap-6">
+                <p className="block md:hidden mt-2 text-sm md:text-lg text-gray-600">
+                  Welcome back! Admin.
+                </p>
+                <div className="mt-4 flex flex-wrap items-center gap-3 sm:gap-6">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600">
+                    <div className="w-3 h-3 bg-green-500 rounded-full shrink-0 "></div>
+                    <span className="text-sm text-gray-600 whitespace-nowrap">
                       Revenue: {formatCurrency(stats.revenue.total)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full shrink-0"></div>
+                    <span className="text-sm text-gray-600 whitespace-nowrap">
                       Users: {formatNumber(stats.users.total)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600">
+                    <div className="w-3 h-3 bg-purple-500 rounded-full shrink-0"></div>
+                    <span className="text-sm text-gray-600 whitespace-nowrap">
                       Bookings: {stats.bookings.total}
                     </span>
                   </div>
@@ -508,7 +615,7 @@ export default function AdminDashboard() {
           </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           <StatCard
             title="Total Users"
             value={formatNumber(stats.users.total)}
@@ -540,7 +647,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Additional Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           <StatCard
             title="Platform Fees"
             value={formatCurrency(stats.revenue.platformFees)}
@@ -572,9 +679,9 @@ export default function AdminDashboard() {
         </div>
 
           {/* Quick Actions */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-4 md:p-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             <QuickActionCard
               title="Pending KYC"
               count={quickActions.pendingKYCCount}
@@ -646,7 +753,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Bookings & Services Overview */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-4 md:p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Bookings & Services Overview</h3>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -659,18 +766,18 @@ export default function AdminDashboard() {
                     <div className="text-gray-600 text-sm">This Month</div>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-2">
                   <div className="text-center p-3 bg-gray-100/50 rounded-xl">
                     <div className="text-xl font-bold text-yellow-600">{stats.bookings.pending}</div>
                     <div className="text-gray-600 text-xs">Pending</div>
                   </div>
                   <div className="text-center p-3 bg-gray-100/50 rounded-xl">
                     <div className="text-xl font-bold text-emerald-600">{stats.bookings.completed}</div>
-                    <div className="text-gray-600 text-xs">Completed</div>
+                    <div className="text-gray-600 text-xs truncate">Completed</div>
                   </div>
                   <div className="text-center p-3 bg-gray-100/50 rounded-xl">
                     <div className="text-xl font-bold text-red-600">{stats.bookings.cancelled}</div>
-                    <div className="text-gray-600 text-xs">Cancelled</div>
+                    <div className="text-gray-600 text-xs ">Cancelled</div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -690,7 +797,7 @@ export default function AdminDashboard() {
           {/* Recent Activities & System Health */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Recent Activities */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-4 md:p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activities</h3>
               <div className="space-y-4">
                 {(() => {
@@ -727,7 +834,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* System Health */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-4 md:p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">System Health</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-gray-100/50 rounded-xl">
@@ -750,7 +857,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Performance Metrics */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-4 md:p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-6">Performance Metrics</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center">
@@ -776,7 +883,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Financial Breakdown */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-4 md:p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-6">Financial Breakdown</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="text-center p-4 bg-gray-100/50 rounded-xl">
@@ -804,7 +911,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-700">Platform Fees</span>
                   <div className="flex items-center space-x-2">
-                    <div className="w-24 bg-gray-200 rounded-full h-2">
+                    <div className="w-12 md:w-24 bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-blue-500 h-2 rounded-full" 
                         style={{ width: `${stats.revenue.total > 0 ? (stats.revenue.platformFees / stats.revenue.total) * 100 : 0}%` }}
@@ -816,7 +923,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-700">Host Payouts</span>
                   <div className="flex items-center space-x-2">
-                    <div className="w-24 bg-gray-200 rounded-full h-2">
+                    <div className="w-12 md:w-24 bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-cyan-500 h-2 rounded-full" 
                         style={{ width: `${stats.revenue.total > 0 ? (stats.revenue.totalPayouts / stats.revenue.total) * 100 : 0}%` }}
@@ -828,7 +935,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-700">Net Revenue</span>
                   <div className="flex items-center space-x-2">
-                    <div className="w-24 bg-gray-200 rounded-full h-2">
+                    <div className="w-12 md:w-24 bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-emerald-500 h-2 rounded-full" 
                         style={{ width: `${stats.revenue.total > 0 ? (stats.revenue.netRevenue / stats.revenue.total) * 100 : 0}%` }}

@@ -168,38 +168,43 @@ ${booking.refundAmount ? `- Refunded: ₹${booking.refundAmount.toLocaleString()
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 md:p-6">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Enhanced Header */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-3 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                   Bookings
                 </h1>
-                <p className="mt-2 text-lg text-gray-600">
+                <p className="mt-2 text-xs md:text-lg text-gray-600">
                   Manage all bookings and handle refunds
                 </p>
-                <div className="mt-4 flex items-center gap-6">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600">
-                      Total: {bookings.length}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600">
-                      Confirmed: {bookings.filter(b => b.status === 'confirmed').length}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600">
-                      Pending: {bookings.filter(b => b.status === 'pending').length}
-                    </span>
-                  </div>
-                </div>
+               <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+  {/* Total Bookings */}
+  <div className="flex items-center gap-2 shrink-0">
+    <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
+    <span className="text-[11px] md:text-sm font-medium text-gray-600">
+      Total: {bookings.length}
+    </span>
+  </div>
+
+  {/* Confirmed Bookings */}
+  <div className="flex items-center gap-2 shrink-0">
+    <div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
+    <span className="text-[11px] md:text-sm font-medium text-gray-600">
+      Confirmed: {bookings.filter(b => b.status === 'confirmed').length}
+    </span>
+  </div>
+
+  {/* Pending Bookings */}
+  <div className="flex items-center gap-2 shrink-0">
+    <div className="w-2.5 h-2.5 bg-purple-500 rounded-full"></div>
+    <span className="text-[11px] md:text-sm font-medium text-gray-600">
+      Pending: {bookings.filter(b => b.status === 'pending').length}
+    </span>
+  </div>
+</div>
               </div>
               <div className="hidden md:block">
                 <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
@@ -229,7 +234,7 @@ ${booking.refundAmount ? `- Refunded: ₹${booking.refundAmount.toLocaleString()
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 backdrop-blur-sm text-gray-900"
+                  className="border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 backdrop-blur-sm text-gray-900 min-w-[120px] md:w-[150px]"
                 >
                   <option value="all">All Status</option>
                   <option value="confirmed">Confirmed</option>
@@ -242,96 +247,104 @@ ${booking.refundAmount ? `- Refunded: ₹${booking.refundAmount.toLocaleString()
           </div>
 
           {/* Bookings Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredBookings.map((booking) => (
-              <div key={booking._id || booking.id} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:bg-white/90 hover:shadow-2xl transition-all duration-300">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Booking #{booking._id?.slice(-8) || booking.id?.slice(-8)}</h3>
-                    <p className="text-sm text-gray-600">{new Date(booking.createdAt).toLocaleDateString()}</p>
-                  </div>
-                  {getStatusBadge(booking.status)}
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+  {filteredBookings.map((booking) => (
+    <div 
+      key={booking._id || booking.id} 
+      className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-4 md:p-6 hover:bg-white/90 hover:shadow-2xl transition-all duration-300 flex flex-col"
+    >
+      {/* 1. ID & Status Header */}
+      <div className="flex items-start justify-between mb-4">
+        <div className="min-w-0">
+          <h3 className="text-sm md:text-lg font-bold text-gray-900 truncate">
+            #{booking._id?.slice(-8) || booking.id?.slice(-8)}
+          </h3>
+          <p className="text-[10px] md:text-sm text-gray-500">
+            {new Date(booking.createdAt).toLocaleDateString()}
+          </p>
+        </div>
+        <div className="shrink-0 scale-90 md:scale-100 origin-right">
+          {getStatusBadge(booking.status)}
+        </div>
+      </div>
 
-                <div className="space-y-4">
-                  {/* Guest Info */}
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                      <Users className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{booking.user?.name || 'N/A'}</p>
-                      <p className="text-sm text-gray-600">{booking.user?.email || 'N/A'}</p>
-                    </div>
-                  </div>
-
-                  {/* Host Info */}
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
-                      <Users className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{booking.host?.name || 'N/A'}</p>
-                      <p className="text-sm text-gray-600">{booking.host?.email || 'N/A'}</p>
-                    </div>
-                  </div>
-
-                  {/* Property/Service */}
-                  <div className="p-3 bg-gray-100/50 rounded-xl">
-                    <p className="text-sm font-medium text-gray-900">Property/Service</p>
-                    <p className="text-sm text-gray-600">{booking.listing?.title || booking.service?.title || 'N/A'}</p>
-                  </div>
-
-                  {/* Dates */}
-                  <div className="flex items-center space-x-3">
-                    <Calendar className="w-5 h-5 text-gray-400" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {new Date(booking.checkIn).toLocaleDateString()} - {new Date(booking.checkOut).toLocaleDateString()}
-                      </p>
-                      <p className="text-xs text-gray-600">{booking.guests?.adults || booking.guests || 0} guest{(booking.guests?.adults || booking.guests || 0) !== 1 ? 's' : ''}</p>
-                    </div>
-                  </div>
-
-                  {/* Amount */}
-                  <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
-                    <div className="flex items-center space-x-2">
-                      <DollarSign className="w-5 h-5 text-green-600" />
-                      <span className="text-sm font-medium text-gray-900">Total Amount</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-lg font-bold text-green-600">₹{(booking.totalAmount || 0).toLocaleString()}</span>
-                      {booking.refundAmount && (
-                        <div className="text-xs text-red-600">
-                          Refunded: ₹{(booking.refundAmount || 0).toLocaleString()}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex space-x-2 pt-2">
-                    <button
-                      onClick={() => handleView(booking._id || booking.id)}
-                      className="flex-1 bg-purple-100 text-purple-700 px-4 py-2 rounded-xl hover:bg-purple-200 transition-colors duration-200 flex items-center justify-center space-x-2"
-                    >
-                      <Eye className="w-4 h-4" />
-                      <span>View</span>
-                    </button>
-                    {booking.status === 'confirmed' && (
-                      <button
-                        onClick={() => handleRefund(booking._id || booking.id)}
-                        className="flex-1 bg-orange-100 text-orange-700 px-4 py-2 rounded-xl hover:bg-orange-200 transition-colors duration-200 flex items-center justify-center space-x-2"
-                      >
-                        <DollarSign className="w-4 h-4" />
-                        <span>Refund</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+      {/* 2. Compact Info Section */}
+      <div className="space-y-3">
+        {/* Guest & Host (Side-by-side on tablet, stacked on mobile) */}
+        <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 shrink-0 bg-purple-100 rounded-full flex items-center justify-center text-purple-600">
+              <Users className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase font-bold text-gray-400">Guest</p>
+              <p className="text-xs font-semibold text-gray-900 truncate">{booking.user?.name || 'N/A'}</p>
+            </div>
           </div>
+          <div className="flex items-center gap-2 min-w-0 border-t xs:border-t-0 xs:border-l border-gray-200 pt-2 xs:pt-0 xs:pl-3">
+            <div className="w-8 h-8 shrink-0 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+              <Users className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase font-bold text-gray-400">Host</p>
+              <p className="text-xs font-semibold text-gray-900 truncate">{booking.host?.name || 'N/A'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Property & Dates */}
+        <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+          <div className="flex items-start gap-2">
+            <Calendar className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-gray-900 line-clamp-1">
+                {booking.listing?.title || booking.service?.title || 'N/A'}
+              </p>
+              <p className="text-[11px] text-gray-600 mt-0.5">
+                {new Date(booking.checkIn).toLocaleDateString()} - {new Date(booking.checkOut).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Amount Section */}
+        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100">
+          <span className="text-xs font-bold text-gray-600 uppercase">Total</span>
+          <div className="text-right">
+            <span className="text-base md:text-lg font-bold text-green-600">
+              ₹{(booking.totalAmount || 0).toLocaleString()}
+            </span>
+            {booking.refundAmount && (
+              <p className="text-[10px] text-red-600 font-medium">
+                Refund: ₹{booking.refundAmount.toLocaleString()}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Actions */}
+      <div className="flex gap-2 mt-4">
+        <button
+          onClick={() => handleView(booking._id || booking.id)}
+          className="flex-1 bg-white border border-purple-200 text-purple-700 py-2.5 rounded-xl text-sm font-bold hover:bg-purple-50 transition-all flex items-center justify-center gap-2 active:scale-95"
+        >
+          <Eye className="w-4 h-4" />
+          <span>View</span>
+        </button>
+        {booking.status === 'confirmed' && (
+          <button
+            onClick={() => handleRefund(booking._id || booking.id)}
+            className="flex-1 bg-orange-50 text-orange-700 py-2.5 rounded-xl text-sm font-bold hover:bg-orange-100 transition-all border border-orange-100 flex items-center justify-center gap-2 active:scale-95"
+          >
+            <DollarSign className="w-4 h-4" />
+            <span>Refund</span>
+          </button>
+        )}
+      </div>
+    </div>
+  ))}
+</div>
         </div>
       </div>
     </AdminLayout>

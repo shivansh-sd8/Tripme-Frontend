@@ -331,6 +331,11 @@ class ApiClient {
     });
   }
 
+  async getHostById(hostId: string): Promise<ApiResponse<any>> {
+  return this.request(`/host/profile/${hostId}`);
+}
+
+
   async getListingReviews(listingId: string, params?: any): Promise<ApiResponse<any>> {
     const queryString = params ? `?${new URLSearchParams(params).toString()}` : '';
     return this.request(`/listings/${listingId}/reviews${queryString}`);

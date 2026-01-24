@@ -50,6 +50,7 @@ export default function AdminCouponsPage() {
 
   // Form state for creating/editing coupons
   const [formData, setFormData] = useState({
+    couponImage: '',
     code: '',
     discountType: 'percentage' as 'percentage' | 'fixed',
     amount: '',
@@ -129,6 +130,31 @@ export default function AdminCouponsPage() {
     }
     
     try {
+
+       let couponImage = '';
+    
+    // Upload image to Cloudinary if provided
+    if (formData.image) {
+      const uploadFormData = new FormData();
+      uploadFormData.append('media', formData.image);
+      
+      const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload/media`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: uploadFormData
+      });
+      
+      if (!uploadResponse.ok) {
+        const uploadError = await uploadResponse.json();
+        throw new Error(uploadError.message || 'Failed to upload image');
+      }
+      
+      const uploadResult = await uploadResponse.json();
+      couponImage = uploadResult.data.url;
+      console.log("couponImage", couponImage);
+    }
               const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/coupons`, {
         method: 'POST',
         headers: {
@@ -137,6 +163,7 @@ export default function AdminCouponsPage() {
         },
         body: JSON.stringify({
           ...formData,
+          couponImage: couponImage || undefined, 
           amount: parseFloat(formData.amount),
           maxDiscount: formData.maxDiscount ? parseFloat(formData.maxDiscount) : undefined,
           minBookingAmount: formData.minBookingAmount ? parseFloat(formData.minBookingAmount) : undefined,
@@ -147,6 +174,7 @@ export default function AdminCouponsPage() {
       if (response.ok) {
         setShowCreateModal(false);
         setFormData({
+          couponImage:'',
           code: '',
           discountType: 'percentage',
           amount: '',
@@ -291,13 +319,13 @@ export default function AdminCouponsPage() {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 :md:p-6">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Enhanced Header */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-3 :md:p-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                   Coupon Management
                 </h1>
                 <p className="mt-2 text-lg text-gray-600">
@@ -333,48 +361,67 @@ export default function AdminCouponsPage() {
           </div>
 
           {/* Enhanced Filters */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
-            <div className="flex flex-col lg:flex-row gap-6">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <input
-                    type="text"
-                    placeholder="Search coupons by code..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-12 pr-4 py-3 w-full border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 backdrop-blur-sm text-gray-900"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <Filter className="h-5 w-5 text-gray-400" />
-                <select
-                  value={filterActive}
-                  onChange={(e) => setFilterActive(e.target.value)}
-                  className="border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 backdrop-blur-sm text-gray-900"
-                >
-                  <option value="all">All Coupons</option>
-                  <option value="true">Active Only</option>
-                  <option value="false">Inactive Only</option>
-                </select>
-                <Button
-                  onClick={() => setShowCreateModal(true)}
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl flex items-center space-x-2"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span>Create Coupon</span>
-                </Button>
-              </div>
-            </div>
-          </div>
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-4 md:p-6">
+  {/* Flex-col for mobile stacking, lg:flex-row for desktop alignment */}
+  <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
+    
+    {/* 1. Search Bar - Full width on mobile */}
+    <div className="flex-1">
+      <div className="relative group">
+        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5 group-focus-within:text-purple-500 transition-colors" />
+        <input
+          type="text"
+          placeholder="Search code..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-12 pr-4 py-3 w-full border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 backdrop-blur-sm text-sm md:text-base text-gray-900 shadow-sm transition-all"
+        />
+      </div>
+    </div>
+
+    {/* 2. Actions Row - Grid with 2 columns on mobile */}
+    <div className="grid grid-cols-2 lg:flex items-center gap-3 md:gap-4">
+      
+      {/* Status Filter */}
+      <div className="relative flex items-center">
+        <Filter className="hidden md:block absolute left-3 h-4 w-4 text-gray-400 pointer-events-none" />
+        <select
+          value={filterActive}
+          onChange={(e) => setFilterActive(e.target.value)}
+          className="w-full lg:w-auto pl-2 md:pl-9 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 backdrop-blur-sm text-xs md:text-sm text-gray-900 appearance-none shadow-sm cursor-pointer"
+        >
+          <option value="all">All Coupons</option>
+          <option value="true">Active</option>
+          <option value="false">Inactive</option>
+        </select>
+        {/* Custom Chevron for select since appearance-none is used */}
+        <div className="absolute right-3 pointer-events-none lg:hidden">
+            <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+        </div>
+      </div>
+
+      {/* Create Button */}
+      <Button
+        onClick={() => setShowCreateModal(true)}
+        className="w-full lg:w-auto bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-purple-200 active:scale-95 transition-all"
+      >
+        <Plus className="w-5 h-5" />
+        <span className="text-sm font-semibold whitespace-nowrap">Create</span>
+      </Button>
+      
+    </div>
+  </div>
+</div>
 
           {/* Coupons Table */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className=" hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gradient-to-r from-blue-50 to-indigo-50">
                 <tr>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">CouponImage</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">Code</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">Discount</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">Validity</th>
@@ -399,6 +446,12 @@ export default function AdminCouponsPage() {
                 ) : (
                   coupons.map((coupon) => (
                     <tr key={coupon._id} className="hover:bg-blue-50/50 transition-colors">
+                      
+
+                       <td className="px-6 py-4">
+                        <img src={coupon.couponImage} alt={coupon.code} className="w-16 h-16 object-cover rounded-lg" />
+                      </td>
+                      
                       <td className="px-6 py-4">
                         <div className="flex items-center">
                           <Tag className="w-5 h-5 text-purple-400 mr-3" />
@@ -410,6 +463,7 @@ export default function AdminCouponsPage() {
                           </div>
                         </div>
                       </td>
+                     
                       <td className="px-6 py-4">
                         <div className="text-slate-900">
                           <div className="flex items-center gap-2 mb-1">
@@ -531,10 +585,99 @@ export default function AdminCouponsPage() {
               </tbody>
             </table>
             </div>
+             <div className="md:hidden divide-y divide-slate-200/50">
+    {loading ? (
+      <div className="p-12 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto"></div>
+      </div>
+    ) : coupons.length === 0 ? (
+      <div className="p-12 text-center text-slate-500">No coupons found</div>
+    ) : (
+      coupons.map((coupon) => (
+        <div key={coupon._id} className="p-4 bg-white/50 active:bg-blue-50 transition-colors">
+          <div className="flex gap-4">
+            {/* Left: Image */}
+            <img 
+              src={coupon.couponImage} 
+              alt={coupon.code} 
+              className="w-20 h-20 object-cover rounded-xl shadow-sm border border-slate-100" 
+            />
+            
+            {/* Right: Primary Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h4 className="text-lg font-bold text-slate-900 leading-none">{coupon.code}</h4>
+                  <p className="text-[10px] text-slate-400 uppercase mt-1">ID: {coupon._id?.slice(-6)}</p>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                    {coupon.isActive ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">ACTIVE</span>
+                    ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">INACTIVE</span>
+                    )}
+                    {isExpired(coupon.validTo) && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">EXPIRED</span>
+                    )}
+                </div>
+              </div>
+
+              <div className="mt-2 flex items-center gap-2">
+                 <span className="text-green-600 font-black text-xl">
+                   {coupon.discountType === 'percentage' ? `${coupon.amount}%` : `₹${coupon.amount}`}
+                 </span>
+                 <span className="text-xs text-slate-500 font-medium">OFF</span>
+              </div>
+            </div>
           </div>
 
+          {/* Details Section */}
+          <div className="mt-4 grid grid-cols-2 gap-3">
+             <div className="bg-slate-50 p-2 rounded-lg">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Validity</p>
+                <p className="text-xs font-medium text-slate-700 mt-0.5 truncate">
+                    Until {formatDate(coupon.validTo)}
+                </p>
+             </div>
+             <div className="bg-slate-50 p-2 rounded-lg">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Usage</p>
+                <p className="text-xs font-medium text-slate-700 mt-0.5">
+                    {coupon.usedCount} / {coupon.usageLimit || '∞'}
+                </p>
+             </div>
+          </div>
+
+          {/* Actions Section */}
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={() => toggleCouponStatus(coupon._id, coupon.isActive)}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs transition-colors ${
+                coupon.isActive 
+                  ? 'bg-red-50 text-red-600 hover:bg-red-100' 
+                  : 'bg-green-50 text-green-600 hover:bg-green-100'
+              }`}
+            >
+              {coupon.isActive ? <XCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+              {coupon.isActive ? 'Deactivate' : 'Activate'}
+            </button>
+            
+            <button
+              onClick={() => deleteCoupon(coupon._id)}
+              className="px-4 py-2.5 bg-slate-50 text-slate-400 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      ))
+    )}
+              </div>
+          </div>
+
+          
+
         {/* Pagination */}
-        {totalPages > 1 && (
+        {/* {totalPages > 1 && (
           <div className="flex items-center justify-center mt-8">
             <div className="flex items-center space-x-2">
               <button
@@ -556,8 +699,40 @@ export default function AdminCouponsPage() {
               </button>
             </div>
           </div>
-        )}
+        )} */}
+        {totalPages > 1 && (
+  <div className="mt-8 px-4 py-6 bg-white/40 backdrop-blur-md rounded-2xl border border-white/20">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+      
+      {/* Page Info: Centered on mobile, Left-aligned on desktop */}
+      <div className="text-sm font-semibold text-slate-500 order-2 sm:order-1">
+        Showing Page <span className="text-slate-900">{currentPage}</span> of <span className="text-slate-900">{totalPages}</span>
+      </div>
 
+      {/* Navigation Buttons: Side-by-side on all screens */}
+      <div className="flex items-center gap-3 w-full sm:w-auto order-1 sm:order-2">
+        <button
+          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          disabled={currentPage === 1}
+          className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-white text-slate-700 rounded-xl font-bold shadow-sm border border-slate-200 disabled:opacity-40 active:scale-95 transition-all"
+        >
+          <ChevronLeft className="w-5 h-5" />
+          <span>Prev</span>
+        </button>
+
+        <button
+          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+          disabled={currentPage === totalPages}
+          className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-white text-slate-700 rounded-xl font-bold shadow-sm border border-slate-200 disabled:opacity-40 active:scale-95 transition-all"
+        >
+          <span>Next</span>
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
         {/* Create Coupon Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -572,8 +747,33 @@ export default function AdminCouponsPage() {
                 </button>
               </div>
 
+
               <form onSubmit={handleCreateCoupon} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                  <div className="md:col-span-2">
+  <label className="block text-sm font-medium text-slate-700 mb-2">
+    Coupon Image (Optional)
+  </label>
+
+  <input
+    type="file"
+    accept="image/*"
+    onChange={(e) =>
+      setFormData({ ...formData, image: e.target.files?.[0] || null })
+    }
+    className="w-full px-4 py-3 bg-white/80 border border-slate-300 rounded-xl
+               text-slate-900 file:mr-4 file:py-2 file:px-4
+               file:rounded-lg file:border-0
+               file:bg-blue-50 file:text-blue-600
+               hover:file:bg-blue-100"
+  />
+
+  <p className="text-xs text-slate-500 mt-1">
+    Recommended: 1200×400px (JPG/PNG)
+  </p>
+</div>
+
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Coupon Code</label>
                     <input

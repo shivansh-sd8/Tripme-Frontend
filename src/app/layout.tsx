@@ -7,6 +7,8 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { APP_CONFIG } from '@/shared/constants';
 import { ToastProvider } from '@/contexts/ToastContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { HostProvider } from '@/core/store/useHostStore';
+import { UIProvider } from '@/core/store/uiContext';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -87,6 +89,8 @@ export default function RootLayout({
       >
         <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>
           <ErrorBoundary>
+             <UIProvider>
+            <HostProvider>
             <AuthProvider>
               <BookingProvider>
                 <ToastProvider>
@@ -94,6 +98,8 @@ export default function RootLayout({
                 </ToastProvider>
               </BookingProvider>
             </AuthProvider>
+            </HostProvider>
+            </UIProvider>
           </ErrorBoundary>
         </GoogleOAuthProvider>
       </body>
