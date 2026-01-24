@@ -16,7 +16,10 @@ import { createPortal } from 'react-dom';
 import PropertyAvailabilityCalendar from "@/components/rooms/PropertyAvailabilityCalendar";
 import dynamic from 'next/dynamic';
 import Link from "next/link";
-
+import ImageGallery from "@/components/rooms/gallery/ImageGallery";
+import { ReviewsSection } from "@/components/rooms/reviews";
+import HostCard from "@/components/rooms/host-section/hostCard";
+import MobileBookingBar from "@/components/booking/MobileBookingBar";
 
 // Dynamically import PropertyMap to avoid SSR issues with Google Maps
 const PropertyMap = dynamic(() => import("@/components/rooms/PropertyMap"), { 
@@ -99,6 +102,8 @@ import {
   Receipt,
   // Link
 } from "lucide-react";
+import { useUI } from "@/core/store/uiContext";
+
 
 export default function PropertyDetailsPage() {
   const router = useRouter();
@@ -112,6 +117,10 @@ export default function PropertyDetailsPage() {
   const [error, setError] = useState("");
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const { setHideBottomNav ,setHideHeader} = useUI();
+  const { hideHeader } = useUI();
+  
+
 const [calendarAnchor, setCalendarAnchor] =
   useState<'checkin' | 'checkout'>('checkin');
 
@@ -145,6 +154,8 @@ const [calendarAnchor, setCalendarAnchor] =
   const [showGuestPicker, setShowGuestPicker] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [showExtras, setShowExtras] = useState(false);
+
   
   // Hourly booking state
   const [hourlyExtension, setHourlyExtension] = useState<number | null>(() => {
@@ -210,6 +221,17 @@ const [calendarAnchor, setCalendarAnchor] =
       key: dateRange.key
     });
   }, [dateRange]);
+
+  useEffect(() => {
+  setHideBottomNav(true);
+  setHideHeader(true);
+
+  return () => {
+    setHideBottomNav(false);
+    setHideHeader(false);
+  };
+}, []);
+
 
   // Fetch current platform fee rate immediately
   // Platform fee rate is now handled by backend API
@@ -1299,30 +1321,13 @@ const getCalendarPosition = () => {
       <Header />
       
       {/* Main Content */}
-      <main className="pt-40 font-['Inter',system-ui,-apple-system,sans-serif]">
+      <main className={` ${hideHeader ? "pt-0 sm:pt-40" : "pt-40"} font-['Inter',system-ui,-apple-system,sans-serif] overflow-hidden`}>
         {/* Image Gallery */}
         <div className="relative">
-          <div className="grid grid-cols-4 gap-2 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Main large image */}
-            <div className="col-span-4 lg:col-span-2 row-span-2">
-              <img
-                src={property.images?.[selectedImage] || '/logo.png'}
-                alt={property.title}
-                className="w-full h-[400px] lg:h-[500px] object-cover rounded-2xl"
-              />
-            </div>
-            {/* Smaller images */}
-            {property.images?.slice(1, 5).map((img: string, index: number) => (
-              <div key={index} className="col-span-2 lg:col-span-1">
-                <img
-                  src={img}
-                  alt={property.title}
-                  className="w-full h-[200px] lg:h-[245px] object-cover rounded-2xl cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => setSelectedImage(index + 1)}
-                />
-              </div>
-            ))}
-          </div>
+           {/* MOBILE – HORIZONTAL SWIPE */}
+ 
+
+         <ImageGallery images={property.images || []} title={property.title} />
         </div>
 
         {/* Content Container */}
@@ -1418,7 +1423,7 @@ const getCalendarPosition = () => {
                   <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
                     <Home className="w-5 h-5 text-white" />
                 </div>
-                  <h2 className="text-3xl font-bold text-gray-900 font-['Inter',system-ui,-apple-system,sans-serif] tracking-tight">About this place</h2>
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 font-['Inter',system-ui,-apple-system,sans-serif] tracking-tight">About this place</h2>
               </div>
                     <div className="text-gray-700 leading-relaxed">
                       {showFullDescription ? (
@@ -1453,33 +1458,82 @@ const getCalendarPosition = () => {
                   </div>
 
               {/* Amenities Section */}
-              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-white" />
-                  </div>
-                  <h2 className="text-3xl font-bold text-gray-900 font-['Inter',system-ui,-apple-system,sans-serif] tracking-tight">What this place offers</h2>
+                         
+      <div className="bg-white rounded-2xl shadow-md border p-5 md:p-8">
+        {/* HEADER */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center">
+            <CheckCircle className="w-5 h-5 text-white" />
+          </div>
+          <h2 className="text-xl md:text-3xl font-semibold text-gray-900">
+            What this place offers
+          </h2>
+        </div>
+
+        {/* AMENITIES GRID */}
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
+          {(property.amenities
+            ?.slice(0, isMobile ? 4: showAllAmenities ? property.amenities.length : 8)
+          )?.map((amenity: string) => (
+            <div
+              key={amenity}
+              className="flex items-center gap-2 p-2 rounded-lg"
+            >
+              {getAmenityIcon(amenity)}
+              <span className="text-sm md:text-base text-gray-700 capitalize">
+                {amenity.replace(/-/g, " ")}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* SHOW ALL BUTTON */}
+        {property.amenities?.length > 4 && (
+          <button
+            onClick={() => setShowAllAmenities(true)}
+            className="mt-5 w-full md:w-auto text-center border border-gray-300 rounded-xl px-6 py-3 text-sm font-medium hover:bg-gray-100 transition"
+          >
+            Show all {property.amenities.length} amenities
+          </button>
+        )}
+      </div>
+
+      {/* MOBILE BOTTOM SHEET */}
+      {showAllAmenities && isMobile && (
+        <div className="fixed inset-0 z-50 bg-black/40">
+          <div className="absolute bottom-0 w-full bg-white rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto animate-slideUp">
+            {/* HEADER */}
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-semibold">
+                What this place offers
+              </h3>
+              <button onClick={() => setShowAllAmenities(false)}>
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* FULL AMENITIES LIST */}
+            <div className="grid grid-cols-1 gap-4">
+              {property.amenities?.map((amenity: string) => (
+                <div
+                  key={amenity}
+                  className="flex items-center gap-3"
+                >
+                  {getAmenityIcon(amenity)}
+                  <span className="capitalize text-gray-700">
+                    {amenity.replace(/-/g, " ")}
+                  </span>
                 </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {(showAllAmenities ? property.amenities : property.amenities?.slice(0, 8))?.map((amenity: string) => (
-                        <div key={amenity} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                          {getAmenityIcon(amenity)}
-                          <span className="text-gray-700 capitalize">{amenity.replace(/-/g, ' ')}</span>
-                        </div>
-                      ))}
-                    </div>
-                    {property.amenities?.length > 8 && (
-                      <button
-                        onClick={() => setShowAllAmenities(!showAllAmenities)}
-                        className="text-indigo-600 font-medium mt-4 hover:underline"
-                      >
-                        {showAllAmenities ? 'Show less' : `Show all ${property.amenities.length} amenities`}
-                      </button>
-                    )}
-                  </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+
 
               {/* Availability Calendar Section */}
-              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
+              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 ">
                 <PropertyAvailabilityCalendar 
                   propertyId={id as string}
                   checkInDate={dateRange.startDate}
@@ -1532,7 +1586,7 @@ const getCalendarPosition = () => {
               </div>
 
               {/* Reviews Section */}
-              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
+              {/* <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
                     <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center">
@@ -1551,17 +1605,12 @@ const getCalendarPosition = () => {
                       <h3 className="text-xl font-semibold text-gray-900 mb-2">No reviews yet</h3>
                       <p className="text-gray-600">Be the first to review this property!</p>
                     </div>
-                  </div>
+              </div> */}
+              <ReviewsSection property={property} />
 
               {/* Location Section with Map */}
-              <div className="mb-12">
-                {console.log('Property location data:', {
-                  location: property.location,
-                  coordinates: property.location?.coordinates,
-                  address: property.location?.address,
-                  city: property.location?.city,
-                  state: property.location?.state
-                })}
+              <div className="mb-10">
+               
                 <PropertyMap
                   address={property.location?.address || 'Address not specified'}
                   city={property.location?.city || 'City not specified'}
@@ -1572,119 +1621,7 @@ const getCalendarPosition = () => {
               </div>
 
               {/* Host Section */}
-              <div className="mb-12">
-                <Link href={`/user/profile?id=${id}`}  className="inline-block relative z-10">
-                
-                <div className="flex items-center gap-3 mb-6" >
-                  
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-                    <Users className="w-5 h-5 text-white" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900 font-display">About the host</h2>
-                </div>
-                </Link>
-                    <div className="bg-gray-50 rounded-2xl p-6">
-                      <div className="flex items-start gap-4 mb-6">
-                        <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center overflow-hidden">
-                          {property.host?.profileImage ? (
-                            <img 
-                              src={property.host.profileImage} 
-                              alt={property.host.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <Users className="w-10 h-10 text-indigo-600" />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-xl font-bold text-gray-900 mb-1">
-                            Hosted by {property.host?.name || 'TripMe Host'}
-                          </h3>
-                          <div className="flex items-center gap-2 mb-2">
-                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm font-medium text-gray-700">
-                              {property.host?.rating || 4.5} • {property.host?.reviewCount || 0} reviews
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-3">
-                        Member since {property.host?.createdAt ? (() => {
-                          try {
-                            const date = new Date(property.host.createdAt);
-                            return isNaN(date.getTime()) ? '2024' : date.getFullYear();
-                          } catch (error) {
-                            console.warn('Error parsing host creation date:', property.host.createdAt, error);
-                            return '2024';
-                          }
-                        })() : '2024'}
-                          </p>
-                          {property.host?.bio && (
-                            <p className="text-gray-700 text-sm leading-relaxed mb-4">
-                              {property.host.bio}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Host Details Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        {property.host?.location?.city && (
-                          <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
-                            <MapPin className="w-5 h-5 text-gray-500" />
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">Location</div>
-                              <div className="text-sm text-gray-600">
-                                {property.host.location.city}, {property.host.location.state}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {property.host?.languages && property.host.languages.length > 0 && (
-                          <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
-                            <Globe className="w-5 h-5 text-gray-500" />
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">Languages</div>
-                              <div className="text-sm text-gray-600">
-                                {property.host.languages.join(', ')}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {property.host?.phone && (
-                          <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
-                            <Phone className="w-5 h-5 text-gray-500" />
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">Phone</div>
-                              <div className="text-sm text-gray-600">{property.host.phone}</div>
-                            </div>
-                          </div>
-                        )}
-
-                        {property.host?.email && (
-                          <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
-                            <Mail className="w-5 h-5 text-gray-500" />
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">Email</div>
-                              <div className="text-sm text-gray-600">{property.host.email}</div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Contact Actions */}
-                      <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
-                        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                          <MessageCircle className="w-4 h-4" />
-                          Contact host
-                        </button>
-                        <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                          <Phone className="w-4 h-4" />
-                          Call host
-                        </button>
-                      </div>
-                    </div>
-              </div>
+               <HostCard host={property.host} />
 
               {/* House Rules */}
               {property.houseRules?.length > 0 && (
@@ -1703,7 +1640,7 @@ const getCalendarPosition = () => {
             </div>
 
             {/* Right Column - Booking Card */}
-            <div className="lg:col-span-1">
+            <div className="hidden lg:col-span-1 lg:block">
               <div className="sticky top-24">
                 <div ref={bookingCardRef} className="bg-white border border-gray-200 rounded-2xl shadow-xl p-6">
                   {/* Price */}
@@ -2669,6 +2606,20 @@ const getCalendarPosition = () => {
                   {/* Hourly Booking Extension - Modern Design */}
                   {!isOwnProperty && property?.hourlyBooking?.enabled && nights >= (property?.hourlyBooking?.minStayDays || 1) && (
                     <div className="mb-6">
+
+                      {/* MOBILE ACCORDION HEADER */}
+                          <button
+                            onClick={() => setShowExtras((prev) => !prev)}
+                            className="lg:hidden w-full flex items-center justify-between px-4 py-3 mb-3
+                                      bg-purple-50 border border-purple-200 rounded-xl font-semibold"
+                          >
+                            <span>Add extra hours</span>
+                            <ChevronDown
+                              className={`transition-transform duration-300 ${
+                                showExtras ? "rotate-180" : ""
+                              }`}
+                            />
+                          </button>
                       <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl p-6 border border-purple-200">
                         <div className="flex items-center gap-3 mb-4">
                           <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center">
@@ -2889,6 +2840,25 @@ const getCalendarPosition = () => {
                 </div>
               </div>
             </div>
+
+            
+
+            <MobileBookingBar
+            property={property}
+            dateRange={dateRange}
+            nights={nights}
+            pricing={pricing}
+            availabilityChecked={availabilityChecked}
+            availabilityLoading={availabilityLoading}
+            selectionStep={selectionStep}
+            formatPrice={formatPrice}
+            formatDate={formatDate}
+            setShowDatePicker={setShowDatePicker}
+            setSelectionStep={setSelectionStep}
+            checkAvailability={checkAvailability}
+            handleBooking={handleBooking}
+/>
+
           </div>
         </div>
       </main>

@@ -154,38 +154,64 @@ export default function AdminListings() {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 md:p-6">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Enhanced Header */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
-            <div className="flex items-center justify-between">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-3 md:p-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between">
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                <h1 className="text-xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                   Property Listings
                 </h1>
-                <p className="mt-2 text-lg text-gray-600">
+                <p className="mt-2 text-sm text-gray-600">
                   Manage property listings and their approval status
                 </p>
-                <div className="mt-4 flex items-center gap-6">
+                {/* <div className="mt-4 flex items-center gap-2">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-xs text-gray-600">
                       {filteredListings.filter(l => l.status === 'published').length} Published
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-xs text-gray-600">
                       {filteredListings.filter(l => l.status === 'draft' && l.approvalStatus === 'pending').length} Pending Approval
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-xs text-gray-600">
                       {filteredListings.filter(l => l.status === 'suspended').length} Suspended
                     </span>
                   </div>
-                </div>
+                </div> */}
+                <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+  {/* Published */}
+  <div className="flex items-center gap-2 shrink-0">
+    <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
+    <span className="text-[11px] md:text-xs font-medium text-gray-600">
+      {filteredListings.filter(l => l.status === 'published').length} Published
+    </span>
+  </div>
+
+  {/* Pending Approval */}
+  <div className="flex items-center gap-2 shrink-0">
+    <div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
+    <span className="text-[11px] md:text-xs font-medium text-gray-600">
+      {filteredListings.filter(l => l.status === 'draft' && l.approvalStatus === 'pending').length} Pending
+      <span className="hidden sm:inline"> Approval</span>
+    </span>
+  </div>
+
+  {/* Suspended */}
+  <div className="flex items-center gap-2 shrink-0">
+    <div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
+    <span className="text-[11px] md:text-xs font-medium text-gray-600">
+      {filteredListings.filter(l => l.status === 'suspended').length} Suspended
+    </span>
+  </div>
+</div>
               </div>
               <div className="hidden md:block">
                 <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
@@ -213,12 +239,12 @@ export default function AdminListings() {
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <Filter className="h-5 w-5 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">Filter by status:</span>
+                  <span className="text-xs font-medium text-gray-700">Filter by status:</span>
                 </div>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 backdrop-blur-sm text-gray-900 min-w-[150px]"
+                  className="border border-gray-200 rounded-xl px-2 md:px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/50 backdrop-blur-sm text-gray-900 min-w-[120px] md:w-[150px]"
                 >
                   <option value="all">All Status</option>
                   <option value="published">Published</option>
@@ -231,79 +257,90 @@ export default function AdminListings() {
           </div>
 
           {/* Enhanced Listing Cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredListings.map((listing) => (
-              <div key={listing._id || listing.id} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] group">
-                {/* Property Header */}
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg group-hover:shadow-purple-500/25 transition-all duration-300">
-                    <Home className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 group-hover:text-purple-600 transition-colors line-clamp-2">{listing.title}</h3>
-                    <p className="text-sm text-gray-500 capitalize">{listing.type}</p>
-                  </div>
-                  {getStatusBadge(listing.status)}
-                </div>
-
-                {/* Property Details */}
-                <div className="space-y-4 mb-6">
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <span className="text-sm font-medium text-gray-600">Host</span>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-gray-900">{listing.host.name}</p>
-                      <p className="text-xs text-gray-500">{listing.host.email}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <span className="text-sm font-medium text-gray-600">Price</span>
-                    <span className="text-lg font-bold text-green-600">₹{listing.pricing.basePrice.toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <span className="text-sm font-medium text-gray-600">Location</span>
-                    <span className="text-sm font-semibold text-gray-900">{listing.location.city}, {listing.location.state}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <span className="text-sm font-medium text-gray-600">Created</span>
-                    <span className="text-sm font-semibold text-gray-900">{new Date(listing.createdAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => handleView(listing._id || listing.id)}
-                    className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-3 rounded-xl font-medium hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
-                  >
-                    <Eye className="h-4 w-4" />
-                    View Property
-                  </button>
-                  {listing.status === 'draft' && (
-                    <>
-                      <button
-                        onClick={() => handleApprove(listing._id || listing.id)}
-                        className="p-3 bg-green-100 text-green-600 rounded-xl hover:bg-green-200 transition-colors shadow-md hover:shadow-lg"
-                        title="Approve Listing"
-                      >
-                        <CheckCircle className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleReject(listing._id || listing.id)}
-                        className="p-3 bg-red-100 text-red-600 rounded-xl hover:bg-red-200 transition-colors shadow-md hover:shadow-lg"
-                        title="Reject Listing"
-                      >
-                        <XCircle className="h-5 w-5" />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+  {filteredListings.map((listing) => (
+    <div 
+      key={listing._id || listing.id} 
+      className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-4 md:p-6 hover:shadow-2xl transition-all duration-300 group flex flex-col"
+    >
+      {/* 1. Header Section */}
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-12 h-12 md:w-16 md:h-16 shrink-0 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg group-hover:shadow-purple-500/25 transition-all duration-300">
+            <Home className="w-6 h-6 md:w-8 md:h-8 text-white" />
           </div>
+          <div className="min-w-0">
+            <h3 className="text-sm md:text-lg font-bold text-gray-900 group-hover:text-purple-600 transition-colors line-clamp-1">
+              {listing.title}
+            </h3>
+            <p className="text-[10px] md:text-sm text-gray-500 capitalize">{listing.type}</p>
+          </div>
+        </div>
+        <div className="shrink-0 scale-90 md:scale-100 origin-right">
+          {getStatusBadge(listing.status)}
+        </div>
+      </div>
+
+      {/* 2. Compact Info Grid */}
+      <div className="grid grid-cols-2 gap-2 mb-6">
+        {/* Host Info - Full width to avoid email clipping */}
+        <div className="col-span-2 flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+          <span className="text-[10px] md:text-sm font-medium text-gray-500 uppercase">Host</span>
+          <div className="text-right min-w-0">
+            <p className="text-xs md:text-sm font-bold text-gray-900 truncate">{listing.host.name}</p>
+            <p className="text-[10px] text-gray-500 truncate">{listing.host.email}</p>
+          </div>
+        </div>
+        
+        {/* Price & Location - Side by side */}
+        <div className="p-2.5 bg-green-50/50 rounded-xl border border-green-100">
+          <p className="text-[10px] uppercase font-bold text-gray-400">Price</p>
+          <p className="text-sm font-bold text-green-600">₹{listing.pricing.basePrice.toLocaleString()}</p>
+        </div>
+
+        <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+          <p className="text-[10px] uppercase font-bold text-gray-400">Location</p>
+          <p className="text-sm font-bold text-gray-900 truncate">{listing.location.city}</p>
+        </div>
+      </div>
+
+      {/* 3. Action Buttons */}
+      <div className="mt-auto flex items-center gap-2">
+        <button
+          onClick={() => handleView(listing._id || listing.id)}
+          className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-md active:scale-95"
+        >
+          <Eye className="h-4 w-4" />
+          <span className="hidden xs:inline">View Property</span>
+          <span className="xs:hidden">View</span>
+        </button>
+
+        {listing.status === 'draft' && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleApprove(listing._id || listing.id)}
+              className="p-2.5 bg-green-100 text-green-600 rounded-xl hover:bg-green-200 active:scale-90 transition-all shadow-sm border border-green-200"
+              title="Approve"
+            >
+              <CheckCircle className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => handleReject(listing._id || listing.id)}
+              className="p-2.5 bg-red-100 text-red-600 rounded-xl hover:bg-red-200 active:scale-90 transition-all shadow-sm border border-red-200"
+              title="Reject"
+            >
+              <XCircle className="h-5 w-5" />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  ))}
+</div>
 
           {/* Empty State */}
           {filteredListings.length === 0 && (
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-12 text-center">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 md:p-6 text-center">
               <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Home className="w-12 h-12 text-gray-400" />
               </div>

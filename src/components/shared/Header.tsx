@@ -3,19 +3,21 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
-import { 
-  Menu, 
-  X, 
-  User, 
-  LogOut, 
-  Settings, 
-  Heart, 
-  Calendar, 
+import { useUI } from '@/core/store/uiContext';
+import {
+  Menu,
+  X,
+  User,
+  LogOut,
+  Settings,
+  Heart,
+  Calendar,
   MapPin,
   ChevronDown,
   Home,
   Bell,
   BookOpen,
+  ArrowLeft,
   Star,
   Sparkles,
   Search,
@@ -26,6 +28,9 @@ import { apiClient } from '@/infrastructure/api/clients/api-client';
 import { useAuth } from '@/core/store/auth-context';
 import Dropdown from '../ui/Dropdown';
 import AirbnbSearchForm from '@/components/trips/AirbnbSearchForm';
+import { motion, AnimatePresence } from "framer-motion";
+import MobileSearchSheet from "@/components/trips/mobileSearchForm";
+
 
 interface HeaderProps {
   searchExpanded?: boolean;
@@ -35,6 +40,7 @@ interface HeaderProps {
 }
 
 const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSearch, hideSearch = false }: HeaderProps = {}) => {
+  const { hideHeader } = useUI();
   const router = useRouter();
   const pathname = usePathname();
   const { user, isAuthenticated, isLoading, logout, refreshUser } = useAuth();
@@ -44,7 +50,13 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
   const [internalSearchExpanded, setInternalSearchExpanded] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<'homes' | 'services' | 'stories' | null>(null);
-  
+  type SearchStep = 'where' | 'when' | 'who';
+  const [searchStep, setSearchStep] = useState<SearchStep>('where');
+  const SNAP_TOP = 0;                 // fully expanded
+const SNAP_MID = window.innerHeight * 0.4;
+const SNAP_BOTTOM = window.innerHeight * 0.9; // dismiss
+
+
   // Set active category based on current route
   useEffect(() => {
     if (pathname === '/services') {
@@ -57,7 +69,7 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
       setActiveCategory(null); // Default state - nothing selected
     }
   }, [pathname]);
-  
+
   // Use external search state if provided, otherwise use internal state
   const searchExpanded = externalSearchExpanded !== undefined ? externalSearchExpanded : internalSearchExpanded;
   const setSearchExpanded = onSearchToggle || setInternalSearchExpanded;
@@ -82,6 +94,17 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
   }, [isAuthenticated, isLoading]); // Removed refreshUser from dependencies
 
   useEffect(() => {
+    if (searchExpanded) {
+      document.body.classList.add('search-open');
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.classList.remove('search-open');
+      document.body.style.overflow = '';
+    }
+  }, [searchExpanded]);
+
+
+  useEffect(() => {
     if (typeof window === 'undefined') return;
     const check = () => setHideMobileHeader(document.body.classList.contains('search-open'));
     check();
@@ -90,30 +113,30 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setSearchExpanded(false);
-      }
-    };
+  // useEffect(() => {
+  //   const handleEscape = (e: KeyboardEvent) => {
+  //     if (e.key === 'Escape') {
+  //       setSearchExpanded(false);
+  //     }
+  //   };
 
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Element;
-      if (!target.closest('.search-container') && !target.closest('.header-container')) {
-        setSearchExpanded(false);
-      }
-    };
+  //   const handleClickOutside = (e: MouseEvent) => {
+  //     const target = e.target as Element;
+  //     if (!target.closest('.search-container') && !target.closest('.header-container')) {
+  //       setSearchExpanded(false);
+  //     }
+  //   };
 
-    if (searchExpanded) {
-      document.addEventListener('keydown', handleEscape);
-      document.addEventListener('click', handleClickOutside);
-    }
+  //   if (searchExpanded) {
+  //     document.addEventListener('keydown', handleEscape);
+  //     document.addEventListener('click', handleClickOutside);
+  //   }
 
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, [searchExpanded]);
+  //   return () => {
+  //     document.removeEventListener('keydown', handleEscape);
+  //     document.removeEventListener('click', handleClickOutside);
+  //   };
+  // }, [searchExpanded]);
 
   const handleLogout = async () => {
     try {
@@ -129,9 +152,9 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
     return null;
   }
 
-  if (hideMobileHeader && typeof window !== 'undefined' && window.innerWidth < 640) {
-    return null;
-  }
+  // if (hideMobileHeader && typeof window !== 'undefined' && window.innerWidth < 640) {
+  //   return null;
+  // }
 
   // When search is expanded, show full header regardless of scroll state
   // Show search bar on stories page only when expanded
@@ -140,20 +163,27 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
   const shouldShowFullHeader = hideSearch ? true : ((!scrolled || searchExpanded) && (pathname !== '/stories' || searchExpanded) && (pathname !== '/search' || searchExpanded));
 
   return (
-    <header className={`w-full z-50 fixed top-0 left-0 right-0 transition-all duration-500 ease-in-out header-container ${
-      scrolled && !searchExpanded
-        ? 'bg-white border-b border-gray-200 shadow-lg' 
-        : 'bg-white border-b border-gray-100'
-    }`}> 
+    <>
+   
+    <header
+        className={` 
+          w-full z-50 fixed top-0 left-0 right-0
+          transition-all duration-300
+           ${hideHeader ? "hidden sm:block" : ""}
+          ${scrolled && !searchExpanded
+            ? 'bg-white border-b border-gray-200 shadow-lg'
+            : 'bg-white border-b border-gray-100'}
+        `}
+        // 
+>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Navigation Bar */}
-        <div className={`flex items-center justify-between relative transition-all duration-500 ease-in-out ${
-          shouldShowFullHeader ? 'h-20' : 'h-24 my-1'
-        }`}>
-          {/* Logo */}
-          <Link href="/" className={`flex items-center group relative z-10 ${
-            !shouldShowFullHeader ? 'pt-1' : ''
+        <div className={`flex items-center justify-between relative transition-all duration-500 ease-in-out ${shouldShowFullHeader ? 'h-20' : 'h-24 my-1'
           }`}>
+          {/* Logo */}
+          <Link href="/" className={`flex items-center group relative z-10 ${!shouldShowFullHeader ? 'pt-1' : ''
+            }`}>
             <div className="relative">
               <Image
                 src="/logo.png"
@@ -174,11 +204,10 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                   setActiveCategory('homes');
                   router.push('/search');
                 }}
-                className={`flex items-center gap-3 px-6 py-3 rounded-full transition-all duration-200 group relative ${
-                  activeCategory === 'homes' 
-                    ? 'text-purple-600 bg-purple-50' 
-                    : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
-                }`}
+                className={`flex items-center gap-3 px-6 py-3 rounded-full transition-all duration-200 group relative ${activeCategory === 'homes'
+                  ? 'text-purple-600 bg-purple-50'
+                  : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
+                  }`}
               >
                 <Home size={22} className="group-hover:scale-110 transition-transform duration-200" />
                 <span className="font-medium text-base">Homes</span>
@@ -188,11 +217,10 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                   setActiveCategory('services');
                   router.push('/services');
                 }}
-                className={`flex items-center gap-3 px-6 py-3 rounded-full transition-all duration-200 group relative ${
-                  activeCategory === 'services'
-                    ? 'text-purple-600 bg-purple-50'
-                    : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
-                }`}
+                className={`flex items-center gap-3 px-6 py-3 rounded-full transition-all duration-200 group relative ${activeCategory === 'services'
+                  ? 'text-purple-600 bg-purple-50'
+                  : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
+                  }`}
               >
                 <Bell size={22} className="group-hover:scale-110 transition-transform duration-200" />
                 <span className="font-medium text-base">Services</span>
@@ -202,11 +230,10 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                   setActiveCategory('stories');
                   router.push('/stories');
                 }}
-                className={`flex items-center gap-3 px-6 py-3 rounded-full transition-all duration-200 group relative ${
-                  activeCategory === 'stories'
-                    ? 'text-purple-600 bg-purple-50'
-                    : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
-                }`}
+                className={`flex items-center gap-3 px-6 py-3 rounded-full transition-all duration-200 group relative ${activeCategory === 'stories'
+                  ? 'text-purple-600 bg-purple-50'
+                  : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
+                  }`}
               >
                 <BookOpen size={22} className="group-hover:scale-110 transition-transform duration-200" />
                 <span className="font-medium text-base">Stories</span>
@@ -214,7 +241,7 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
             </div>
           ) : !hideSearch ? (
             <div className="hidden lg:flex items-center transition-all duration-500 ease-in-out">
-              <div 
+              <div
                 className="bg-white border border-gray-300 rounded-full shadow-sm hover:shadow-md transition-all duration-500 ease-in-out p-1 cursor-pointer"
                 onClick={() => setSearchExpanded(true)}
               >
@@ -226,10 +253,10 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                       <div className="text-sm font-medium text-gray-900">Where?</div>
                     </div>
                   </div>
-                  
+
                   {/* Divider */}
                   <div className="w-px h-6 bg-gray-300"></div>
-                  
+
                   {/* Dates */}
                   <div className="flex items-center gap-3 px-3 py-1 flex-1 hover:bg-gray-50 rounded-lg transition-colors">
                     <Calendar className="text-gray-600" size={18} />
@@ -237,10 +264,10 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                       <div className="text-sm font-medium text-gray-900">When</div>
                     </div>
                   </div>
-                  
+
                   {/* Divider */}
                   <div className="w-px h-6 bg-gray-300"></div>
-                  
+
                   {/* Guests */}
                   <div className="flex items-center gap-3 px-3 py-1 flex-1 hover:bg-gray-50 rounded-lg transition-colors">
                     <User className="text-gray-600" size={18} />
@@ -248,7 +275,7 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                       <div className="text-sm font-medium text-gray-900">Who?</div>
                     </div>
                   </div>
-                  
+
                   {/* Search Button */}
                   <button className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white p-1.5 rounded-full transition-all duration-200 ml-2">
                     <Search className="w-4 h-4" />
@@ -259,9 +286,8 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
           ) : null}
 
           {/* Desktop Actions - Right Side */}
-          <div className={`hidden lg:flex items-center gap-4 ${
-            !shouldShowFullHeader ? 'pt-1' : ''
-          }`}>
+          <div className={`hidden lg:flex items-center gap-4 ${!shouldShowFullHeader ? 'pt-1' : ''
+            }`}>
             {/* Host Button */}
             {isAuthenticated && user?.role === 'host' ? (
               <Link href="/host/dashboard">
@@ -276,7 +302,7 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                 </span>
               </Link>
             )}
-            
+
             {/* User Menu */}
             {isAuthenticated ? (
               <div className="relative">
@@ -286,9 +312,9 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                 >
                   <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden">
                     {user?.profileImage ? (
-                      <img 
-                        src={user.profileImage} 
-                        alt={user.name} 
+                      <img
+                        src={user.profileImage}
+                        alt={user.name}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -301,16 +327,16 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
 
                 {userMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
-                    <Link 
-                      href="/user/profile" 
+                    <Link
+                      href="/user/profile"
                       className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200"
                       onClick={() => setUserMenuOpen(false)}
                     >
                       <User size={20} />
                       <span className="font-medium">Profile</span>
                     </Link>
-                    <Link 
-                      href="/bookings" 
+                    <Link
+                      href="/bookings"
                       className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200"
                       onClick={() => setUserMenuOpen(false)}
                     >
@@ -320,8 +346,8 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                     {user?.role === 'admin' && (
                       <>
                         <div className="border-t border-gray-200 my-2"></div>
-                        <Link 
-                          href="/admin/dashboard" 
+                        <Link
+                          href="/admin/dashboard"
                           className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200"
                           onClick={() => setUserMenuOpen(false)}
                         >
@@ -360,14 +386,14 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                 align="right"
               >
                 <div className="py-2 space-y-2">
-                  <Link 
-                    href="/auth/login" 
+                  <Link
+                    href="/auth/login"
                     className="block w-full text-center px-4 py-2 rounded-xl text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-all duration-200 font-medium"
                   >
                     Sign In
                   </Link>
-                  <Link 
-                    href="/auth/signup" 
+                  <Link
+                    href="/auth/signup"
                     className="block w-full text-center px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium transition-all duration-200"
                   >
                     Sign Up
@@ -400,11 +426,10 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                   router.push('/search');
                   setMobileMenuOpen(false);
                 }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-2xl w-full text-left transition-all duration-200 ${
-                  activeCategory === 'homes' 
-                    ? 'text-purple-600 bg-purple-50' 
-                    : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
-                }`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl w-full text-left transition-all duration-200 ${activeCategory === 'homes'
+                  ? 'text-purple-600 bg-purple-50'
+                  : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
+                  }`}
               >
                 <Home size={20} />
                 <span className="font-medium">Homes</span>
@@ -415,11 +440,10 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                   router.push('/services');
                   setMobileMenuOpen(false);
                 }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-2xl w-full text-left transition-all duration-200 ${
-                  activeCategory === 'services'
-                    ? 'text-purple-600 bg-purple-50'
-                    : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
-                }`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl w-full text-left transition-all duration-200 ${activeCategory === 'services'
+                  ? 'text-purple-600 bg-purple-50'
+                  : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
+                  }`}
               >
                 <Bell size={20} />
                 <span className="font-medium">Services</span>
@@ -430,29 +454,28 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                   router.push('/stories');
                   setMobileMenuOpen(false);
                 }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-2xl w-full text-left transition-all duration-200 ${
-                  activeCategory === 'stories'
-                    ? 'text-purple-600 bg-purple-50'
-                    : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
-                }`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl w-full text-left transition-all duration-200 ${activeCategory === 'stories'
+                  ? 'text-purple-600 bg-purple-50'
+                  : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
+                  }`}
               >
                 <BookOpen size={20} />
                 <span className="font-medium">Stories</span>
               </button>
-              
+
               {isAuthenticated ? (
                 <>
                   <div className="border-t border-gray-200 pt-3 mt-3">
-                    <Link 
-                      href="/user/profile" 
+                    <Link
+                      href="/user/profile"
                       className="flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       <User size={20} />
                       <span className="font-medium">Profile</span>
                     </Link>
-                    <Link 
-                      href="/bookings" 
+                    <Link
+                      href="/bookings"
                       className="flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200"
                       onClick={() => setMobileMenuOpen(false)}
                     >
@@ -460,8 +483,8 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                       <span className="font-medium">My Bookings</span>
                     </Link>
                     {user?.role === 'admin' && (
-                      <Link 
-                        href="/admin/dashboard" 
+                      <Link
+                        href="/admin/dashboard"
                         className="flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200"
                         onClick={() => setMobileMenuOpen(false)}
                       >
@@ -483,15 +506,15 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
                 </>
               ) : (
                 <div className="border-t border-gray-200 pt-3 mt-3 space-y-2">
-                  <Link 
-                    href="/auth/login" 
+                  <Link
+                    href="/auth/login"
                     className="block w-full text-center px-4 py-3 rounded-2xl text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-all duration-200 font-medium"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Sign In
                   </Link>
-                  <Link 
-                    href="/auth/signup" 
+                  <Link
+                    href="/auth/signup"
                     className="block w-full text-center px-4 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium transition-all duration-200"
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -504,16 +527,81 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
         )}
 
         {/* Search Bar - Show when not scrolled or search expanded, unless hideSearch is true */}
-        {shouldShowFullHeader && !hideSearch && (
+        {/* {shouldShowFullHeader && !hideSearch && (
           <div className="flex justify-center w-full pb-3">
             <div className="w-full max-w-4xl">
               <AirbnbSearchForm variant="compact" activeCategory={activeCategory} onSearch={onSearch} />
             </div>
           </div>
-        )}
+        )} */}
+        {/* Desktop search only */}
+        <div className="hidden lg:flex justify-center w-full pb-3">
+          {!hideSearch && (
+            <div className="w-full max-w-4xl">
+              <AirbnbSearchForm
+                variant="compact"
+                activeCategory={activeCategory}
+                onSearch={onSearch}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* ================= MOBILE SEARCH PILL ================= */}
+        <div className="lg:hidden px-4 pb-3">
+          <button
+            onClick={() => setSearchExpanded(true)}
+            className="
+      w-full
+      bg-white
+      border border-gray-200
+      rounded-full
+      shadow-sm
+      flex items-center gap-3
+      px-4 py-3
+      text-left
+    "
+          >
+            <Search className="w-4 h-4 text-gray-500" />
+            <span className="text-gray-700 font-medium">
+              Start your search
+            </span>
+          </button>
+        </div>
       </div>
+      {/* ================= MOBILE SEARCH BOTTOM SHEET ================= */}
+
+
     </header>
+    {/* MOBILE BACK ARROW */}
+{hideHeader && <div className="sm:hidden fixed top-4 left-4 z-[60]">
+  <button
+   onClick={() => router.push("/")}
+    className="w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center"
+  >
+    <ArrowLeft className="w-5 h-5 text-gray-900" />
+  </button>
+</div>}
+
+
+     <MobileSearchSheet
+    open={searchExpanded}
+    onClose={() => setSearchExpanded(false)}
+  />
+
+ 
+
+  </>
+    
   );
+  
+    
+ 
 };
 
 export default Header;
+
+
+
+
+

@@ -11,6 +11,7 @@ import PricingBreakdown from "@/components/booking/PricingBreakdown";
 import Header from "@/components/shared/Header";
 import Footer from "@/components/shared/Footer";
 import Button from "@/components/ui/Button";
+
 import { 
   Calendar, 
   MapPin, 
@@ -57,6 +58,7 @@ import {
   MessageCircle
 } from "lucide-react";
 import { start } from "repl";
+import { useUI } from "@/core/store/uiContext";
 
 // Payment Modal Component with Razorpay Integration
 const PaymentModal: React.FC<{
@@ -198,7 +200,7 @@ const PaymentModal: React.FC<{
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 ">
       <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl">
         {/* Header */}
         <div className="p-6 border-b border-gray-100">
@@ -331,6 +333,8 @@ export default function BookingPage() {
   const [blockingTimer, setBlockingTimer] = useState<NodeJS.Timeout | null>(null);
   const [blockingExpiry, setBlockingExpiry] = useState<Date | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false); // Flag to prevent conflicting redirects
+ 
+   const { hideHeader, setHideBottomNav ,setHideHeader} = useUI();
   // Platform fee rate is now handled by backend API
 
   
@@ -353,6 +357,17 @@ export default function BookingPage() {
     // const [year, month, day] = dateInput.split('-').map(Number);
     // return new Date(year, month - 1, day);
   };
+
+//  HIDE BOTTOM NAV SCROLLING 
+   useEffect(() => {
+    setHideBottomNav(true);
+    setHideHeader(true);
+  
+    return () => {
+      setHideBottomNav(false);
+      setHideHeader(false);
+    };
+  }, []);
   
   // Booking state - initialize from context or defaults
   const [bookingData, setBookingData] = useState(() => {
@@ -399,7 +414,8 @@ export default function BookingPage() {
       agreeToTerms: false
     };
   });
-  
+  const [showContactSheet, setShowContactSheet] = useState(false);
+
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -726,6 +742,8 @@ export default function BookingPage() {
     
     return () => clearInterval(timeInterval);
   }, [blockingExpiry]);
+
+  
 
   // Revert blocked dates back to available
   const revertBlockedDates = async () => {
@@ -1447,6 +1465,10 @@ export default function BookingPage() {
     if (!validationResult) {
       console.log('❌ Form validation failed');
       console.log('❌ Current validation errors:', validationErrors);
+      if (window.innerWidth < 768) {
+        setShowContactSheet(true);
+        return;
+      }
       setBookingError('Please fill in all required fields');
       return;
     }
@@ -1747,6 +1769,16 @@ export default function BookingPage() {
     return iconMap[amenity] || <CheckCircle className="w-5 h-5" />;
   };
 
+// helper function for pending details add bottom sheet
+  const isContactInfoValid = () => {
+  return (
+    bookingData.contactInfo.name.trim() &&
+    bookingData.contactInfo.email.trim() &&
+    bookingData.contactInfo.phone.trim()
+  );
+};
+
+
   // Show loading while checking authentication or loading property
   if (isLoading || loading) {
     return (
@@ -1790,13 +1822,14 @@ export default function BookingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
-      <Header hideSearchBar={true} />
+      {/* <Header hideSearchBar={true} /> */}
+       <Header />
       
       {/* Main Content */}
-      <main className="pt-24 pb-12">
+      <main className={`${hideHeader ? "pt-0 sm:pt-24" : "pt-40"} pb-12 overflow-x-hidden`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Back Button */}
-          <div className="mb-8">
+          <div className="mb-8 hidden lg:block">
             <Button
               onClick={() => router.back()}
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl px-4 py-2 hover:shadow-md"
@@ -1809,10 +1842,10 @@ export default function BookingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             {/* Left Column - Property Info */}
             <div className="lg:col-span-2">
-              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-8">
+              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-4 md:p-8 mt-14 md:mt-5">
                 {/* Property Header */}
                 <div className="mb-8">
-                  <div className="flex items-center gap-3 mb-6">
+                  {/* <div className="flex items-center gap-3 mb-6">
                     <div className="w-12 h-12 bg-gradient-to-r from-gray-700 to-gray-800 rounded-2xl flex items-center justify-center">
                       <Sparkles className="w-6 h-6 text-white" />
                     </div>
@@ -1822,7 +1855,23 @@ export default function BookingPage() {
                       </h1>
                       <p className="text-gray-600">Secure your perfect stay</p>
                     </div>
-                  </div>
+                  </div> */}
+                 <div className="flex items-center justify-between w-full mb-6 gap-4">
+  {/* Icon Container - Fixed at the start */}
+  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-gray-700 to-gray-800 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
+    <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+  </div>
+
+  {/* Text Container - Aligned to the end */}
+  <div className="text-right">
+    <h1 className="text-lg sm:text-3xl font-bold bg-gradient-to-r from-gray-700 to-gray-800 bg-clip-text text-transparent leading-tight whitespace-nowrap">
+      Complete your booking
+    </h1>
+    <p className="text-xs sm:text-base text-gray-600 whitespace-nowrap">
+      Secure your perfect stay
+    </p>
+  </div>
+</div>
                   
                   <div className="flex items-center gap-4 text-gray-600 mb-6">
                     <div className="flex items-center gap-1">
@@ -1851,28 +1900,28 @@ export default function BookingPage() {
                 </div>
 
                 {/* Booking Summary - Modern Design */}
-                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-3xl p-8 border border-indigo-200 mb-8">
+                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl sm:rounded-3xl p-3 md:p-8 border border-indigo-200 mb-8">
                   <div className="flex items-center gap-4 mb-6">
-                    <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center">
+                    <div className="w-24 sm:w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center">
                       <Sparkles className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold text-gray-900">Complete Your Booking</h2>
-                      <p className="text-gray-600">Just a few more details to secure your stay</p>
+                      <h2 className="text-sm  sm:text-2xl font-bold text-gray-900">Complete Your Booking</h2>
+                      <p className="text-gray-600 text-sm sm:text-base">Just a few more details to secure your stay</p>
                     </div>
                   </div>
                   
                   {/* Selected Details */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white rounded-2xl p-6 border border-indigo-100">
+                    <div className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-6 border border-indigo-100">
                       <div className="flex items-center gap-3 mb-4">
                         <Calendar className="w-5 h-5 text-indigo-600" />
                         <h3 className="font-bold text-gray-900">Selected Dates</h3>
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Check-in:</span>
-                          <span className="font-semibold text-gray-900">
+                          <span className="text-gray-600 text-sm whitespace-nowrap sm:text-base">Check-in : </span>
+                          <span className="font-semibold text-gray-900 text-sm whitespace-nowrap sm:text-base">
                             {bookingData.checkIn.toLocaleDateString('en-US', { 
                               weekday: 'short', 
                               month: 'short', 
@@ -1888,8 +1937,8 @@ export default function BookingPage() {
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Check-out:</span>
-                          <span className="font-semibold text-gray-900">
+                          <span className="text-gray-600 text-sm whitespace-nowrap sm:text-base">Check-out :</span>
+                          <span className="font-semibold text-gray-900 text-sm  sm:text-base whitespace-nowrap">
                             {bookingData.checkOut.toLocaleDateString('en-US', { 
                               weekday: 'short', 
                               month: 'short', 
@@ -1925,15 +1974,15 @@ export default function BookingPage() {
                       </div>
                     </div>
                     
-                    <div className="bg-white rounded-2xl p-6 border border-indigo-100">
+                    <div className="bg-white rounded-xl sm:rounded-2xl  p-2 sm:p6 border border-indigo-100">
                       <div className="flex items-center gap-3 mb-4">
                         <Users className="w-5 h-5 text-indigo-600" />
-                        <h3 className="font-bold text-gray-900">Guests</h3>
+                        <h3 className="font-bold text-gray-900 text-sm whitespace-nowrap sm:text-base">Guests</h3>
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Adults:</span>
-                          <span className="font-semibold text-gray-900">{bookingData.guests.adults}</span>
+                          <span className="text-gray-600 text-sm whitespace-nowrap sm:text-base">Adults:</span>
+                          <span className="font-semibold text-gray-900 text-sm whitespace-nowrap sm:text-base">{bookingData.guests.adults}</span>
                         </div>
                         {bookingData.guests.children > 0 && (
                           <div className="flex justify-between">
@@ -2003,7 +2052,7 @@ export default function BookingPage() {
                 {/* Booking Form */}
                 <div className="space-y-8">
                   {/* Dates Selection */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <div className="hidden md:block bg-white border border-gray-200 rounded-lg p-6 ">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <Calendar className="w-5 h-5 text-gray-500" />
                       Select dates
@@ -2235,7 +2284,7 @@ export default function BookingPage() {
                   </div>
 
                   {/* Guests Selection */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <div className="hidden md:block bg-white border border-gray-200 rounded-lg p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <Users className="w-5 h-5 text-gray-500" />
                       Guests <span className="text-red-500">*</span>
@@ -2325,109 +2374,129 @@ export default function BookingPage() {
                   </div>
 
                   {/* Hourly Booking Extension */}
-                  {property?.hourlyBooking?.enabled && (
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-gray-500" />
-                        Hourly Booking Extension <span className="text-gray-500 text-sm">(Optional)</span>
-                        {bookingData.hourlyExtension && (
-                          <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                            Pre-selected
-                          </span>
-                        )}
-                    </h3>
-                      <div className="space-y-4">
-                        <p className="text-sm text-gray-600">
-                          Extend your checkout time for additional hours at a discounted rate.
-                        </p>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          {[
-                            { hours: 6, rate: property.hourlyBooking?.hourlyRates?.sixHours || 0.3, label: '6 Hours' },
-                            { hours: 12, rate: property.hourlyBooking?.hourlyRates?.twelveHours || 0.6, label: '12 Hours' },
-                            { hours: 18, rate: property.hourlyBooking?.hourlyRates?.eighteenHours || 0.75, label: '18 Hours' }
-                          ].map((option) => (
-                            <div
-                              key={option.hours}
-                              className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                                bookingData.hourlyExtension === option.hours
-                                  ? 'border-blue-500 bg-blue-50'
-                                  : 'border-gray-200 hover:border-gray-300'
-                              }`}
-                              onClick={() => {
-                                const newExtension = bookingData.hourlyExtension === option.hours ? null : option.hours;
-                                updateLocalBookingData({ hourlyExtension: newExtension });
-                              }}
-                            >
-                              <div className="text-center">
-                                <div className="font-bold text-gray-900">{option.label}</div>
-                                <div className="text-sm text-gray-600">
-                                  {Math.round(option.rate * 100)}% of daily rate
-                                </div>
-                                <div className="text-xs text-gray-500 mt-1">
-                                  Checkout: {(() => {
-                                    if (!bookingData.checkOut) return 'Select dates first';
-                                    const [hours, minutes] = (property?.checkOutTime || '11:00').split(':').map(Number);
-                                    const baseCheckout = new Date(bookingData.checkOut);
-                                    baseCheckout.setHours(hours, minutes, 0, 0);
-                                    const newCheckout = new Date(baseCheckout);
-                                    newCheckout.setHours(newCheckout.getHours() + option.hours);
-                                    return newCheckout.toLocaleTimeString('en-US', { 
-                                      hour: 'numeric', 
-                                      minute: '2-digit',
-                                      hour12: true 
-                                    });
-                                  })()}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                 {property?.hourlyBooking?.enabled && (
+  <div className="bg-white border border-gray-200 rounded-lg p-4 md:p-6">
+    {/* <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4 flex flex-wrap items-center gap-2">
+      <Clock className="w-5 h-5 text-gray-500" />
+      <span className="whitespace-nowrap">Hourly Booking Extension</span>
+      <span className="text-gray-500 text-xs font-normal">(Optional)</span>
+      {bookingData.hourlyExtension && (
+        <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-[10px] md:text-xs font-medium rounded-full">
+          Pre-selected
+        </span>
+      )}
+    </h3> */}
+<h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex flex-wrap items-center gap-x-2 gap-y-1">
+  {/* Icon and Title Group */}
+  <div className="flex items-center gap-2">
+    <Clock className="w-5 h-5 text-gray-500 shrink-0" />
+    <span className="whitespace-nowrap">Hourly Extension</span>
+  </div>
 
-                        {bookingData.hourlyExtension && (
-                          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Clock className="w-4 h-4 text-blue-600" />
-                              <h4 className="font-semibold text-blue-900">Extension Selected</h4>
-                            </div>
-                            <div className="text-sm text-blue-700">
-                              <div className="flex justify-between">
-                                <span>Extension:</span>
-                                <span className="font-medium">{bookingData.hourlyExtension} hours</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Rate:</span>
-                                <span className="font-medium">
-                                  {Math.round((property.hourlyBooking?.hourlyRates?.[`${bookingData.hourlyExtension === 6 ? 'six' : bookingData.hourlyExtension === 12 ? 'twelve' : 'eighteen'}Hours`] || 0) * 100)}% of daily rate
-                                </span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>New checkout time:</span>
-                                <span className="font-medium">
-                                  {(() => {
-                                    if (!bookingData.checkOut) return 'Select dates first';
-                                    const [hours, minutes] = (property?.checkOutTime || '11:00').split(':').map(Number);
-                                    const baseCheckout = new Date(bookingData.checkOut);
-                                    baseCheckout.setHours(hours, minutes, 0, 0);
-                                    const newCheckout = new Date(baseCheckout);
-                                    newCheckout.setHours(newCheckout.getHours() + bookingData.hourlyExtension);
-                                    return newCheckout.toLocaleTimeString('en-US', { 
-                                      hour: 'numeric', 
-                                      minute: '2-digit',
-                                      hour12: true 
-                                    });
-                                  })()}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+  {/* Badges Group - Will wrap together if space is tight */}
+  <div className="flex items-center gap-2">
+    <span className="text-gray-500 text-xs font-normal whitespace-nowrap">
+      (Optional)
+    </span>
+    {bookingData.hourlyExtension && (
+      <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-medium rounded-full whitespace-nowrap">
+        Selected
+      </span>
+    )}
+  </div>
+</h3>
+    <div className="space-y-4">
+      <p className="text-xs md:text-sm text-gray-600">
+        Extend your checkout time for additional hours at a discounted rate.
+      </p>
+
+      {/* Grid: Always 3 columns on mobile and desktop */}
+      <div className="grid grid-cols-3 gap-2 md:gap-4">
+        {[
+          { hours: 6, rate: property.hourlyBooking?.hourlyRates?.sixHours || 0.3, label: '6 Hours', shortLabel: '6H' },
+          { hours: 12, rate: property.hourlyBooking?.hourlyRates?.twelveHours || 0.6, label: '12 Hours', shortLabel: '12H' },
+          { hours: 18, rate: property.hourlyBooking?.hourlyRates?.eighteenHours || 0.75, label: '18 Hours', shortLabel: '18H' }
+        ].map((option) => (
+          <div
+            key={option.hours}
+            className={`p-2 md:p-4 border-2 rounded-xl cursor-pointer transition-all text-center flex flex-col justify-center ${
+              bookingData.hourlyExtension === option.hours
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-gray-100 md:border-gray-200 hover:border-gray-300'
+            }`}
+            onClick={() => {
+              const newExtension = bookingData.hourlyExtension === option.hours ? null : option.hours;
+              updateLocalBookingData({ hourlyExtension: newExtension });
+            }}
+          >
+            {/* Label: Short on mobile, Full on desktop */}
+            <div className="font-bold text-gray-900 text-sm md:text-base">
+              <span className="md:hidden">{option.shortLabel}</span>
+              <span className="hidden md:inline">{option.label}</span>
+            </div>
+
+            {/* Discount Rate: Always visible */}
+            <div className="text-[10px] md:text-sm text-gray-600 font-medium">
+              {Math.round(option.rate * 100)}% <span className="hidden md:inline">of daily rate</span>
+            </div>
+
+            {/* Time: Hidden on mobile buttons, visible on desktop */}
+            <div className="hidden md:block text-xs text-gray-500 mt-1">
+              {(() => {
+                if (!bookingData.checkOut) return '...';
+                const [hours, minutes] = (property?.checkOutTime || '11:00').split(':').map(Number);
+                const baseCheckout = new Date(bookingData.checkOut);
+                baseCheckout.setHours(hours, minutes, 0, 0);
+                const newCheckout = new Date(baseCheckout);
+                newCheckout.setHours(newCheckout.getHours() + option.hours);
+                return newCheckout.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+              })()}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Selection Details: Shows the discount and new time clearly on mobile when selected */}
+      {bookingData.hourlyExtension && (
+        <div className="mt-4 p-2 sm:p-4 bg-blue-50 border border-blue-200 rounded-xl">
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="w-4 h-4 text-blue-600" />
+            <h4 className="font-semibold text-blue-900 text-sm md:text-base">Extension Selected</h4>
+          </div>
+          <div className="text-xs md:text-sm text-blue-700 space-y-1">
+            <div className="flex justify-between">
+              <span>Extension:</span>
+              <span className="font-medium">{bookingData.hourlyExtension} hours</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Discounted Rate:</span>
+              <span className="font-medium">
+                {Math.round((property.hourlyBooking?.hourlyRates?.[`${bookingData.hourlyExtension === 6 ? 'six' : bookingData.hourlyExtension === 12 ? 'twelve' : 'eighteen'}Hours`] || 0) * 100)}% of daily
+              </span>
+            </div>
+            <div className="flex justify-between border-t border-blue-200 pt-1 mt-1">
+              <span>New checkout time:</span>
+              <span className="font-bold">
+                {(() => {
+                  if (!bookingData.checkOut) return '...';
+                  const [hours, minutes] = (property?.checkOutTime || '11:00').split(':').map(Number);
+                  const baseCheckout = new Date(bookingData.checkOut);
+                  baseCheckout.setHours(hours, minutes, 0, 0);
+                  const newCheckout = new Date(baseCheckout);
+                  newCheckout.setHours(newCheckout.getHours() + bookingData.hourlyExtension);
+                  return newCheckout.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                })()}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
                   {/* Contact Information */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <div className="hidden md:block bg-white border border-gray-200 rounded-lg p-6">
                     <div className="flex items-center gap-3 mb-4">
                       <User className="w-5 h-5 text-gray-500" />
                       <div>
@@ -2535,7 +2604,7 @@ export default function BookingPage() {
                   </div>
 
                   {/* Payment Method */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <div className="hidden md:block bg-white border border-gray-200 rounded-lg p-6">
                     <div className="flex items-center gap-3 mb-4">
                       <CreditCard className="w-5 h-5 text-gray-500" />
                       <div>
@@ -2585,7 +2654,7 @@ export default function BookingPage() {
                   </div>
 
                   {/* Coupon Code */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <div className="hidden md:bg-white border border-gray-200 rounded-lg p-6">
                     <div className="flex items-center gap-3 mb-4">
                       <Gift className="w-5 h-5 text-gray-500" />
                       <div>
@@ -2615,7 +2684,7 @@ export default function BookingPage() {
                   </div>
 
                   {/* Special Requests */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <div className="bg-white border border-gray-200 rounded-lg p-2 md:p-6">
                     <div className="flex items-center gap-3 mb-4">
                       <MessageCircle className="w-5 h-5 text-gray-500" />
                       <div>
@@ -2644,7 +2713,7 @@ export default function BookingPage() {
                   </div>
 
                   {/* Terms and Conditions */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <div className="hidden md:block bg-white border border-gray-200 rounded-lg p-6">
                     <div className="flex items-start gap-4">
                       <div className="flex-shrink-0 mt-1">
                       <input
@@ -2822,6 +2891,37 @@ export default function BookingPage() {
                   )}
                 </div>
 
+                {/* Terms & Conditions - Mobile only */}
+                <div className="block md:hidden mb-4">
+                  <div className="bg-white border border-gray-200 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={bookingData.agreeToTerms}
+                        onChange={(e) => {
+                          updateLocalBookingData({ agreeToTerms: e.target.checked });
+                          if (validationErrors.agreeToTerms) {
+                            setValidationErrors(prev => ({ ...prev, agreeToTerms: false }));
+                          }
+                        }}
+                        className={`w-5 h-5 mt-1 rounded border ${
+                          validationErrors.agreeToTerms 
+                            ? 'border-red-500 ring-2 ring-red-200' 
+                            : 'border-gray-300'
+                        }`}
+                      />
+                      <div className="text-xs text-gray-700 leading-relaxed">
+                        <span className="font-semibold text-gray-900">
+                          I agree to the{' '}
+                          <a href="#" className="underline">Terms</a> and{' '}
+                          <a href="#" className="underline">Privacy Policy</a>.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+
                 {/* Error Message */}
                 {bookingError && (
                   <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -2891,6 +2991,70 @@ export default function BookingPage() {
       </main>
       
       <Footer />
+
+      {showContactSheet && (
+        
+  <div className="fixed inset-0 z-50 bg-black/40 flex items-end md:hidden">
+    <div className="bg-white w-full rounded-t-3xl p-6 animate-slide-up">
+      
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-bold">Contact Information</h3>
+        <button onClick={() => setShowContactSheet(false)}>
+          <X className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Reuse same fields */}
+      <div className="space-y-4">
+        <input
+          placeholder="Full Name"
+          value={bookingData.contactInfo.name}
+          onChange={(e) =>
+            updateLocalBookingData({
+              contactInfo: { ...bookingData.contactInfo, name: e.target.value }
+            })
+          }
+          className="w-full px-4 py-3 border rounded-xl"
+        />
+
+        <input
+          placeholder="Email"
+          value={bookingData.contactInfo.email}
+          onChange={(e) =>
+            updateLocalBookingData({
+              contactInfo: { ...bookingData.contactInfo, email: e.target.value }
+            })
+          }
+          className="w-full px-4 py-3 border rounded-xl"
+        />
+
+        <input
+          placeholder="Phone"
+          value={bookingData.contactInfo.phone}
+          onChange={(e) =>
+            updateLocalBookingData({
+              contactInfo: { ...bookingData.contactInfo, phone: e.target.value }
+            })
+          }
+          className="w-full px-4 py-3 border rounded-xl"
+        />
+      </div>
+
+      <Button
+        className="w-full mt-6 bg-gray-800 text-white"
+        onClick={() => {
+          if (isContactInfoValid()) {
+            setShowContactSheet(false);
+            handleBooking();
+          }
+        }}
+      >
+        Continue Booking
+      </Button>
+    </div>
+  </div>
+)}
+
 
       {/* Payment Modal */}
       <PaymentModal

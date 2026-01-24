@@ -73,19 +73,19 @@ export default function AdminAnalytics() {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 md:p-6">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Enhanced Header */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-3 md:p-8">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                   Analytics Dashboard
                 </h1>
-                <p className="mt-2 text-lg text-gray-600">
+                <p className="mt-2 text-sm md:text-lg text-gray-600">
                   Detailed insights and performance metrics for TripMe platform
                 </p>
-                <div className="mt-4 flex items-center gap-6">
+                <div className="mt-4 flex flex-wrap items-center gap-6">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                     <span className="text-sm text-gray-600">
@@ -120,14 +120,14 @@ export default function AdminAnalytics() {
                 <div className="flex gap-2">
                   <Button 
                     variant="outline"
-                    className="bg-white/50 backdrop-blur-sm border border-gray-200 text-gray-700 hover:bg-white/70"
+                    className="bg-white/50 backdrop-blur-sm border border-gray-200 text-gray-700 hover:bg-white/70 px-3 md:px-4"
                   >
-                    <Download className="w-4 h-4 mr-2" />
+                    <Download className="w-4 h-4 mr-4" />
                     Export
                   </Button>
                   <Button 
                     onClick={fetchAnalyticsData}
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className="bg-purple-600 hover:bg-purple-700 px-3 md:px-4"
                   >
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Refresh
@@ -138,95 +138,103 @@ export default function AdminAnalytics() {
           </div>
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">₹{analyticsData.revenue.total.toLocaleString()}</p>
-                <div className="flex items-center mt-1">
-                  {analyticsData.revenue.growth >= 0 ? (
-                    <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
-                  )}
-                  <span className={`text-sm ${analyticsData.revenue.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {analyticsData.revenue.growth >= 0 ? '+' : ''}{analyticsData.revenue.growth}%
-                  </span>
-                </div>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active Users</p>
-                <p className="text-2xl font-bold text-gray-900">{analyticsData.users.total.toLocaleString()}</p>
-                <div className="flex items-center mt-1">
-                  {analyticsData.users.growth >= 0 ? (
-                    <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
-                  )}
-                  <span className={`text-sm ${analyticsData.users.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {analyticsData.users.growth >= 0 ? '+' : ''}{analyticsData.users.growth}%
-                  </span>
-                </div>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Bookings</p>
-                <p className="text-2xl font-bold text-gray-900">{analyticsData.bookings.total.toLocaleString()}</p>
-                <div className="flex items-center mt-1">
-                  {analyticsData.bookings.growth >= 0 ? (
-                    <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
-                  )}
-                  <span className={`text-sm ${analyticsData.bookings.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {analyticsData.bookings.growth >= 0 ? '+' : ''}{analyticsData.bookings.growth}%
-                  </span>
-                </div>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <BookOpen className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Properties</p>
-                <p className="text-2xl font-bold text-gray-900">{analyticsData.properties.total.toLocaleString()}</p>
-                <div className="flex items-center mt-1">
-                  {analyticsData.properties.growth >= 0 ? (
-                    <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
-                  )}
-                  <span className={`text-sm ${analyticsData.properties.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {analyticsData.properties.growth >= 0 ? '+' : ''}{analyticsData.properties.growth}%
-                  </span>
-                </div>
-              </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Home className="w-6 h-6 text-orange-600" />
-              </div>
-            </div>
-          </Card>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+  {/* Total Revenue */}
+  <Card className="p-3 md:p-6 shadow-md border-white/20 bg-white/80 backdrop-blur-sm">
+    <div className="flex flex-col h-full justify-between">
+      <div className="flex items-start justify-between mb-2">
+        <div className="w-8 h-8 md:w-12 md:h-12 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
+          <DollarSign className="w-4 h-4 md:w-6 md:h-6 text-green-600" />
         </div>
+        <div className="flex items-center bg-green-50 px-1.5 py-0.5 rounded-md">
+          {analyticsData.revenue.growth >= 0 ? (
+            <TrendingUp className="w-3 h-3 text-green-500 mr-1" />
+          ) : (
+            <TrendingDown className="w-3 h-3 text-red-500 mr-1" />
+          )}
+          <span className={`text-[10px] md:text-sm font-bold ${analyticsData.revenue.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {analyticsData.revenue.growth}%
+          </span>
+        </div>
+      </div>
+      <div>
+        <p className="text-[10px] md:text-sm font-bold text-gray-500 uppercase tracking-tight">Revenue</p>
+        <p className="text-sm md:text-2xl font-black text-gray-900 break-words">
+          ₹{analyticsData.revenue.total.toLocaleString()}
+        </p>
+      </div>
+    </div>
+  </Card>
+
+  {/* Active Users */}
+  <Card className="p-3 md:p-6 shadow-md border-white/20 bg-white/80 backdrop-blur-sm">
+    <div className="flex flex-col h-full justify-between">
+      <div className="flex items-start justify-between mb-2">
+        <div className="w-8 h-8 md:w-12 md:h-12 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
+          <Users className="w-4 h-4 md:w-6 md:h-6 text-blue-600" />
+        </div>
+        <div className="flex items-center bg-blue-50 px-1.5 py-0.5 rounded-md">
+          <TrendingUp className="w-3 h-3 text-green-500 mr-1" />
+          <span className="text-[10px] md:text-sm font-bold text-green-600">
+            +{analyticsData.users.growth}%
+          </span>
+        </div>
+      </div>
+      <div>
+        <p className="text-[10px] md:text-sm font-bold text-gray-500 uppercase tracking-tight">Users</p>
+        <p className="text-sm md:text-2xl font-black text-gray-900">
+          {analyticsData.users.total.toLocaleString()}
+        </p>
+      </div>
+    </div>
+  </Card>
+
+  {/* Bookings */}
+  <Card className="p-3 md:p-6 shadow-md border-white/20 bg-white/80 backdrop-blur-sm">
+    <div className="flex flex-col h-full justify-between">
+      <div className="flex items-start justify-between mb-2">
+        <div className="w-8 h-8 md:w-12 md:h-12 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
+          <BookOpen className="w-4 h-4 md:w-6 md:h-6 text-purple-600" />
+        </div>
+        <div className="flex items-center bg-purple-50 px-1.5 py-0.5 rounded-md">
+          <TrendingUp className="w-3 h-3 text-green-500 mr-1" />
+          <span className="text-[10px] md:text-sm font-bold text-green-600">
+            +{analyticsData.bookings.growth}%
+          </span>
+        </div>
+      </div>
+      <div>
+        <p className="text-[10px] md:text-sm font-bold text-gray-500 uppercase tracking-tight">Bookings</p>
+        <p className="text-sm md:text-2xl font-black text-gray-900">
+          {analyticsData.bookings.total.toLocaleString()}
+        </p>
+      </div>
+    </div>
+  </Card>
+
+  {/* Properties */}
+  <Card className="p-3 md:p-6 shadow-md border-white/20 bg-white/80 backdrop-blur-sm">
+    <div className="flex flex-col h-full justify-between">
+      <div className="flex items-start justify-between mb-2">
+        <div className="w-8 h-8 md:w-12 md:h-12 bg-orange-100 rounded-lg flex items-center justify-center shrink-0">
+          <Home className="w-4 h-4 md:w-6 md:h-6 text-orange-600" />
+        </div>
+        <div className="flex items-center bg-orange-50 px-1.5 py-0.5 rounded-md">
+          <TrendingUp className="w-3 h-3 text-green-500 mr-1" />
+          <span className="text-[10px] md:text-sm font-bold text-green-600">
+            +{analyticsData.properties.growth}%
+          </span>
+        </div>
+      </div>
+      <div>
+        <p className="text-[10px] md:text-sm font-bold text-gray-500 uppercase tracking-tight">Properties</p>
+        <p className="text-sm md:text-2xl font-black text-gray-900">
+          {analyticsData.properties.total.toLocaleString()}
+        </p>
+      </div>
+    </div>
+  </Card>
+</div>
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

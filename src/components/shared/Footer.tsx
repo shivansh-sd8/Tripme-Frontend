@@ -2,10 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Home, Briefcase, User, Heart, Settings } from 'lucide-react';
+import { useScrollDirection } from '@/hooks/userScrollDirection';
+import { useUI } from "@/core/store/uiContext";
 
 export default function Footer() {
   const [currentYear, setCurrentYear] = useState('');
   const [hideMobileNav, setHideMobileNav] = useState(false);
+  const scrollDirection = useScrollDirection();
+  const { hideBottomNav } = useUI();
+
 
   useEffect(() => {
     setCurrentYear(new Date().getFullYear().toString());
@@ -23,7 +28,19 @@ export default function Footer() {
   return (
     <>
       {/* Mobile Bottom Bar */}
-      <nav className={`fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-2xl rounded-t-2xl flex justify-between items-center px-2 py-1 sm:hidden${hideMobileNav ? ' hidden' : ''}`}>
+      <nav
+  className={`
+    fixed bottom-0 left-0 right-0 z-50
+    bg-white border-t border-gray-200 shadow-2xl rounded-t-2xl
+    flex justify-between items-center px-2 py-1 sm:hidden
+    transition-transform duration-300 ease-out
+    
+    ${hideMobileNav || hideBottomNav ? 'hidden' : ''}
+
+    ${scrollDirection === 'down' ? 'translate-y-full' : 'translate-y-0'}
+  `}
+  // ${hideMobileNav ? 'hidden' : ''}
+>
         <Link href="/" className="flex flex-col items-center flex-1 py-2 text-gray-700 hover:text-indigo-600 transition-all">
           <Home size={26} />
           <span className="text-xs mt-1 font-semibold">Home</span>

@@ -253,6 +253,8 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
   activeCategory = 'homes',
   onSearch
 }) => {
+  const [isCompact, setIsCompact] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -275,6 +277,32 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
     children: 0,
     infants: 0
   });
+
+  useEffect(() => {
+  let lastScrollY = window.scrollY;
+
+  const onScroll = () => {
+    const currentScrollY = window.scrollY;
+
+    // Hide when scrolling DOWN
+    if (currentScrollY > lastScrollY && currentScrollY > 120) {
+      setIsHidden(true);
+    } 
+    // Show when scrolling UP
+    else {
+      setIsHidden(false);
+    }
+
+    // Compact after small scroll
+    setIsCompact(currentScrollY > 80);
+
+    lastScrollY = currentScrollY;
+  };
+
+  window.addEventListener("scroll", onScroll);
+  return () => window.removeEventListener("scroll", onScroll);
+}, []);
+
 
   // Update form when initialValues change
   useEffect(() => {
@@ -863,10 +891,14 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
       <form
         onSubmit={handleSearch}
         className={cn(
-          "flex rounded-full min-h-[66px] items-center transition-all duration-300",
+          "flex rounded-full  items-center transition-all duration-300",
+            // isCompact ? "min-h-[44px]" : "min-h-[56px]",
+             isHidden && "h-0 opacity-0 -translate-y-6 pointer-events-none",
+    !isHidden && "opacity-100 translate-y-0",
           activeField 
             ? "bg-[#EBEBEB] shadow-[0_3px_12px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.08)]" 
             : "bg-white shadow-[0_1px_2px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.05)] border border-gray-200 hover:shadow-[0_2px_4px_rgba(0,0,0,0.1),0_8px_16px_rgba(0,0,0,0.1)]"
+          
         )}
       >
         {/* Where Field */}
@@ -876,6 +908,7 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
             onClick={() => setActiveField(activeField === 'where' ? null : 'where')}
             className={cn(
               "w-full px-8 py-3.5 text-left transition-all duration-200 rounded-full flex flex-col justify-center",
+              // isCompact ? "px-4 py-2" : "px-8 py-3.5",
               activeField === 'where' 
                 ? "bg-white shadow-[0_2px_16px_rgba(0,0,0,0.12)]" 
                 : activeField 
@@ -883,7 +916,8 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
                   : "hover:bg-gray-100"
             )}
           >
-            <div className="text-xs font-semibold text-gray-800">Where</div>
+             <div className="text-xs font-semibold text-gray-800">Where</div>
+           
             <div className={cn(
               "text-sm truncate mt-0.5",
               selectedCity ? "text-gray-800" : "text-gray-400"
@@ -911,6 +945,7 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
             }}
             className={cn(
               "w-full px-8 py-3.5 text-left transition-all duration-200 rounded-full flex flex-col justify-center",
+              
               (activeField === 'checkin' || activeField === 'checkout')
                 ? "bg-white shadow-[0_2px_16px_rgba(0,0,0,0.12)]" 
                 : activeField 
@@ -918,7 +953,7 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
                   : "hover:bg-gray-100"
             )}
           >
-            <div className="text-xs font-semibold text-gray-800">Date</div>
+             <div className="text-xs font-semibold text-gray-800">Date</div>
             <div className={cn(
               "text-sm truncate mt-0.5",
               dateRange.startDate && dateRange.endDate ? "text-gray-800" : "text-gray-400"
@@ -966,6 +1001,7 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
               onClick={() => setActiveField(activeField === 'who' ? null : 'who')}
               className={cn(
                 "flex-1 px-8 py-3.5 text-left transition-all duration-200 rounded-full flex flex-col justify-center",
+                
                 activeField === 'who' 
                   ? "bg-white shadow-[0_2px_16px_rgba(0,0,0,0.12)]" 
                   : activeField 

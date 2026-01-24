@@ -333,10 +333,10 @@ export default function PropertyMap({
 
   return (
     <div className="w-full">
-      <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-2">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
+            <div className="w-20 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
               <MapPin className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -345,10 +345,10 @@ export default function PropertyMap({
             </div>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <button
               onClick={getDirections}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              className="w-full sm:w-auto flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
             >
               <Navigation className="w-4 h-4" />
               Directions
@@ -400,7 +400,7 @@ export default function PropertyMap({
                   setMapContainerReady(true);
                 }
               }}
-              className="h-96 bg-gray-100 rounded-xl overflow-hidden"
+              className="h-[260px] sm:h-96 bg-gray-100 rounded-xl overflow-hidden"
               style={{ 
                 minHeight: '384px',
                 width: '100%',
@@ -410,12 +410,12 @@ export default function PropertyMap({
           )}
         </div>
 
-        <div className="mt-4 p-4 bg-blue-50 rounded-xl">
+        <div className="mt-4  p-3 sm:p-4  bg-blue-50 rounded-xl">
           <div className="flex items-start gap-3">
             <MapPin className="w-5 h-5 text-blue-600 mt-0.5" />
             <div>
-              <h4 className="font-medium text-gray-900 mb-1">Getting There</h4>
-              <p className="text-sm text-gray-600 mb-2">
+              <h4 className="font-medium text-gray-900 mb-1  text-sm sm:text-base">Getting There</h4>
+              <p className="text-xs sm:text-sm text-gray-600">
                 The property is located in {city}, {state}. Use the directions button above to get turn-by-turn navigation.
               </p>
               <div className="text-xs text-gray-500">

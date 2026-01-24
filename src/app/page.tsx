@@ -1,11 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  MapPin, 
-  Star, 
-  Heart, 
-  Shield, 
+import {
+  MapPin,
+  Star,
+  Heart,
+  Shield,
   ArrowRight,
   Mountain,
   Waves,
@@ -25,6 +25,8 @@ import Footer from "@/components/shared/Footer";
 import PricesPopup from "@/components/shared/PricesPopup";
 import { useAuth } from '@/core/store/auth-context';
 import Button from '@/shared/components/ui/Button';
+import { useScrollDirection } from "@/hooks/userScrollDirection";
+
 
 export default function Home() {
   const router = useRouter();
@@ -69,13 +71,14 @@ export default function Home() {
   const [currentHotelIndex, setCurrentHotelIndex] = useState(0);
   const [weekendProperties, setWeekendProperties] = useState<any[]>([]);
   const [weekendLoading, setWeekendLoading] = useState(true);
+  const scrollDirection = useScrollDirection();
 
   // Fetch weekend properties from database
   const fetchWeekendProperties = async () => {
     try {
       setWeekendLoading(true);
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/listings/featured?limit=6`);
-      
+
       if (response.ok) {
         const data = await response.json();
         setWeekendProperties(data.data?.listings || []);
@@ -103,10 +106,10 @@ export default function Home() {
   // Get visible hotels for carousel
   const getVisibleHotels = () => {
     if (weekendProperties.length === 0) return [];
-    
+
     const visible = [];
     const totalProperties = weekendProperties.length;
-    
+
     if (totalProperties === 1) {
       // Single property - center it
       visible.push({ ...weekendProperties[0], position: 1 });
@@ -121,7 +124,7 @@ export default function Home() {
         visible.push({ ...weekendProperties[index], position: i });
       }
     }
-    
+
     return visible;
   };
 
@@ -162,7 +165,7 @@ export default function Home() {
       if (featuredResponse.ok) {
         const featuredData = await featuredResponse.json();
         const fetchedStays = featuredData.data?.listings || [];
-        
+
         // Transform the data to match the expected format
         const transformedStays = fetchedStays.map((stay: any) => ({
           _id: stay._id,
@@ -179,7 +182,7 @@ export default function Home() {
           reviewCount: stay.reviewCount || 0,
           tags: [...(stay.amenities || []), ...(stay.features || [])]
         }));
-        
+
         setFeaturedStays(transformedStays);
       }
 
@@ -239,7 +242,7 @@ export default function Home() {
   const fetchActiveCoupons = async () => {
     try {
       setCouponLoading(true);
-              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/coupons/public?isActive=true&limit=6`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/coupons/public?isActive=true&limit=6`);
       if (response.ok) {
         const data = await response.json();
         setActiveCoupons(data.data?.coupons || []);
@@ -260,16 +263,16 @@ export default function Home() {
   // Carousel navigation functions with circular behavior
   const nextCoupon = () => {
     if (activeCoupons.length <= 3) return; // No navigation needed if 3 or fewer coupons
-    
-    setCurrentCouponIndex((prev) => 
+
+    setCurrentCouponIndex((prev) =>
       prev + 3 >= activeCoupons.length ? 0 : prev + 3
     );
   };
 
   const prevCoupon = () => {
     if (activeCoupons.length <= 3) return; // No navigation needed if 3 or fewer coupons
-    
-    setCurrentCouponIndex((prev) => 
+
+    setCurrentCouponIndex((prev) =>
       prev - 3 < 0 ? Math.max(0, Math.floor((activeCoupons.length - 1) / 3) * 3) : prev - 3
     );
   };
@@ -278,16 +281,16 @@ export default function Home() {
   const getVisibleCoupons = () => {
     const coupons = [];
     const maxVisible = Math.min(3, activeCoupons.length);
-    
+
     if (activeCoupons.length === 0) {
       return [];
     }
-    
+
     // If we have fewer than 3 coupons, just show what we have
     if (activeCoupons.length <= 3) {
       return activeCoupons;
     }
-    
+
     // If we have more than 3 coupons, use circular behavior
     for (let i = 0; i < maxVisible; i++) {
       const index = (currentCouponIndex + i) % activeCoupons.length;
@@ -322,10 +325,40 @@ export default function Home() {
     );
   }
 
+  const getCTAConfig = () => {
+  if (typeof window === 'undefined') {
+    return { label: 'Explore stays', action: '/search' };
+  }
+
+  const path = window.location.pathname;
+
+  // Host-specific CTA
+  if (user?.role === 'host') {
+    return { label: 'Host dashboard', action: '/host/dashboard' };
+  }
+
+  // Room details page
+  if (path.startsWith('/rooms/')) {
+    return { label: 'Reserve', action: '#booking' };
+  }
+
+  // Search / listing page
+  if (path.startsWith('/search')) {
+    return { label: 'View map', action: 'toggle-map' };
+  }
+
+  // Default (home / anywhere else)
+  return { label: 'Explore stays', action: '/search' };
+};
+
+const { label, action } = getCTAConfig();
+
+
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
-      
+
       {/* Copy Notification */}
       {copiedCoupon && (
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-green-500 text-white px-6 py-3 rounded-xl shadow-lg flex items-center space-x-2 animate-in slide-in-from-top-2">
@@ -335,641 +368,945 @@ export default function Home() {
       )}
 
       <main className="pt-0 z-0 relative">
-        {/* Hero Section - Two Column Layout Inspired by Image */}
-        <section className="relative min-h-screen flex items-center pt-32 pb-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 xl:gap-16 items-start lg:items-center">
-              
-              {/* Left Column - Main Content */}
-              <div className="space-y-6 lg:space-y-8">
-                {/* Brand Tagline */}
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <Plane className="w-6 h-6 text-blue-600" />
-              <span className="text-blue-600 font-semibold text-lg font-heading">TripMe Travel Gems —</span>
-                  </div>
+
+        <div className="block md:hidden  pt-[169px] pb-[120px]">
+
+          <section className="px-4 pt-8">
+            <h2 className="text-xl font-semibold mb-3">
+              Active coupons
+            </h2>
+
+            <div className="
+                  scroll-x-only
+                  flex gap-4
+                  snap-x snap-mandatory
+                  pb-2
+                "
+            >
+              {activeCoupons.map(coupon => (
+                <div
+                  key={coupon._id}
+                  className="
+          min-w-[85%]
+          snap-center
+          bg-white
+          rounded-2xl
+          border
+          p-4
+        "
+                >
+                  <p className="text-sm font-semibold mb-1">
+                    {coupon.discountType === 'percentage'
+                      ? `${coupon.amount}% OFF`
+                      : `₹${coupon.amount} OFF`}
+                  </p>
+
+                  <h3 className="text-lg font-bold mb-4">
+                    {coupon.code}
+                  </h3>
+
+                  <button
+                    onClick={() => copyCouponCode(coupon.code)}
+                    className="w-full bg-black text-white py-2 rounded-xl"
+                  >
+                    Apply
+                  </button>
                 </div>
-
-                {/* Main Headline */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-gray-900 leading-tight font-display">
-                  Discover the Best Destinations Across India
-                </h1>
-
-                {/* Description */}
-          <p className="text-lg sm:text-xl lg:text-2xl text-gray-600 leading-relaxed max-w-xl font-body">
-                  Embark on the adventure of a lifetime, where every step you take unveils a new story, and every destination leaves a lasting impression.
-                </p>
-
-                {/* Trust Indicators */}
-                <div className="flex flex-wrap items-center gap-4 lg:gap-6 pt-2">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span className="text-sm lg:text-base text-gray-600 font-medium">100% Verified</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-blue-600" />
-                    <span className="text-sm lg:text-base text-gray-600 font-medium">Secure Booking</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Award className="w-5 h-5 text-yellow-600" />
-                    <span className="text-sm lg:text-base text-gray-600 font-medium">Best Prices</span>
-                  </div>
-                </div>
-
-
-              </div>
-
-              {/* Right Column - Direct Image */}
-              <div className="relative flex items-center justify-center lg:justify-end h-[450px] sm:h-[550px] lg:h-[650px] xl:h-[750px] pt-8 lg:pt-12">
-                <img
-                  src="/finalImage.png"
-                  alt="Indian Destinations"
-                  className="max-h-full w-auto max-w-full cursor-pointer hover:scale-105 transition-transform duration-500"
-                  onClick={() => router.push('/search')}
-                />
-              </div>
+              ))}
             </div>
+          </section>
+
+          {/* ================= MOBILE WEEKEND OFFERS ================= */}
+        <section className="px-4 mt-10 md:hidden">
+          <div className="mb-4">
+            <p className="text-sm text-blue-600 font-medium">
+              Weekend offers
+            </p>
+            <h2 className="text-xl font-semibold">
+              Deals for the weekend
+            </h2>
+          </div>
+
+          {/* Horizontal swipe */}
+          <div
+            className="
+              scroll-x-only
+              flex gap-4
+              snap-x snap-mandatory
+              pb-2
+            "
+          >
+            {weekendProperties.map((property) => (
+              <div
+                key={property._id}
+                className="
+                  min-w-[90%]
+                  snap-center
+                  bg-white
+                  rounded-2xl
+                  border
+                  overflow-hidden
+                "
+                onClick={() => router.push(`/rooms/${property._id}`)}
+              >
+                {/* Image */}
+                <div className="relative h-48">
+                  <img
+                    src={property.images?.[0] || '/placeholder-hotel.jpg'}
+                    alt={property.title}
+                    className="w-full h-full object-cover"
+                  />
+
+                  <div className="absolute top-3 left-3">
+                    <span className="bg-red-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                      Weekend deal
+                    </span>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-4">
+                  <h3 className="font-semibold text-base leading-tight line-clamp-2">
+                    {property.title}
+                  </h3>
+
+                  <p className="text-sm text-gray-500 mt-1">
+                    {property.location?.city}, {property.location?.state}
+                  </p>
+
+                  <div className="flex items-center justify-between mt-3">
+                    <div>
+                      <p className="text-sm text-gray-500">From</p>
+                      <p className="text-lg font-bold text-gray-900">
+                        ₹{property.price?.amount?.toLocaleString()}
+                        <span className="text-sm font-normal text-gray-500"> / night</span>
+                      </p>
+                    </div>
+
+                    <div className="flex items-center text-sm">
+                      <Star className="w-4 h-4 text-yellow-400 fill-current mr-1" />
+                      <span className="font-medium">
+                        {property.rating || 4.5}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
+                  {/* ================= MOBILE FEATURED STAYS ================= */}
+        <section className="px-4 mt-10 md:hidden">
+          <h2 className="text-xl font-semibold mb-4">
+            Featured stays
+          </h2>
 
-        {/* Dynamic Coupon Section - Fixed Height Carousel */}
-        <section className="py-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2 font-display">Active Coupons</h2>
-              <p className="text-base text-gray-600 max-w-2xl mx-auto font-body">
-                Check out our latest active coupons and discounts
-              </p>
-            </div>
-            
-            {/* Fixed height carousel container */}
-            <div className="relative">
-              {couponLoading ? (
-                <div className="h-80 bg-white rounded-2xl shadow-lg flex items-center justify-center">
-                  <div className="text-center">
-                  <div className="w-10 h-10 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-3"></div>
-                  <p className="text-gray-600">Loading coupons...</p>
+          <div
+            className="
+              scroll-x-only
+              flex gap-4
+              snap-x snap-mandatory
+              pb-2
+            "
+          >
+            {featuredStays.map((stay) => {
+              const isOwnProperty =
+                user &&
+                stay.host &&
+                (typeof stay.host === "string"
+                  ? stay.host === user.id || stay.host === user._id
+                  : stay.host._id === user.id || stay.host._id === user._id);
+
+              return (
+                <div
+                  key={stay._id}
+                  className="
+                    min-w-[90%]
+                    snap-center
+                    bg-white
+                    rounded-2xl
+                    border
+                    overflow-hidden
+                  "
+                  onClick={() => router.push(`/rooms/${stay._id}`)}
+                >
+                  {/* Image */}
+                  <div className="relative h-52">
+                    <img
+                      src={stay.images?.[0] || "/logo.png"}
+                      alt={stay.title}
+                      className="w-full h-full object-cover"
+                    />
+
+                    {/* Rating */}
+                    <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 flex items-center gap-1 text-xs">
+                      <Star className="w-3 h-3 text-yellow-400 fill-current" />
+                      <span className="font-semibold">
+                        {stay.rating || 4.5}
+                      </span>
+                      <span className="text-gray-600">
+                        ({stay.reviewCount || 0})
+                      </span>
+                    </div>
+
+                    {/* Host badge */}
+                    {isOwnProperty && (
+                      <div className="absolute top-3 left-3 bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-1 rounded-full">
+                        Your property
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="p-4">
+                    <h3 className="font-semibold text-base line-clamp-2">
+                      {stay.title}
+                    </h3>
+
+                    <p className="text-sm text-gray-500 mt-1">
+                      {stay.location?.city}, {stay.location?.state}
+                    </p>
+
+                    <div className="flex items-center justify-between mt-3">
+                      <div>
+                        <p className="text-sm text-gray-500">From</p>
+                        <p className="text-lg font-bold text-gray-900">
+                          {formatPrice(
+                            stay.price?.amount || 0,
+                            stay.price?.currency || "INR"
+                          )}
+                          <span className="text-sm font-normal text-gray-500">
+                            {" "}
+                            / night
+                          </span>
+                        </p>
+                      </div>
+
+                      <button
+                        className="text-sm font-semibold text-blue-600"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/rooms/${stay._id}`);
+                        }}
+                      >
+                        View
+                      </button>
+                    </div>
                   </div>
                 </div>
-              ) : activeCoupons.length > 0 ? (
-                <>
-                  {/* Navigation arrows */}
-                  {activeCoupons.length > 3 && (
-                    <>
-                      <button
-                        onClick={prevCoupon}
-                        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:shadow-xl transition-all duration-300 border border-gray-200"
-                      >
-                        <ChevronLeft className="w-5 h-5 text-gray-600" />
-                      </button>
-                      <button
-                        onClick={nextCoupon}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:shadow-xl transition-all duration-300 border border-gray-200"
-                      >
-                        <ChevronRight className="w-5 h-5 text-gray-600" />
-                      </button>
-                    </>
-                  )}
-                  
-                  {/* Coupon cards container with fixed height */}
-                  <div className="h-50 overflow-hidden">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 h-full">
-                      {getVisibleCoupons().map((coupon) => (
-                 <div
-  key={coupon._id}
-  className={`group relative rounded-xl border bg-white p-3
+              );
+            })}
+          </div>
+        </section>
+
+        
+
+        {/* ================= MOBILE STICKY CTA ================= */}
+        {/* <div className="fixed bottom-[72px] left-0 right-0 md:hidden z-40">
+          <div className="px-4">
+            <div className="bg-black text-white rounded-2xl p-4 shadow-xl flex gap-3">
+              <button
+                onClick={() => router.push('/search')}
+                className="flex-1 bg-white text-black py-3 rounded-xl font-semibold"
+              >
+                Explore stays
+              </button>
+
+              <button
+                onClick={() =>
+                  router.push(user?.role === 'host'
+                    ? '/host/dashboard'
+                    : '/become-host')
+                }
+                className="flex-1 border border-white/20 py-3 rounded-xl text-sm"
+              >
+                {user?.role === 'host' ? 'Dashboard' : 'Become host'}
+              </button>
+            </div>
+          </div>
+        </div> */}
+
+        {/* ================= MOBILE CTA ================= */}
+<div
+  className={`
+    fixed left-0 right-0 z-40 sm:hidden
+    transition-all duration-300 ease-out
+    ${scrollDirection === 'down'
+      ? 'bottom-4 opacity-100 translate-y-0'
+      : 'bottom-[-80px] opacity-0 translate-y-4 pointer-events-none'}
+  `}
+>
+  <div className="px-4">
+    <div className="bg-black text-white rounded-2xl p-4 shadow-xl flex gap-3">
+      <button
+        onClick={() => {
+          if (action === 'toggle-map') {
+            document.dispatchEvent(new CustomEvent('toggle-map'));
+          } else if (action === '#booking') {
+            document
+              .getElementById('booking')
+              ?.scrollIntoView({ behavior: 'smooth' });
+          } else {
+            window.location.href = action;
+          }
+        }}
+        className="flex-1 bg-white text-black py-3 rounded-xl font-semibold"
+      >
+        {label}
+      </button>
+
+      {/* Secondary action (optional) */}
+      <button
+        onClick={() =>
+          window.location.href = '/search'
+        }
+        className="flex-1 border border-white/20 py-3 rounded-xl text-sm"
+      >
+        Filters
+      </button>
+    </div>
+  </div>
+</div>
+
+
+   
+
+        </div>
+
+        <div className="hidden md:block">
+          {/* Hero Section - Two Column Layout Inspired by Image */}
+          <section className="relative min-h-screen flex items-center pt-32 pb-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 xl:gap-16 items-start lg:items-center">
+
+                {/* Left Column - Main Content */}
+                <div className="space-y-6 lg:space-y-8">
+                  {/* Brand Tagline */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <Plane className="w-6 h-6 text-blue-600" />
+                      <span className="text-blue-600 font-semibold text-lg font-heading">TripMe Travel Gems —</span>
+                    </div>
+                  </div>
+
+                  {/* Main Headline */}
+                  <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-gray-900 leading-tight font-display">
+                    Discover the Best Destinations Across India
+                  </h1>
+
+                  {/* Description */}
+                  <p className="text-lg sm:text-xl lg:text-2xl text-gray-600 leading-relaxed max-w-xl font-body">
+                    Embark on the adventure of a lifetime, where every step you take unveils a new story, and every destination leaves a lasting impression.
+                  </p>
+
+                  {/* Trust Indicators */}
+                  <div className="flex flex-wrap items-center gap-4 lg:gap-6 pt-2">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span className="text-sm lg:text-base text-gray-600 font-medium">100% Verified</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-5 h-5 text-blue-600" />
+                      <span className="text-sm lg:text-base text-gray-600 font-medium">Secure Booking</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Award className="w-5 h-5 text-yellow-600" />
+                      <span className="text-sm lg:text-base text-gray-600 font-medium">Best Prices</span>
+                    </div>
+                  </div>
+
+
+                </div>
+
+                {/* Right Column - Direct Image */}
+                <div className="relative flex items-center justify-center lg:justify-end h-[450px] sm:h-[550px] lg:h-[650px] xl:h-[750px] pt-8 lg:pt-12">
+                  <img
+                    src="/finalImage.png"
+                    alt="Indian Destinations"
+                    className="max-h-full w-auto max-w-full cursor-pointer hover:scale-105 transition-transform duration-500"
+                    onClick={() => router.push('/search')}
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+
+          {/* Dynamic Coupon Section - Fixed Height Carousel */}
+          <section className="py-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2 font-display">Active Coupons</h2>
+                <p className="text-base text-gray-600 max-w-2xl mx-auto font-body">
+                  Check out our latest active coupons and discounts
+                </p>
+              </div>
+
+              {/* Fixed height carousel container */}
+              <div className="relative">
+                {couponLoading ? (
+                  <div className="h-80 bg-white rounded-2xl shadow-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-10 h-10 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-3"></div>
+                      <p className="text-gray-600">Loading coupons...</p>
+                    </div>
+                  </div>
+                ) : activeCoupons.length > 0 ? (
+                  <>
+                    {/* Navigation arrows */}
+                    {activeCoupons.length > 3 && (
+                      <>
+                        <button
+                          onClick={prevCoupon}
+                          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:shadow-xl transition-all duration-300 border border-gray-200"
+                        >
+                          <ChevronLeft className="w-5 h-5 text-gray-600" />
+                        </button>
+                        <button
+                          onClick={nextCoupon}
+                          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:shadow-xl transition-all duration-300 border border-gray-200"
+                        >
+                          <ChevronRight className="w-5 h-5 text-gray-600" />
+                        </button>
+                      </>
+                    )}
+
+                    {/* Coupon cards container with fixed height */}
+                    <div className="h-50 overflow-hidden">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 h-full">
+                        {getVisibleCoupons().map((coupon) => (
+                          <div
+                            key={coupon._id}
+                            className={`group relative rounded-xl border bg-white p-3
   h-full flex flex-col transition-all duration-300
   ${copiedCoupon === coupon.code
-    ? 'border-gray-900 ring-1 ring-gray-900'
-    : 'border-gray-200 hover:border-gray-300'}
+                                ? 'border-gray-900 ring-1 ring-gray-900'
+                                : 'border-gray-200 hover:border-gray-300'}
   hover:shadow-[0_6px_18px_rgba(0,0,0,0.05)]
   hover:-translate-y-[1px]`}
->
-  {/* Hover glass sweep */}
-  <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl">
-    <div className="absolute -left-full top-0 h-full w-1/2
+                          >
+                            {/* Hover glass sweep */}
+                            <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl">
+                              <div className="absolute -left-full top-0 h-full w-1/2
       bg-gradient-to-r from-transparent via-white/15 to-transparent
       group-hover:translate-x-[200%]
       transition-transform duration-[1600ms]" />
-  </div>
+                            </div>
 
-  {/* Brand row */}
-  <div className="relative flex items-center justify-between mb-2">
-    <div className="flex items-center gap-2">
-      <div className="w-8 h-8 rounded-md bg-gray-100 overflow-hidden">
-        {coupon.couponImage ? (
-          <img
-            src={coupon.couponImage}
-            alt={coupon.code}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Tag className="w-4 h-4 text-gray-500" />
-          </div>
-        )}
-      </div>
+                            {/* Brand row */}
+                            <div className="relative flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-md bg-gray-100 overflow-hidden">
+                                  {coupon.couponImage ? (
+                                    <img
+                                      src={coupon.couponImage}
+                                      alt={coupon.code}
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                      <Tag className="w-4 h-4 text-gray-500" />
+                                    </div>
+                                  )}
+                                </div>
 
-      <span className="text-xs font-semibold text-gray-900">
-        {coupon.discountType === 'percentage'
-          ? `${coupon.amount}% OFF`
-          : `₹${coupon.amount} OFF`}
-      </span>
-    </div>
+                                <span className="text-xs font-semibold text-gray-900">
+                                  {coupon.discountType === 'percentage'
+                                    ? `${coupon.amount}% OFF`
+                                    : `₹${coupon.amount} OFF`}
+                                </span>
+                              </div>
 
-    <span className="text-[11px] text-gray-500 font-medium">
-      {Math.ceil(
-        (new Date(coupon.validTo).getTime() - Date.now()) /
-          (1000 * 60 * 60 * 24)
-      )}d
-    </span>
-  </div>
+                              <span className="text-[11px] text-gray-500 font-medium">
+                                {Math.ceil(
+                                  (new Date(coupon.validTo).getTime() - Date.now()) /
+                                  (1000 * 60 * 60 * 24)
+                                )}d
+                              </span>
+                            </div>
 
-  {/* Code */}
-  <h3 className="text-lg font-semibold tracking-tight text-gray-900 mb-0.5">
-    {coupon.code}
-  </h3>
+                            {/* Code */}
+                            <h3 className="text-lg font-semibold tracking-tight text-gray-900 mb-0.5">
+                              {coupon.code}
+                            </h3>
 
-  {/* Conditions */}
-  <div className="flex flex-wrap gap-x-2 text-[11px] text-gray-600 mb-2">
-    {coupon.minBookingAmount && <span>Min ₹{coupon.minBookingAmount}</span>}
-    {coupon.discountType === 'percentage' && coupon.maxDiscount && (
-      <span>Max ₹{coupon.maxDiscount}</span>
-    )}
-  </div>
+                            {/* Conditions */}
+                            <div className="flex flex-wrap gap-x-2 text-[11px] text-gray-600 mb-2">
+                              {coupon.minBookingAmount && <span>Min ₹{coupon.minBookingAmount}</span>}
+                              {coupon.discountType === 'percentage' && coupon.maxDiscount && (
+                                <span>Max ₹{coupon.maxDiscount}</span>
+                              )}
+                            </div>
 
-  {/* Usage */}
-  <div className="mb-3">
-    {coupon.usageLimit ? (
-      <>
-        <div className="flex justify-between text-[11px] text-gray-600 mb-0.5">
-          <span>Usage</span>
-          <span className="font-medium text-gray-900">
-            {coupon.usedCount || 0}/{coupon.usageLimit}
-          </span>
-        </div>
-        <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gray-900 transition-all duration-500"
-            style={{
-              width: `${Math.min(
-                ((coupon.usedCount || 0) / coupon.usageLimit) * 100,
-                100
-              )}%`
-            }}
-          />
-        </div>
-      </>
-    ) : (
-      <span className="inline-flex text-[11px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-md">
-        Unlimited usage
-      </span>
-    )}
-  </div>
+                            {/* Usage */}
+                            <div className="mb-3">
+                              {coupon.usageLimit ? (
+                                <>
+                                  <div className="flex justify-between text-[11px] text-gray-600 mb-0.5">
+                                    <span>Usage</span>
+                                    <span className="font-medium text-gray-900">
+                                      {coupon.usedCount || 0}/{coupon.usageLimit}
+                                    </span>
+                                  </div>
+                                  <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-gray-900 transition-all duration-500"
+                                      style={{
+                                        width: `${Math.min(
+                                          ((coupon.usedCount || 0) / coupon.usageLimit) * 100,
+                                          100
+                                        )}%`
+                                      }}
+                                    />
+                                  </div>
+                                </>
+                              ) : (
+                                <span className="inline-flex text-[11px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-md">
+                                  Unlimited usage
+                                </span>
+                              )}
+                            </div>
 
-  {/* CTA */}
-  <button
-    onClick={() => copyCouponCode(coupon.code)}
-    disabled={copiedCoupon === coupon.code}
-    className={`mt-auto w-full rounded-md py-1.5 text-xs font-semibold transition
-    ${
-      copiedCoupon === coupon.code
-        ? 'bg-gray-100 text-gray-600 cursor-default'
-        : 'bg-gray-900 text-white hover:bg-black'
-    }`}
-  >
-    {copiedCoupon === coupon.code ? 'Applied' : 'Apply'}
-  </button>
-</div>
+                            {/* CTA */}
+                            <button
+                              onClick={() => copyCouponCode(coupon.code)}
+                              disabled={copiedCoupon === coupon.code}
+                              className={`mt-auto w-full rounded-md py-1.5 text-xs font-semibold transition
+    ${copiedCoupon === coupon.code
+                                  ? 'bg-gray-100 text-gray-600 cursor-default'
+                                  : 'bg-gray-900 text-white hover:bg-black'
+                                }`}
+                            >
+                              {copiedCoupon === coupon.code ? 'Applied' : 'Apply'}
+                            </button>
+                          </div>
 
-                      ))}
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Pagination dots - circular carousel */}
+                    {activeCoupons.length > 3 && (
+                      <div className="flex justify-center mt-4 space-x-2">
+                        {Array.from({ length: Math.ceil(activeCoupons.length / 3) }).map((_, index) => (
+                          <button
+                            key={index}
+                            onClick={() => setCurrentCouponIndex(index * 3)}
+                            className={`w-2 h-2 rounded-full transition-all duration-300 ${Math.floor(currentCouponIndex / 3) === index
+                                ? 'bg-purple-600 w-8'
+                                : 'bg-gray-300 hover:bg-gray-400'
+                              }`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="h-80 bg-white rounded-2xl shadow-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Tag className="w-8 h-8 text-purple-600" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">No Active Coupons</h3>
+                      <p className="text-gray-600">Check back soon for exciting offers and discounts!</p>
                     </div>
                   </div>
-                  
-                  {/* Pagination dots - circular carousel */}
-                  {activeCoupons.length > 3 && (
-                    <div className="flex justify-center mt-4 space-x-2">
-                      {Array.from({ length: Math.ceil(activeCoupons.length / 3) }).map((_, index) => (
-                        <button
-                          key={index}
-                          onClick={() => setCurrentCouponIndex(index * 3)}
-                          className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                            Math.floor(currentCouponIndex / 3) === index
-                              ? 'bg-purple-600 w-8'
-                              : 'bg-gray-300 hover:bg-gray-400'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="h-80 bg-white rounded-2xl shadow-lg flex items-center justify-center">
-                  <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Tag className="w-8 h-8 text-purple-600" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">No Active Coupons</h3>
-                  <p className="text-gray-600">Check back soon for exciting offers and discounts!</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* Top-Recommended Destinations Section */}
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-4 gap-4 h-[500px]">
-              
-              {/* Block 1: Title on top, Image below */}
-              <div className="space-y-3">
-                <h2 className="text-4xl font-bold text-gray-900 mb-2">Top-Recommended Destinations</h2>
-                <div 
-                  className="group relative h-80 rounded-2xl overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105"
-                  onClick={() => router.push(`/search?city=${encodeURIComponent(popularDestinations[0]?.name || 'Mumbai')}`)}
-                >
-                  <img
-                    src={popularDestinations[0]?.image || '/placeholder-destination.jpg'}
-                    alt={popularDestinations[0]?.name || 'Mumbai'}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                  <div className="absolute top-3 left-3">
-                    <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1.5 rounded-full text-sm font-semibold">
-                      <span className="text-lg">🇮🇳</span>
-                      <span>Mumbai</span>
-                    </div>
-                  </div>
-                  <div className="absolute bottom-3 right-3">
-                    <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg">
-                      <ArrowRight className="w-4 h-4 text-gray-700" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Block 2: One big image */}
-              <div className="space-y-3">
-                <div 
-                  className="group relative h-[90%] rounded-2xl overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105"
-                  onClick={() => router.push(`/search?city=${encodeURIComponent(popularDestinations[1]?.name || 'Delhi')}`)}
-                >
-                  <img
-                    src={popularDestinations[1]?.image || '/placeholder-destination.jpg'}
-                    alt={popularDestinations[1]?.name || 'Delhi'}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                  <div className="absolute top-3 left-3">
-                    <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1.5 rounded-full text-sm font-semibold">
-                      <span className="text-lg">🇮🇳</span>
-                      <span>Delhi</span>
-                    </div>
-                  </div>
-                  <div className="absolute bottom-3 right-3">
-                    <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg">
-                      <ArrowRight className="w-4 h-4 text-gray-700" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Block 3: One big image */}
-              <div className="space-y-3">
-                <div 
-                  className="group relative h-[90%] rounded-2xl overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105"
-                  onClick={() => router.push(`/search?city=${encodeURIComponent(popularDestinations[2]?.name || 'Goa')}`)}
-                >
-                  <img
-                    src={popularDestinations[2]?.image || '/placeholder-destination.jpg'}
-                    alt={popularDestinations[2]?.name || 'Goa'}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                  <div className="absolute top-3 left-3">
-                    <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1.5 rounded-full text-sm font-semibold">
-                      <span className="text-lg">🇮🇳</span>
-                      <span>Goa</span>
-                    </div>
-                  </div>
-                  <div className="absolute bottom-3 right-3">
-                    <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg">
-                      <ArrowRight className="w-4 h-4 text-gray-700" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Block 4: Image on top, Subheading on bottom */}
-              <div className="space-y-3">
-                <div 
-                  className="group relative h-80 rounded-2xl overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105"
-                  onClick={() => router.push(`/search?city=${encodeURIComponent(popularDestinations[3]?.name || 'Kerala')}`)}
-                >
-                  <img
-                    src={popularDestinations[3]?.image || '/placeholder-destination.jpg'}
-                    alt={popularDestinations[3]?.name || 'Kerala'}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                  <div className="absolute top-3 left-3">
-                    <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1.5 rounded-full text-sm font-semibold">
-                      <span className="text-lg">🇮🇳</span>
-                      <span>Kerala</span>
-                    </div>
-                  </div>
-                  <div className="absolute bottom-3 right-3">
-                    <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg">
-                      <ArrowRight className="w-4 h-4 text-gray-700" />
-                    </div>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600">When it comes to planning a dream vacation, some destinations stand out as top recommendations for travelers worldwide.</p>
+                )}
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Weekend Offers Section */}
-        <section className="py-20 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Header Section */}
-            <div className="text-center mb-12">
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-8 h-0.5 bg-blue-600"></div>
-                <span className="mx-4 text-blue-600 font-medium">Weekend Offers</span>
-                <div className="w-8 h-0.5 bg-blue-600"></div>
-              </div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Deals For The Weekend</h2>
-              <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                Don't miss out on these limited-time offers, and make the most of your weekend with a spontaneous trip that's easy on the wallet. Save on stays for 09 August - 11 August.
-              </p>
-            </div>
+          {/* Top-Recommended Destinations Section */}
+          <section className="py-20 bg-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="grid grid-cols-4 gap-4 h-[500px]">
 
-            {/* Hotel Carousel */}
-            <div className="relative">
-              {/* Navigation Arrows - Only show for 3+ properties */}
-              {weekendProperties.length > 2 && (
-                <>
-                  <button 
-                    onClick={prevHotel}
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-white/90 backdrop-blur-sm rounded-full p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 border border-white/20"
+                {/* Block 1: Title on top, Image below */}
+                <div className="space-y-3">
+                  <h2 className="text-4xl font-bold text-gray-900 mb-2">Top-Recommended Destinations</h2>
+                  <div
+                    className="group relative h-80 rounded-2xl overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105"
+                    onClick={() => router.push(`/search?city=${encodeURIComponent(popularDestinations[0]?.name || 'Mumbai')}`)}
                   >
-                    <ChevronLeft className="w-6 h-6 text-gray-700" />
-                  </button>
-                  <button 
-                    onClick={nextHotel}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-white/90 backdrop-blur-sm rounded-full p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 border border-white/20"
-                  >
-                    <ChevronRight className="w-6 h-6 text-gray-700" />
-                  </button>
-                </>
-              )}
+                    <img
+                      src={popularDestinations[0]?.image || '/placeholder-destination.jpg'}
+                      alt={popularDestinations[0]?.name || 'Mumbai'}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                    <div className="absolute top-3 left-3">
+                      <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1.5 rounded-full text-sm font-semibold">
+                        <span className="text-lg">🇮🇳</span>
+                        <span>{popularDestinations[0]?.name || 'Mumbai'}</span>
+                      </div>
+                    </div>
+                    <div className="absolute bottom-3 right-3">
+                      <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg">
+                        <ArrowRight className="w-4 h-4 text-gray-700" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-              {/* Carousel Container */}
-              {weekendLoading ? (
-                <div className="flex items-center justify-center py-20">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                {/* Block 2: One big image */}
+                 <div className="space-y-3">
+                  <div
+                    className="group relative h-[90%] rounded-2xl overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105"
+                    onClick={() => router.push(`/search?city=${encodeURIComponent(popularDestinations[1]?.name || 'Delhi')}`)}
+                  >
+                    <img
+                      src={popularDestinations[1]?.image || '/placeholder-destination.jpg'}
+                      alt={popularDestinations[1]?.name || 'Delhi'}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                    <div className="absolute top-3 left-3">
+                      <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1.5 rounded-full text-sm font-semibold">
+                        <span className="text-lg">🇮🇳</span>
+                        <span>{popularDestinations[1]?.name || 'Delhi'}</span>
+                      </div>
+                    </div>
+                    <div className="absolute bottom-3 right-3">
+                      <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg">
+                        <ArrowRight className="w-4 h-4 text-gray-700" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              ) : weekendProperties.length === 0 ? (
-                <div className="text-center py-20">
-                  <p className="text-gray-500 text-lg">No weekend offers available at the moment.</p>
+
+                {/* Block 3: One big image */}
+                <div className="space-y-3">
+                  <div
+                    className="group relative h-[90%] rounded-2xl overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105"
+                    onClick={() => router.push(`/search?city=${encodeURIComponent(popularDestinations[2]?.name || 'Goa')}`)}
+                  >
+                    <img
+                      src={popularDestinations[2]?.image || '/placeholder-destination.jpg'}
+                      alt={popularDestinations[2]?.name || 'Manali'}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                    <div className="absolute top-3 left-3">
+                      <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1.5 rounded-full text-sm font-semibold">
+                        <span className="text-lg">🇮🇳</span>
+                        <span>{popularDestinations[2]?.name || 'Manali'}</span>
+                      </div>
+                    </div>
+                    <div className="absolute bottom-3 right-3">
+                      <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg">
+                        <ArrowRight className="w-4 h-4 text-gray-700" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <div className={`flex items-center justify-center gap-6 overflow-hidden ${
-                  weekendProperties.length === 1 ? 'justify-center' : 
-                  weekendProperties.length === 2 ? 'justify-center' : 
-                  'justify-center'
-                }`}>
-                  {getVisibleHotels().map((property, index) => (
-                    <div 
-                      key={`${property._id}-${index}`}
-                      className={`
+
+                {/* Block 4: Image on top, Subheading on bottom */}
+                <div className="space-y-3">
+                  <div
+                    className="group relative h-80 rounded-2xl overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105"
+                    onClick={() => router.push(`/search?city=${encodeURIComponent(popularDestinations[3]?.name || 'Kerala')}`)}
+                  >
+                    <img
+                      src={popularDestinations[3]?.image || '/placeholder-destination.jpg'}
+                      alt={popularDestinations[3]?.name || 'Jaipur'}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                    <div className="absolute top-3 left-3">
+                      <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1.5 rounded-full text-sm font-semibold">
+                        <span className="text-lg">🇮🇳</span>
+                        <span>{popularDestinations[3]?.name || 'Jaipur'}</span>
+                      </div>
+                    </div>
+                    <div className="absolute bottom-3 right-3">
+                      <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg">
+                        <ArrowRight className="w-4 h-4 text-gray-700" />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600">When it comes to planning a dream vacation, some destinations stand out as top recommendations for travelers worldwide.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Weekend Offers Section */}
+          <section className="py-20 bg-gray-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              {/* Header Section */}
+              <div className="text-center mb-12">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="w-8 h-0.5 bg-blue-600"></div>
+                  <span className="mx-4 text-blue-600 font-medium">Weekend Offers</span>
+                  <div className="w-8 h-0.5 bg-blue-600"></div>
+                </div>
+                <h2 className="text-4xl font-bold text-gray-900 mb-4">Deals For The Weekend</h2>
+                <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+                  Don't miss out on these limited-time offers, and make the most of your weekend with a spontaneous trip that's easy on the wallet. Save on stays for 09 August - 11 August.
+                </p>
+              </div>
+
+              {/* Hotel Carousel */}
+              <div className="relative">
+                {/* Navigation Arrows - Only show for 3+ properties */}
+                {weekendProperties.length > 2 && (
+                  <>
+                    <button
+                      onClick={prevHotel}
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-white/90 backdrop-blur-sm rounded-full p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 border border-white/20"
+                    >
+                      <ChevronLeft className="w-6 h-6 text-gray-700" />
+                    </button>
+                    <button
+                      onClick={nextHotel}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-white/90 backdrop-blur-sm rounded-full p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 border border-white/20"
+                    >
+                      <ChevronRight className="w-6 h-6 text-gray-700" />
+                    </button>
+                  </>
+                )}
+
+                {/* Carousel Container */}
+                {weekendLoading ? (
+                  <div className="flex items-center justify-center py-20">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : weekendProperties.length === 0 ? (
+                  <div className="text-center py-20">
+                    <p className="text-gray-500 text-lg">No weekend offers available at the moment.</p>
+                  </div>
+                ) : (
+                  <div className={`flex items-center justify-center gap-6 overflow-hidden ${weekendProperties.length === 1 ? 'justify-center' :
+                      weekendProperties.length === 2 ? 'justify-center' :
+                        'justify-center'
+                    }`}>
+                    {getVisibleHotels().map((property, index) => (
+                      <div
+                        key={`${property._id}-${index}`}
+                        className={`
                         transition-all duration-700 overflow-hidden cursor-pointer
                         hover:scale-105 hover:-translate-y-2
-                        ${weekendProperties.length === 1 
-                          ? 'scale-100 z-20 transform' // Single property - normal size
-                          : weekendProperties.length === 2 
-                            ? property.position === 0 
-                              ? 'scale-100 z-20 transform hover:scale-105' // Left property - normal size
-                              : 'scale-100 z-20 transform hover:scale-105' // Right property - normal size
-                            : property.position === 1 
-                              ? 'scale-110 z-20 transform hover:scale-115' // Center property - larger
-                              : property.position === 0 
-                                ? 'scale-95 -translate-x-4 z-10 opacity-80 hover:scale-100 hover:opacity-90' // Left property - smaller
-                                : 'scale-95 translate-x-4 z-10 opacity-80 hover:scale-100 hover:opacity-90' // Right property - smaller
-                        }
+                        ${weekendProperties.length === 1
+                            ? 'scale-100 z-20 transform' // Single property - normal size
+                            : weekendProperties.length === 2
+                              ? property.position === 0
+                                ? 'scale-100 z-20 transform hover:scale-105' // Left property - normal size
+                                : 'scale-100 z-20 transform hover:scale-105' // Right property - normal size
+                              : property.position === 1
+                                ? 'scale-110 z-20 transform hover:scale-115' // Center property - larger
+                                : property.position === 0
+                                  ? 'scale-95 -translate-x-4 z-10 opacity-80 hover:scale-100 hover:opacity-90' // Left property - smaller
+                                  : 'scale-95 translate-x-4 z-10 opacity-80 hover:scale-100 hover:opacity-90' // Right property - smaller
+                          }
                       `}
-                      onClick={() => router.push(`/rooms/${property._id}`)}
-                    >
-                      <div className={`shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-2xl overflow-hidden ${
-                        weekendProperties.length === 1 
-                          ? 'w-96' // Single property - 20% wider
-                          : weekendProperties.length === 2 
-                            ? 'w-96' // Two properties - 20% wider
-                            : property.position === 1 ? 'w-96' : 'w-80' // Three+ properties - center wider
-                      }`}>
-                        {/* Image Section */}
-                        <div className="relative h-52 overflow-hidden rounded-t-2xl">
-                          <img
-                            src={property.images?.[0] || '/placeholder-hotel.jpg'}
-                            alt={property.title}
-                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                          />
-                          <div className="absolute top-4 right-4">
-                            <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
-                              Weekend Deal
+                        onClick={() => router.push(`/rooms/${property._id}`)}
+                      >
+                        <div className={`shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-2xl overflow-hidden ${weekendProperties.length === 1
+                            ? 'w-96' // Single property - 20% wider
+                            : weekendProperties.length === 2
+                              ? 'w-96' // Two properties - 20% wider
+                              : property.position === 1 ? 'w-96' : 'w-80' // Three+ properties - center wider
+                          }`}>
+                          {/* Image Section */}
+                          <div className="relative h-52 overflow-hidden rounded-t-2xl">
+                            <img
+                              src={property.images?.[0] || '/placeholder-hotel.jpg'}
+                              alt={property.title}
+                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                            />
+                            <div className="absolute top-4 right-4">
+                              <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
+                                Weekend Deal
+                              </div>
+                            </div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+                          </div>
+
+                          {/* Content Section */}
+                          <div className="bg-white p-8 rounded-b-2xl">
+                            <h3 className="font-bold text-gray-900 text-lg mb-2 leading-tight line-clamp-2">
+                              {property.title}
+                            </h3>
+                            <p className="text-gray-600 text-sm mb-4 flex items-center">
+                              <span className="w-1 h-1 bg-gray-400 rounded-full mr-2"></span>
+                              {property.location?.city}, {property.location?.state}
+                            </p>
+                            <div className="flex items-center mb-4">
+                              <div className="flex items-center bg-gray-50 px-3 py-1.5 rounded-full">
+                                <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                                <span className="ml-1.5 text-sm font-medium text-gray-700">
+                                  {property.rating} ({property.reviewCount?.toLocaleString() || 0} Reviews)
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-1">
+                                <span className="text-2xl font-bold text-gray-900">
+                                  ₹{property.price?.amount?.toLocaleString() || 'N/A'}
+                                </span>
+                                <span className="text-sm text-gray-500 font-medium">/night</span>
+                              </div>
+                              <button className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105">
+                                Book Now
+                              </button>
                             </div>
                           </div>
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
                         </div>
-                        
-                        {/* Content Section */}
-                        <div className="bg-white p-8 rounded-b-2xl">
-                          <h3 className="font-bold text-gray-900 text-lg mb-2 leading-tight line-clamp-2">
-                            {property.title}
-                          </h3>
-                          <p className="text-gray-600 text-sm mb-4 flex items-center">
-                            <span className="w-1 h-1 bg-gray-400 rounded-full mr-2"></span>
-                            {property.location?.city}, {property.location?.state}
-                          </p>
-                          <div className="flex items-center mb-4">
-                            <div className="flex items-center bg-gray-50 px-3 py-1.5 rounded-full">
-                              <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                              <span className="ml-1.5 text-sm font-medium text-gray-700">
-                                {property.rating} ({property.reviewCount?.toLocaleString() || 0} Reviews)
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-1">
-                              <span className="text-2xl font-bold text-gray-900">
-                                ₹{property.price?.amount?.toLocaleString() || 'N/A'}
-                              </span>
-                              <span className="text-sm text-gray-500 font-medium">/night</span>
-                            </div>
-                            <button className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105">
-                              Book Now
-                            </button>
                       </div>
-                    </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              )}
-              
-              {/* Pagination Dots - Only show for 3+ properties */}
-              {!weekendLoading && weekendProperties.length > 2 && (
-                <div className="flex justify-center mt-8 space-x-3">
-                  {weekendProperties.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentHotelIndex(index)}
-                      className={`w-4 h-4 rounded-full transition-all duration-300 shadow-lg ${
-                        index === currentHotelIndex 
-                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 scale-125 shadow-blue-500/50' 
-                          : 'bg-gray-300 hover:bg-gray-400 hover:scale-110'
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
-              </div>
-          </div>
-        </section>
+                )}
 
-        {/* Featured Stays */}
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">
-                Featured Stays
-              </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Handpicked accommodations for an unforgettable experience
-              </p>
-            </div>
-
-            {featuredStays.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {featuredStays.map((stay) => {
-                  // Check if current user is the host of this property
-                  const isOwnProperty = user && stay.host && (
-                    typeof stay.host === 'string' 
-                      ? stay.host === user.id || stay.host === user._id
-                      : stay.host._id?.toString() === user.id?.toString() || 
-                        stay.host._id?.toString() === user._id?.toString() || 
-                        stay.host.id === user.id || 
-                        stay.host.id === user._id
-                  );
-                  
-                  return (
-                    <div 
-                      key={stay._id}
-                      className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-105 overflow-hidden cursor-pointer"
-                      onClick={() => router.push(`/rooms/${stay._id}`)}
-                    >
-                    <div className="aspect-[4/3] relative overflow-hidden">
-                      <img
-                        src={stay.images?.[0] || '/logo.png'}
-                        alt={stay.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                {/* Pagination Dots - Only show for 3+ properties */}
+                {!weekendLoading && weekendProperties.length > 2 && (
+                  <div className="flex justify-center mt-8 space-x-3">
+                    {weekendProperties.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentHotelIndex(index)}
+                        className={`w-4 h-4 rounded-full transition-all duration-300 shadow-lg ${index === currentHotelIndex
+                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 scale-125 shadow-blue-500/50'
+                            : 'bg-gray-300 hover:bg-gray-400 hover:scale-110'
+                          }`}
                       />
-                      <div className="absolute top-4 right-4 flex gap-2">
-                        {isOwnProperty && (
-                          <div className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full">
-                            Your Property
-                          </div>
-                        )}
-                        <button className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors">
-                          <Heart className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="absolute bottom-4 left-4">
-                        <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1">
-                          <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                          <span className="text-xs font-semibold">{stay.rating || 4.5}</span>
-                          <span className="text-xs text-gray-600">({stay.reviewCount || 0})</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-6">
-                      <h3 className="font-bold text-gray-900 text-lg mb-2">{stay.title}</h3>
-                      <p className="text-gray-600 mb-3">{stay.location?.city}, {stay.location?.state}</p>
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-wrap gap-1">
-                          {stay.tags?.slice(0, 2).map((tag: string) => (
-                                                          <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                        <div className="text-right">
-                          <p className="text-lg font-bold text-gray-900">
-                            {formatPrice(stay.price?.amount || 0, stay.price?.currency || 'INR')}
-                          </p>
-                          <p className="text-sm text-gray-600">per night</p>
-                        </div>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                );
-                })}
+                )}
               </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Building2 size={32} className="text-purple-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No featured stays available</h3>
-                <p className="text-gray-600">Check back soon for amazing accommodations!</p>
-              </div>
-            )}
-          </div>
-        </section>
+            </div>
+          </section>
 
-        {/* CTA Section */}
-        <section className="py-20 bg-gradient-to-br from-gray-900 to-gray-800">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-4xl font-bold text-white mb-6">
-              Ready to Start Your Journey?
-            </h2>
-            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              Join thousands of travelers discovering unique stays and experiences across India
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-8 py-4 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200"
-                onClick={() => router.push('/search')}
-              >
-                Start Exploring
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-              {user?.role === 'host' ? (
-                <Button 
-                  className="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 border border-white/20 px-8 py-4 rounded-xl font-medium transition-all duration-200"
-                  onClick={() => router.push('/host/dashboard')}
-                >
-                  Host Dashboard
-                </Button>
+          {/* Featured Stays */}
+          <section className="py-20 bg-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                  Featured Stays
+                </h2>
+                <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                  Handpicked accommodations for an unforgettable experience
+                </p>
+              </div>
+
+              {featuredStays.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {featuredStays.map((stay) => {
+                    // Check if current user is the host of this property
+                    const isOwnProperty = user && stay.host && (
+                      typeof stay.host === 'string'
+                        ? stay.host === user.id || stay.host === user._id
+                        : stay.host._id?.toString() === user.id?.toString() ||
+                        stay.host._id?.toString() === user._id?.toString() ||
+                        stay.host.id === user.id ||
+                        stay.host.id === user._id
+                    );
+
+                    return (
+                      <div
+                        key={stay._id}
+                        className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-105 overflow-hidden cursor-pointer"
+                        onClick={() => router.push(`/rooms/${stay._id}`)}
+                      >
+                        <div className="aspect-[4/3] relative overflow-hidden">
+                          <img
+                            src={stay.images?.[0] || '/logo.png'}
+                            alt={stay.title}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          />
+                          <div className="absolute top-4 right-4 flex gap-2">
+                            {isOwnProperty && (
+                              <div className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full">
+                                Your Property
+                              </div>
+                            )}
+                            <button className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors">
+                              <Heart className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div className="absolute bottom-4 left-4">
+                            <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1">
+                              <Star className="w-3 h-3 text-yellow-400 fill-current" />
+                              <span className="text-xs font-semibold">{stay.rating || 4.5}</span>
+                              <span className="text-xs text-gray-600">({stay.reviewCount || 0})</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-6">
+                          <h3 className="font-bold text-gray-900 text-lg mb-2">{stay.title}</h3>
+                          <p className="text-gray-600 mb-3">{stay.location?.city}, {stay.location?.state}</p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex flex-wrap gap-1">
+                              {stay.tags?.slice(0, 2).map((tag: string) => (
+                                <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-bold text-gray-900">
+                                {formatPrice(stay.price?.amount || 0, stay.price?.currency || 'INR')}
+                              </p>
+                              <p className="text-sm text-gray-600">per night</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
-                <Button 
-                  className="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 border border-white/20 px-8 py-4 rounded-xl font-medium transition-all duration-200"
-                  onClick={() => router.push('/become-host')}
-                >
-                  Become a Host
-                </Button>
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Building2 size={32} className="text-purple-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No featured stays available</h3>
+                  <p className="text-gray-600">Check back soon for amazing accommodations!</p>
+                </div>
               )}
             </div>
-          </div>
-        </section>
+          </section>
+
+          {/* CTA Section */}
+          <section className="py-20 bg-gradient-to-br from-gray-900 to-gray-800">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+              <h2 className="text-4xl font-bold text-white mb-6">
+                Ready to Start Your Journey?
+              </h2>
+              <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+                Join thousands of travelers discovering unique stays and experiences across India
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-8 py-4 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                  onClick={() => router.push('/search')}
+                >
+                  Start Exploring
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+                {user?.role === 'host' ? (
+                  <Button
+                    className="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 border border-white/20 px-8 py-4 rounded-xl font-medium transition-all duration-200"
+                    onClick={() => router.push('/host/dashboard')}
+                  >
+                    Host Dashboard
+                  </Button>
+                ) : (
+                  <Button
+                    className="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 border border-white/20 px-8 py-4 rounded-xl font-medium transition-all duration-200"
+                    onClick={() => router.push('/become-host')}
+                  >
+                    Become a Host
+                  </Button>
+                )}
+              </div>
+            </div>
+          </section>
+
+        </div>
       </main>
       <Footer />
-      
+
       {/* Prices Include All Fees Popup */}
       <PricesPopup />
     </div>

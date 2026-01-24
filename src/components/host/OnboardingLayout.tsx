@@ -47,13 +47,13 @@ export default function OnboardingLayout({
       if (prevUrl) {
         router.push(prevUrl);
       } else {
-        router.push('/hosting');
+        router.push('/');
       }
     }
   };
 
   const handleExit = () => {
-    router.push('/hosting');
+    router.push('/host/dashboard');
   };
 
   const isFirstSubStep = () => {

@@ -164,11 +164,19 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     const stepInfo = getCurrentStepInfo();
     const currentIndex = (stepInfo.subSteps as readonly string[]).indexOf(currentSubStep);
     
+     const isNewPropertyFlow =
+    typeof window !== "undefined" &&
+    window.location.pathname.startsWith("/host/property/new");
+
+  const baseUrl = isNewPropertyFlow
+    ? "/host/property/new"
+    : "/become-host";
+
     if (currentIndex < stepInfo.subSteps.length - 1) {
       // Move to next sub-step within current main step
       const nextSubStep = stepInfo.subSteps[currentIndex + 1];
       setCurrentSubStep(nextSubStep);
-      return `/become-host/${nextSubStep}`;
+      return `${baseUrl}/${nextSubStep}`;
     } else if (currentMainStep < TOTAL_MAIN_STEPS) {
       // Move to first sub-step of next main step
       const nextMainStep = currentMainStep + 1;
@@ -176,34 +184,51 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       const firstSubStep = nextStepInfo.subSteps[0];
       setCurrentMainStep(nextMainStep);
       setCurrentSubStep(firstSubStep);
-      return `/become-host/${firstSubStep}`;
+      return `${baseUrl}/${firstSubStep}`;
     }
     
     // Completed all steps
     return null;
   };
 
+ 
+
   const goToPrevSubStep = (): string | null => {
-    const stepInfo = getCurrentStepInfo();
-    const currentIndex = (stepInfo.subSteps as readonly string[]).indexOf(currentSubStep);
-    
-    if (currentIndex > 0) {
-      // Move to previous sub-step within current main step
-      const prevSubStep = stepInfo.subSteps[currentIndex - 1];
-      setCurrentSubStep(prevSubStep);
-      return `/become-host/${prevSubStep}`;
-    } else if (currentMainStep > 1) {
-      // Move to last sub-step of previous main step
-      const prevMainStep = currentMainStep - 1;
-      const prevStepInfo = ONBOARDING_STEPS[prevMainStep as keyof typeof ONBOARDING_STEPS];
-      const lastSubStep = prevStepInfo.subSteps[prevStepInfo.subSteps.length - 1];
-      setCurrentMainStep(prevMainStep);
-      setCurrentSubStep(lastSubStep);
-      return `/become-host/${lastSubStep}`;
-    }
-    
-    return null;
-  };
+  const stepInfo = getCurrentStepInfo();
+  const currentIndex = stepInfo.subSteps.indexOf(currentSubStep);
+
+  const isNewPropertyFlow =
+    typeof window !== "undefined" &&
+    window.location.pathname.startsWith("/host/property/new");
+
+  const baseUrl = isNewPropertyFlow
+    ? "/host/property/new"
+    : "/become-host";
+
+  if (currentIndex > 0) {
+    // Move to previous sub-step within current main step
+    const prevSubStep = stepInfo.subSteps[currentIndex - 1];
+    setCurrentSubStep(prevSubStep);
+    return `${baseUrl}/${prevSubStep}`;
+  }
+
+  if (currentMainStep > 1) {
+    // Move to last sub-step of previous main step
+    const prevMainStep = currentMainStep - 1;
+    const prevStepInfo =
+      ONBOARDING_STEPS[prevMainStep as keyof typeof ONBOARDING_STEPS];
+
+    const lastSubStep =
+      prevStepInfo.subSteps[prevStepInfo.subSteps.length - 1];
+
+    setCurrentMainStep(prevMainStep);
+    setCurrentSubStep(lastSubStep);
+
+    return `${baseUrl}/${lastSubStep}`;
+  }
+
+  return null;
+};
 
   return (
     <OnboardingContext.Provider
