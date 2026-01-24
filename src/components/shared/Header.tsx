@@ -53,8 +53,13 @@ const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSear
   type SearchStep = 'where' | 'when' | 'who';
   const [searchStep, setSearchStep] = useState<SearchStep>('where');
   const SNAP_TOP = 0;                 // fully expanded
-const SNAP_MID = window.innerHeight * 0.4;
-const SNAP_BOTTOM = window.innerHeight * 0.9; // dismiss
+  const [SNAP_MID, setSnapMid] = useState(0);
+  const [SNAP_BOTTOM, setSnapBottom] = useState(0);
+
+  useEffect(() => {
+    setSnapMid(window.innerHeight * 0.4);
+    setSnapBottom(window.innerHeight * 0.9);
+  }, []);
 
 
   // Set active category based on current route
