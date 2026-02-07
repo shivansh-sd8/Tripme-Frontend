@@ -20,7 +20,7 @@ import ImageGallery from "@/components/rooms/gallery/ImageGallery";
 import { ReviewsSection } from "@/components/rooms/reviews";
 import HostCard from "@/components/rooms/host-section/hostCard";
 import MobileBookingBar from "@/components/booking/MobileBookingBar";
-
+import { ShareOption } from "@/components/shared/SharedProperty";
 // Dynamically import PropertyMap to avoid SSR issues with Google Maps
 const PropertyMap = dynamic(() => import("@/components/rooms/PropertyMap"), { 
   ssr: false,
@@ -103,6 +103,8 @@ import {
   // Link
 } from "lucide-react";
 import { useUI } from "@/core/store/uiContext";
+import { TimeStepper } from "@/components/booking/TimeStepper";
+import { TimeSpinner } from "@/components/rooms/timeSelection/TimeSpinner";
 
 
 export default function PropertyDetailsPage() {
@@ -119,6 +121,7 @@ export default function PropertyDetailsPage() {
   const [isFavorite, setIsFavorite] = useState(false);
   const { setHideBottomNav ,setHideHeader} = useUI();
   const { hideHeader } = useUI();
+  const [timeConfirmed, setTimeConfirmed] = useState(false);
   
 
 const [calendarAnchor, setCalendarAnchor] =
@@ -155,6 +158,14 @@ const [calendarAnchor, setCalendarAnchor] =
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [showExtras, setShowExtras] = useState(false);
+  const [showWishlistModal, setShowWishlistModal] = useState(false);
+  const [showWishlistPicker, setShowWishlistPicker] = useState(false);
+ 
+  // const [listName, setListName] = useState('');
+const [selectedStay, setSelectedStay] = useState<string | null>(null);
+const [wishlists, setWishlists] = useState<any[]>([]);
+const [favorites, setFavorites] = useState<Set<string>>(new Set());
+const [wishlistName, setWishlistName] = useState('');
 
   
   // Hourly booking state
@@ -306,6 +317,7 @@ const [calendarAnchor, setCalendarAnchor] =
     if (!property?.hourlyBooking?.enabled) return;
     if (!dateRange.startDate) return;
     try {
+      setTimeConfirmed(false);
       const [hh, mm] = (checkInTimeStr || '15:00').split(':').map(Number);
       const start = new Date(dateRange.startDate);
       start.setHours(isNaN(hh) ? 15 : hh, isNaN(mm) ? 0 : mm, 0, 0);
@@ -330,6 +342,11 @@ const [calendarAnchor, setCalendarAnchor] =
   const [availabilityChecked, setAvailabilityChecked] = useState(false);
   const [availabilityError, setAvailabilityError] = useState('');
   const [showAvailabilityCalendar, setShowAvailabilityCalendar] = useState(false);
+  const [showTimePrompt, setShowTimePrompt] = useState(false);
+const [showTimeSelector, setShowTimeSelector] = useState(false);
+const [showShare, setShowShare] = useState(false);
+
+
   
   // Booked dates state - for showing red marks on calendar
   const [bookedDates, setBookedDates] = useState<Set<string>>(new Set());
@@ -353,9 +370,10 @@ const [calendarAnchor, setCalendarAnchor] =
   const bookingCardRef = useRef<HTMLDivElement>(null);
   const checkInRef = useRef<HTMLDivElement>(null);
   const checkOutRef = useRef<HTMLDivElement>(null);
+  const timeOptions = generateTimeOptions();
 
   const lastAutoAdjustedDate = useRef<string | null>(null); // Track last date we auto-adjusted for
-
+  
 
 
 const getCalendarPosition = () => {
@@ -371,6 +389,132 @@ const getCalendarPosition = () => {
     top: rect.bottom + window.scrollY + 8,
     left: rect.left + window.scrollX,
   };
+};
+
+
+const findWishlistItem = (stayId: string) => {
+  for (const wl of wishlists) {
+    const item = wl.items.find((i: any) =>
+      (i.itemId._id?.toString() || i.itemId?.toString()) === stayId
+    );
+    if (item) return { wishlistId: wl._id, wishlistItemId: item._id };
+  }
+  return null;
+};
+
+
+const handleFavorite = async (stayId: string) => {
+
+  // ---------- REMOVE ----------
+  if (favorites.has(stayId)) {
+    const found = findWishlistItem(stayId);
+    if (!found) return;
+
+    await apiClient.removeFromWishlist(
+      found.wishlistId,
+      found.wishlistItemId
+    );
+
+    // update local state from truth
+    setFavorites(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(stayId);
+      return newSet;
+    });
+  setIsFavorite(false);
+    // setWishlists(prev =>
+    //   prev.map(wl =>
+    //     wl._id === found.wishlistId
+    //       ? { ...wl, items: wl.items.filter(i => i._id !== found.wishlistItemId) }
+    //       : wl
+    //   )
+    // );
+
+    return;
+  }
+
+  // ---------- ADD ----------
+  // if (wishlists.length === 0) {
+  //   setSelectedStay(stayId);
+  //   setShowWishlistModal(true);
+  //   return;
+  // }
+
+  if (wishlists.length === 0) {
+    // no list → create modal
+    setSelectedStay(stayId);
+    setShowWishlistModal(true);
+  } else {
+    // show picker modal
+    setSelectedStay(stayId);
+    setShowWishlistPicker(true);
+  }
+
+  const wishlist = wishlists[0]; // default list
+
+  // 🔥 THIS IS WHERE YOUR BLOCK GOES
+  const res = await apiClient.addToWishlist(wishlist._id, {
+    itemType: 'Property',
+    itemId: stayId
+  });
+
+  // use backend truth
+  setWishlists(prev =>
+    prev.map(wl =>
+      wl._id === wishlist._id ? res.data : wl
+    )
+  );
+
+  setFavorites(prev => new Set(prev).add(stayId));
+  setIsFavorite(true);
+};
+
+
+const handleShare = async () => {
+  if (typeof window === "undefined") return;
+
+  const shareData = {
+    title: property.title,
+    text: "Check out this place",
+    url: window.location.href,
+  };
+
+  if (navigator.share) {
+    try {
+      await navigator.share(shareData);
+    } catch (err) {
+      console.log("Share cancelled");
+    }
+  } else {
+    // Desktop fallback
+    setShowShare(true);
+  }
+};
+
+const shareUrl =
+  typeof window !== "undefined" ? window.location.href : "";
+
+const handleCopyLink = async () => {
+  await navigator.clipboard.writeText(shareUrl);
+  alert("Link copied to clipboard");
+};
+
+const handleWhatsApp = () => {
+  window.open(
+    `https://wa.me/?text=${encodeURIComponent(shareUrl)}`,
+    "_blank"
+  );
+};
+
+const handleFacebook = () => {
+  window.open(
+    `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`,
+    "_blank"
+  );
+};
+
+const handleEmail = () => {
+  window.location.href = `mailto:?subject=Check this place&body=${shareUrl}`;
 };
 
 
@@ -581,6 +725,61 @@ const getCalendarPosition = () => {
 
   // }, []);
 
+//   useEffect(() => {
+//   if (!user) return;
+  
+//   const loadWishlists = async () => {
+//     const res = await apiClient.getMyWishlists();
+//     console.log('Wishlists:', res.data);
+//     setWishlists(res.data);
+ 
+//     const favSet = new Set<string>();
+//     res.data.forEach((wl: any) => {
+//       wl.items.forEach((item: any) => {
+//         favSet.add(item.itemId._id.toString());
+//       });
+//     });
+ 
+//     // Check if current property is in favorites
+//     if (property && favSet.has(property._id)) {
+//       setIsFavorite(true);
+//     }
+//   };
+ 
+//   loadWishlists();
+// }, [user, property?._id]);
+
+
+useEffect(() => {
+  const loadWishlists = async () => {
+    const res = await apiClient.getMyWishlists();
+    console.log('Wishlists:', res.data);
+    setWishlists(res.data);
+
+    const favSet = new Set<string>();
+    res.data.forEach((wl: any) => {
+      wl.items.forEach((item: any) => {
+        console.log('Item:', item);
+        // Fix this line:
+        favSet.add(item.itemId._id.toString()); // Change from .id to ._id
+      });
+    });
+
+    setFavorites(favSet);
+    
+    // Check if current property is in favorites and update isFavorite
+    if (property && favSet.has(property._id)) {
+      setIsFavorite(true);
+    } else {
+      setIsFavorite(false);
+    }
+    
+    console.log('Favorites:', favSet);
+  };
+
+  loadWishlists();
+}, [user, property?._id]); // Add dependencies
+
   useEffect(() => {
   function handleClickOutside(event: MouseEvent) {
     const target = event.target as Node;
@@ -599,6 +798,24 @@ const getCalendarPosition = () => {
   document.addEventListener('mousedown', handleClickOutside);
   return () => document.removeEventListener('mousedown', handleClickOutside);
 }, []);
+
+
+const createWishlistAndSave = async () => {
+  const wishlist = await apiClient.createWishList({
+    name: wishlistName,
+    isPublic: false
+  });
+
+  await apiClient.addToWishlist(wishlist.data._id, {
+    itemType: 'Property',
+    itemId: selectedStay
+  });
+
+  setFavorites(prev => new Set(prev).add(selectedStay!));
+  setWishlists(prev => [...prev, wishlist.data]);
+  setShowWishlistModal(false);
+  setIsFavorite(true);
+};
 
 
   const formatPrice = (amount: number, currency: string = 'INR') => {
@@ -1037,8 +1254,71 @@ const getCalendarPosition = () => {
     }
   };
 
+  function generateTimeOptions() {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const isToday =
+    dateRange.startDate &&
+    dateRange.startDate.toDateString() === now.toDateString();
 
-  
+  const dateStr = dateRange.startDate
+    ? `${dateRange.startDate.getFullYear()}-${String(
+        dateRange.startDate.getMonth() + 1
+      ).padStart(2, '0')}-${String(
+        dateRange.startDate.getDate()
+      ).padStart(2, '0')}`
+    : '';
+
+  const maintenanceInfo = maintenanceByDate.get(dateStr);
+  const hourRestrictions = maintenanceInfo?.availableHours;
+
+  let minHour = isToday ? Math.max(currentHour + 1, 6) : 6;
+
+  if (maintenanceInfo?.availableAfter) {
+    const h = maintenanceInfo.availableAfter.getHours();
+    const m = maintenanceInfo.availableAfter.getMinutes();
+    minHour = Math.max(minHour, m > 0 ? h + 1 : h);
+  }
+
+  const times: string[] = [];
+
+  if (hourRestrictions && hourRestrictions.length > 0) {
+    for (const range of hourRestrictions) {
+      const [startH] = range.startTime.split(':').map(Number);
+      const [endH] = range.endTime.split(':').map(Number);
+
+      for (let h = startH; h < endH; h++) {
+        times.push(`${h.toString().padStart(2, '0')}:00`);
+      }
+    }
+  } else {
+    for (let h = minHour; h <= 23; h++) {
+      times.push(`${h.toString().padStart(2, '0')}:00`);
+    }
+    if (minHour > 5) {
+      for (let h = 0; h <= 5; h++) {
+        times.push(`${h.toString().padStart(2, '0')}:00`);
+      }
+    }
+  }
+
+  return times;
+}
+
+const saveToExistingWishlist = async (wishlistId: string) => {
+  const res = await apiClient.addToWishlist(wishlistId, {
+    itemType: 'Property',
+    itemId: selectedStay
+  });
+
+  setWishlists(prev =>
+    prev.map(wl => wl._id === wishlistId ? res.data : wl)
+  );
+
+  setFavorites(prev => new Set(prev).add(selectedStay!));
+  setShowWishlistPicker(false);
+};
+
 
 
   // Date validation function
@@ -1318,7 +1598,7 @@ const getCalendarPosition = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      <Header />
+      <Header  />
       
       {/* Main Content */}
       <main className={` ${hideHeader ? "pt-0 sm:pt-40" : "pt-40"} font-['Inter',system-ui,-apple-system,sans-serif] overflow-hidden`}>
@@ -1382,12 +1662,17 @@ const getCalendarPosition = () => {
                         Your Property
                       </div>
                     )}
-                    <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                      <Share2 className="w-5 h-5 text-gray-600" />
-                    </button>
+                   <button
+  onClick={handleShare}
+  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+>
+  <Share2 className="w-5 h-5 text-gray-600" />
+</button>
+
                     <button 
                       className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                      onClick={() => setIsFavorite(!isFavorite)}
+                     
+                      onClick={() => handleFavorite(property._id)}
                     >
                       <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
                     </button>
@@ -1459,7 +1744,7 @@ const getCalendarPosition = () => {
 
               {/* Amenities Section */}
                          
-      <div className="bg-white rounded-2xl shadow-md border p-5 md:p-8">
+      <div className="bg-white rounded-2xl shadow-md  p-5 md:p-8">
         {/* HEADER */}
         <div className="flex items-center gap-3 mb-5">
           <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center">
@@ -1606,22 +1891,38 @@ const getCalendarPosition = () => {
                       <p className="text-gray-600">Be the first to review this property!</p>
                     </div>
               </div> */}
-              <ReviewsSection property={property} />
+             {!isOwnProperty && (
+                    <div className="mb-6">
+                      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-200">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
+                            <MessageCircle className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-gray-900">Special Requests</h3>
+                            <p className="text-sm text-gray-600">Let us know your preferences</p>
+                          </div>
+                        </div>
+                      <textarea
+                        value={specialRequests}
+                        onChange={(e) => setSpecialRequests(e.target.value)}
+                        placeholder="Any special requests or requirements..."
+                          className="w-full px-4 py-3 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white"
+                        rows={3}
+                        maxLength={500}
+                      />
+                        <div className="flex justify-between items-center mt-2">
+                          <div className="text-xs text-gray-500">
+                            We'll do our best to accommodate your requests
+                          </div>
+                          <div className="text-xs text-gray-500">
+                        {specialRequests.length}/500
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-              {/* Location Section with Map */}
-              <div className="mb-10">
-               
-                <PropertyMap
-                  address={property.location?.address || 'Address not specified'}
-                  city={property.location?.city || 'City not specified'}
-                  state={property.location?.state || 'State not specified'}
-                  country={property.location?.country || 'India'}
-                  coordinates={property.location?.coordinates}
-                />
-              </div>
-
-              {/* Host Section */}
-               <HostCard host={property.host} />
 
               {/* House Rules */}
               {property.houseRules?.length > 0 && (
@@ -1741,156 +2042,14 @@ const getCalendarPosition = () => {
                             <Clock className="w-4 h-4 text-blue-600" />
                             <label className="text-sm font-semibold text-gray-800">Check-in Time</label>
                           </div>
-                          <select 
-                            value={checkInTimeStr}
-                            onChange={(e) => {
-                              const newTime = e.target.value;
-                              const [selectedHour] = newTime.split(':').map(Number);
-                              
-                              // If time is after 12:00 AM (0-5 AM), move check-in date to next day
-                              if (selectedHour >= 0 && selectedHour <= 5 && dateRange.startDate) {
-                                const nextDay = new Date(dateRange.startDate);
-                                nextDay.setDate(nextDay.getDate() + 1);
-                                
-                                console.log(`📅 Adjusting check-in date to ${nextDay.toDateString()} (time is ${newTime})`);
-                                setDateRange(prev => ({
-                                  ...prev,
-                                  startDate: nextDay,
-                                  endDate: prev.endDate ? new Date(prev.endDate.getTime() + 24 * 60 * 60 * 1000) : null
-                                }));
-                                // Reset adjustment flag for new date
-                                lastAutoAdjustedDate.current = null;
-                              }
-                              
-                              setCheckInTimeStr(newTime);
+                          <TimeSpinner
+                          value={checkInTimeStr}
+                          onChange={(newTime) => {
+                            setCheckInTimeStr(newTime);
+                            setAvailabilityChecked(false);
+                          }}
+                        />
 
-                              // updateBookingData({
-                              //   ...bookingData,
-                              //   checkInTime: newTime
-                              // });
-                              
-                              // Clear availability when time changes
-                              setAvailabilityError('');
-                              setAvailabilityChecked(false);
-                              // Clear auto-adjustment flag so user can manually select any time
-                              lastAutoAdjustedDate.current = null;
-                            }}
-                            className="w-full p-3 border border-blue-200 rounded-lg bg-white text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-                          >
-                            {/* Generate time options - filter out past hours if check-in date is today */}
-                            {(() => {
-                              const now = new Date();
-                              const currentHour = now.getHours();
-                              const isToday = dateRange.startDate && 
-                                dateRange.startDate.toDateString() === now.toDateString();
-                              
-                              // Check for maintenance restriction and hour restrictions
-                              const dateStr = dateRange.startDate ? 
-                                `${dateRange.startDate.getFullYear()}-${String(dateRange.startDate.getMonth() + 1).padStart(2, '0')}-${String(dateRange.startDate.getDate()).padStart(2, '0')}` : '';
-                              const maintenanceInfo = maintenanceByDate.get(dateStr);
-                              const hourRestrictions = maintenanceInfo?.availableHours;
-                              
-                              // Minimum hour: current hour + 1 if today, otherwise 6 AM
-                              let minHour = isToday ? Math.max(currentHour + 1, 6) : 6;
-                              
-                              // If maintenance restriction exists, ensure minHour is after maintenance end
-                              if (maintenanceInfo?.availableAfter) {
-                                const maintenanceEndHour = maintenanceInfo.availableAfter.getHours();
-                                const maintenanceEndMinute = maintenanceInfo.availableAfter.getMinutes();
-                                // If maintenance ends mid-hour (e.g., 6:30 PM), allow that hour (6 PM) but user must select after 6:30
-                                // For simplicity, round up to next hour if maintenance ends mid-hour
-                                const requiredHour = maintenanceEndMinute > 0 ? maintenanceEndHour + 1 : maintenanceEndHour;
-                                minHour = Math.max(minHour, requiredHour);
-                                console.log(`🔧 Maintenance restriction: available after ${maintenanceInfo.availableAfter.toLocaleTimeString()}, minHour set to ${minHour}`);
-                              }
-                              
-                              // Generate options: filter by hour restrictions if they exist
-                              const options = [];
-                              
-                              // If hour restrictions exist, only show times within allowed ranges
-                              if (hourRestrictions && hourRestrictions.length > 0) {
-                                const allowedTimes = new Set<string>();
-                                
-                                for (const range of hourRestrictions) {
-                                  const [startH, startM] = range.startTime.split(':').map(Number);
-                                  const [endH, endM] = range.endTime.split(':').map(Number);
-                                  
-                                  let currentH = startH;
-                                  let currentM = startM;
-                                  
-                                  while (currentH < endH || (currentH === endH && currentM < endM)) {
-                                    const timeStr = `${currentH.toString().padStart(2, '0')}:${currentM.toString().padStart(2, '0')}`;
-                                    
-                                    // Only include if it's not in the past (if today) and after maintenance end
-                                    if (!isToday || currentH > currentHour || (currentH === currentHour && currentM > now.getMinutes())) {
-                                      if (!maintenanceInfo?.availableAfter || 
-                                          currentH > maintenanceInfo.availableAfter.getHours() ||
-                                          (currentH === maintenanceInfo.availableAfter.getHours() && currentM >= maintenanceInfo.availableAfter.getMinutes())) {
-                                        allowedTimes.add(timeStr);
-                                      }
-                                    }
-                                    
-                                    // Move to next hour
-                                    currentM += 60;
-                                    if (currentM >= 60) {
-                                      currentM = 0;
-                                      currentH++;
-                                    }
-                                  }
-                                }
-                                
-                                // Convert allowed times to option elements
-                                Array.from(allowedTimes).sort().forEach(timeStr => {
-                                  const [h] = timeStr.split(':').map(Number);
-                                  options.push(
-                                    <option key={timeStr} value={timeStr}>
-                                      {formatTimeHour(h)}
-                                    </option>
-                                  );
-                                });
-                                
-                                console.log(`⏰ Filtered time options based on hour restrictions:`, Array.from(allowedTimes));
-                              } else {
-                                // No hour restrictions - generate all times as before
-                                // First: from minHour to 11 PM
-                                for (let hour = minHour; hour <= 23; hour++) {
-                                  const value = `${hour.toString().padStart(2, '0')}:00`;
-                                  options.push(
-                                    <option key={value} value={value}>
-                                      {formatTimeHour(hour)}
-                                    </option>
-                                  );
-                                }
-                                
-                                // Then: from 12 AM (0) to 5 AM (5) - only if minHour doesn't already cover these
-                                if (minHour > 5) {
-                                  for (let hour = 0; hour <= 5; hour++) {
-                                    const value = `${hour.toString().padStart(2, '0')}:00`;
-                                    options.push(
-                                      <option key={value} value={value}>
-                                        {formatTimeHour(hour)}
-                                      </option>
-                                    );
-                                  }
-                                }
-                              }
-                              
-                              // If no options available (too late, maintenance restriction, or hour restrictions), show message
-                              if (options.length === 0) {
-                                return (
-                                  <option value="" disabled>
-                                    {hourRestrictions && hourRestrictions.length > 0
-                                      ? `No times available - outside available hours (${hourRestrictions.map(r => `${r.startTime}-${r.endTime}`).join(', ')})`
-                                      : maintenanceInfo?.availableAfter
-                                      ? `No times available - maintenance until ${maintenanceInfo.availableAfter.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}`
-                                      : 'No times available today - select tomorrow'}
-                                  </option>
-                                );
-                              }
-                              
-                              return options;
-                            })()}
-                          </select>
                           
                           {/* Show warning if today's time options are limited */}
                           {dateRange.startDate && dateRange.startDate.toDateString() === new Date().toDateString() && (
@@ -1955,292 +2114,297 @@ const getCalendarPosition = () => {
         return (
           <div className="fixed inset-0 z-[1000] bg-white">
            {/* Mobile Bottom Sheet */}
-<div className="fixed inset-0 z-[1000]">
-  {/* Backdrop */}
-  <div
-    className="absolute inset-0 bg-black/40"
-    onClick={() => setShowDatePicker(false)}
-  />
+          <div className="fixed inset-0 z-[1000]">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setShowDatePicker(false)}
+            />
 
-  {/* Bottom Sheet */}
-  <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl max-h-[90vh] flex flex-col animate-slide-up">
-    
-    {/* Drag Handle */}
-    <div className="flex justify-center pt-3">
-      <div className="w-10 h-1.5 bg-gray-300 rounded-full" />
-    </div>
+            {/* Bottom Sheet */}
+            <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl max-h-[90vh] flex flex-col animate-slide-up">
+              
+              {/* Drag Handle */}
+              <div className="flex justify-center pt-3">
+                <div className="w-10 h-1.5 bg-gray-300 rounded-full" />
+              </div>
 
-    {/* Header */}
-    <div className="flex items-center justify-between px-4 py-3 border-b">
-      <h3 className="text-base font-semibold">
-        {selectionStep === 'checkin'
-          ? 'Select check-in date'
-          : selectionStep === 'checkout'
-          ? 'Select check-out date'
-          : 'Select dates'}
-      </h3>
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b">
+                <h3 className="text-base font-semibold">
+                  {selectionStep === 'checkin'
+                    ? 'Select check-in date'
+                    : selectionStep === 'checkout'
+                    ? 'Select check-out date'
+                    : 'Select dates'}
+                </h3>
 
-      <button
-        onClick={() => setShowDatePicker(false)}
-        className="p-2 rounded-full hover:bg-gray-100"
-      >
-        ✕
-      </button>
-    </div>
+                <button
+                  onClick={() => setShowDatePicker(false)}
+                  className="p-2 rounded-full hover:bg-gray-100"
+                >
+                  ✕
+                </button>
+              </div>
 
-    {/* Calendar Content (Scrollable) */}
-    <div
-      ref={datePickerRef}
-      className="overflow-y-auto px-4 py-4 flex-1"
-    >
-        <div className="flex items-center justify-between mb-4">
-                              <button
-                                onClick={() => {
-                                  const newMonth = new Date(currentMonth);
-                                  newMonth.setMonth(newMonth.getMonth() - 1);
-                                  setCurrentMonth(newMonth);
-                                }}
-                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                </svg>
-                              </button>
-                              
-                              <h3 className="text-lg font-semibold text-gray-900">
-                                {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                              </h3>
-                              
-                              <button
-                                onClick={() => {
-                                  const newMonth = new Date(currentMonth);
-                                  newMonth.setMonth(newMonth.getMonth() + 1);
-                                  setCurrentMonth(newMonth);
-                                }}
-                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                              </button>
-                            </div>
-
-                            {/* Step Indicator */}
-                            <div className="text-center mb-4 text-sm">
-                              {selectionStep === 'checkin' && (
-                                <span className="text-blue-600 font-medium">Select Check-in Date</span>
-                              )}
-                              {selectionStep === 'checkout' && (
-                                <span className="text-blue-600 font-medium">Select Check-out Date</span>
-                              )}
-                              {selectionStep === 'complete' && (
-                                <span className="text-green-600 font-medium">Dates Selected!</span>
-                              )}
-                            </div>
-
-                            {/* Calendar Grid */}
-                            <div className="grid grid-cols-7 gap-1">
-                              {/* Day Headers */}
-                              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => (
-                                <div key={day} className="text-center text-xs font-medium text-gray-500 py-2">
-                                  {day}
-                                </div>
-                              ))}
-
-                              {/* Calendar Days */}
-                              {(() => {
-                                const year = currentMonth.getFullYear();
-                                const month = currentMonth.getMonth();
-                                const firstDay = new Date(year, month, 1);
-                                const lastDay = new Date(year, month + 1, 0);
-                                const startDate = new Date(firstDay);
-                                startDate.setDate(startDate.getDate() - firstDay.getDay());
-                                
-                                const days = [];
-                                
-                                // Generate all days for the calendar grid (6 weeks x 7 days = 42)
-                                for (let i = 0; i < 42; i++) {
-                                  const date = new Date(startDate);
-                                  date.setDate(startDate.getDate() + i);
-                                  
-                                  const isCurrentMonth = date.getMonth() === month;
-                                  const isToday = date.toDateString() === new Date().toDateString();
-                                  const isPast = date < new Date();
-                                  
-                                  // Check if this date is booked/unavailable
-                                  // FIXED: Use local date format to match bookedDates format
-                                  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                                  const isBooked = bookedDates.has(dateStr);
-                                  
-                                  const isStartDate = dateRange.startDate && 
-                                    dateRange.startDate.toDateString() === date.toDateString();
-                                  const isEndDate = dateRange.endDate && 
-                                    dateRange.endDate.toDateString() === date.toDateString();
-                                  const isInRange = dateRange.startDate && dateRange.endDate &&
-                                    date > dateRange.startDate && date < dateRange.endDate;
-                                  
-                                  // Booked dates are not selectable
-                                  const isSelectable = isCurrentMonth && !isPast && !isBooked;
-                                  
-                                  let className = 'text-center py-2 text-sm rounded-lg transition-colors relative ';
-                                  
-                                  if (!isCurrentMonth) {
-                                    className += 'text-gray-300';
-                                  } else if (isBooked) {
-                                    // Red styling for booked dates
-                                    className += 'bg-red-100 text-red-400 cursor-not-allowed line-through';
-                                  } else if (!isSelectable) {
-                                    className += 'text-gray-400 bg-gray-100';
-                                  } else if (isStartDate || isEndDate) {
-                                    className += 'bg-blue-600 text-white font-semibold';
-                                  } else if (isInRange) {
-                                    className += 'bg-blue-200 text-blue-800';
-                                  } else if (isToday) {
-                                    className += 'bg-blue-100 text-blue-800 font-medium';
-                                  } else {
-                                    className += 'hover:bg-gray-100 cursor-pointer';
-                                  }
-                                  
-                                  days.push(
-                                    <div
-                                      key={date.getTime()}
-                                      className={className}
-                                      title={isBooked ? 'This date is already booked' : undefined}
-                                      onClick={() => {
-                                        if (!isSelectable) return;
+              {/* Calendar Content (Scrollable) */}
+              <div
+                ref={datePickerRef}
+                className="overflow-y-auto px-4 py-4 flex-1"
+              >
+                  <div className="flex items-center justify-between mb-4">
+                                        <button
+                                          onClick={() => {
+                                            const newMonth = new Date(currentMonth);
+                                            newMonth.setMonth(newMonth.getMonth() - 1);
+                                            setCurrentMonth(newMonth);
+                                          }}
+                                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                        >
+                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                          </svg>
+                                        </button>
                                         
-                                        console.log('Date clicked:', date.toDateString());
-                                        console.log('Current selectionStep:', selectionStep);
+                                        <h3 className="text-lg font-semibold text-gray-900">
+                                          {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                        </h3>
                                         
-                                        if (selectionStep === 'checkin') {
-                                          // Select check-in date
-                                          console.log('Setting check-in date:', date.toDateString());
-                                          const newDateRange = {
-                                            ...dateRange,
-                                            startDate: new Date(date),
-                                            endDate: null,
-                                            key: 'selection'
-                                          };
-                                          console.log('📅 New date range:', newDateRange);
-                                          console.log('📅 Setting dateRange state...');
-                                          setDateRange(newDateRange);
-                                          console.log('📅 DateRange state updated');
-                                          setSelectionStep('checkout');
-                                        } else if (selectionStep === 'checkout') {
-                                          // Select check-out date
-                                          if (date > dateRange.startDate) {
-                                            console.log('Setting check-out date:', date.toDateString());
-                                            console.log('🔍 Original date:', date);
-                                            console.log('🔍 New Date(date):', new Date(date));
-                                            console.log('🔍 Start date:', dateRange.startDate);
-                                            const newDateRange = {
-                                              ...dateRange,
-                                              endDate: new Date(date),
-                                              key: 'selection'
-                                            };
-                                            console.log('📅 Complete date range:', newDateRange);
-                                            console.log('🔍 Final endDate:', newDateRange.endDate);
-                                            console.log('📅 Setting complete dateRange state...');
-                                            setDateRange(newDateRange);
-                                            console.log('📅 Complete dateRange state updated');
-                                            setSelectionStep('complete');
-                                            setTimeout(() => setShowDatePicker(false), 300);
-                                          } else if (date < dateRange.startDate) {
-                                            // New date is before start date, make it new start date
-                                            console.log('New date before start, making it new start date');
+                                        <button
+                                          onClick={() => {
+                                            const newMonth = new Date(currentMonth);
+                                            newMonth.setMonth(newMonth.getMonth() + 1);
+                                            setCurrentMonth(newMonth);
+                                          }}
+                                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                        >
+                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                          </svg>
+                                        </button>
+                                      </div>
+
+                                      {/* Step Indicator */}
+                                      <div className="text-center mb-4 text-sm">
+                                        {selectionStep === 'checkin' && (
+                                          <span className="text-blue-600 font-medium">Select Check-in Date</span>
+                                        )}
+                                        {selectionStep === 'checkout' && (
+                                          <span className="text-blue-600 font-medium">Select Check-out Date</span>
+                                        )}
+                                        {selectionStep === 'complete' && (
+                                          <span className="text-green-600 font-medium">Dates Selected!</span>
+                                        )}
+                                      </div>
+
+                                      {/* Calendar Grid */}
+                                      <div className="grid grid-cols-7 gap-1">
+                                        {/* Day Headers */}
+                                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => (
+                                          <div key={day} className="text-center text-xs font-medium text-gray-500 py-2">
+                                            {day}
+                                          </div>
+                                        ))}
+
+                                        {/* Calendar Days */}
+                                        {(() => {
+                                          const year = currentMonth.getFullYear();
+                                          const month = currentMonth.getMonth();
+                                          const firstDay = new Date(year, month, 1);
+                                          const lastDay = new Date(year, month + 1, 0);
+                                          const startDate = new Date(firstDay);
+                                          startDate.setDate(startDate.getDate() - firstDay.getDay());
+                                          
+                                          const days = [];
+                                          
+                                          // Generate all days for the calendar grid (6 weeks x 7 days = 42)
+                                          for (let i = 0; i < 42; i++) {
+                                            const date = new Date(startDate);
+                                            date.setDate(startDate.getDate() + i);
+                                            
+                                            const isCurrentMonth = date.getMonth() === month;
+                                            const isToday = date.toDateString() === new Date().toDateString();
+                                            // const isPast = date < new Date();
+                                            const today = new Date();
+                                            today.setHours(0, 0, 0, 0);
+
+                                            const isPast = date < today;
+
+                                            
+                                            // Check if this date is booked/unavailable
+                                            // FIXED: Use local date format to match bookedDates format
+                                            const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                                            const isBooked = bookedDates.has(dateStr);
+                                            
+                                            const isStartDate = dateRange.startDate && 
+                                              dateRange.startDate.toDateString() === date.toDateString();
+                                            const isEndDate = dateRange.endDate && 
+                                              dateRange.endDate.toDateString() === date.toDateString();
+                                            const isInRange = dateRange.startDate && dateRange.endDate &&
+                                              date > dateRange.startDate && date < dateRange.endDate;
+                                            
+                                            // Booked dates are not selectable
+                                            const isSelectable = isCurrentMonth && !isPast && !isBooked;
+                                            
+                                          
+                                            // Add 'text-gray-700' (for light mode) or 'text-white' (for dark mode)
+                                                                            // 1. Initialize with a base text color to ensure nothing is ever 'invisible'
+                                          let className = 'text-center py-2 text-sm rounded-lg transition-colors relative ';
+                                          if (!isCurrentMonth) {
+                                            className += 'text-gray-300';
+                                          } else if (isBooked) {
+                                            className += 'bg-red-50 text-red-600 cursor-not-allowed line-through';
+                                          } else if (isStartDate || isEndDate) {
+                                            className += 'bg-blue-600 text-white font-semibold';
+                                          } else if (isInRange) {
+                                            className += 'bg-blue-100 text-blue-800';
+                                          } else if (!isSelectable) {
+                                            className += 'text-gray-400 cursor-default';
+                                          } else if (isToday) {
+                                            className += 'bg-blue-50 text-blue-700 font-bold underline';
+                                          } else {
+                                            className += 'text-black hover:bg-gray-100 cursor-pointer';
+                                          }
+                                    
+                                            days.push(
+                                              <div
+                                                key={date.getTime()}
+                                                className={className}
+                                                title={isBooked ? 'This date is already booked' : undefined}
+                                                onClick={() => {
+                                                  if (!isSelectable) return;
+                                                  
+                                                  console.log('Date clicked:', date.toDateString());
+                                                  console.log('Current selectionStep:', selectionStep);
+                                                  
+                                                  if (selectionStep === 'checkin') {
+                                                    // Select check-in date
+                                                    console.log('Setting check-in date:', date.toDateString());
+                                                    const newDateRange = {
+                                                      ...dateRange,
+                                                      startDate: new Date(date),
+                                                      endDate: null,
+                                                      key: 'selection'
+                                                    };
+                                                    console.log('📅 New date range:', newDateRange);
+                                                    console.log('📅 Setting dateRange state...');
+                                                    setDateRange(newDateRange);
+                                                    console.log('📅 DateRange state updated');
+                                                    setSelectionStep('checkout');
+                                                  } else if (selectionStep === 'checkout') {
+                                                    // Select check-out date
+                                                    if (date > dateRange.startDate) {
+                                                      console.log('Setting check-out date:', date.toDateString());
+                                                      console.log('🔍 Original date:', date);
+                                                      console.log('🔍 New Date(date):', new Date(date));
+                                                      console.log('🔍 Start date:', dateRange.startDate);
+                                                      const newDateRange = {
+                                                        ...dateRange,
+                                                        endDate: new Date(date),
+                                                        key: 'selection'
+                                                      };
+                                                      console.log('📅 Complete date range:', newDateRange);
+                                                      console.log('🔍 Final endDate:', newDateRange.endDate);
+                                                      console.log('📅 Setting complete dateRange state...');
+                                                      setDateRange(newDateRange);
+                                                      console.log('📅 Complete dateRange state updated');
+                                                      setSelectionStep('complete');
+                                                      setTimeout(() => setShowDatePicker(false), 300);
+                                                    } else if (date < dateRange.startDate) {
+                                                      // New date is before start date, make it new start date
+                                                      console.log('New date before start, making it new start date');
+                                                      setDateRange({
+                                                        startDate: new Date(date),
+                                                        endDate: null,
+                                                        key: 'selection'
+                                                      });
+                                                      setSelectionStep('checkin');
+                                                    }
+                                                  } else {
+                                                    // Both dates selected, start over
+                                                    console.log('Starting over with new check-in date');
+                                                    setDateRange({
+                                                      startDate: new Date(date),
+                                                      endDate: null,
+                                                      key: 'selection'
+                                                    });
+                                                    setSelectionStep('checkin');
+                                                  }
+                                                }}
+                                              >
+                                                <span>{date.getDate()}</span>
+                                                {/* Red dot indicator for booked dates */}
+                                                {isBooked && isCurrentMonth && (
+                                                  <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                                                )}
+                                              </div>
+                                            );
+                                          }
+                                          
+                                          return days;
+                                        })()}
+                                      </div>
+
+                                      {/* Legend for booked dates */}
+                                      <div className="mt-3 flex items-center justify-center gap-4 text-xs text-gray-500">
+                                        <div className="flex items-center gap-1">
+                                          <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                                          <span>Booked</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                                          <span>Selected</span>
+                                        </div>
+                                      </div>
+
+                                      {/* Reset Button */}
+                                      <div className="mt-4 text-center">
+                                        <button
+                                          onClick={() => {
+                                            const today = new Date();
+                                            const tomorrow = new Date();
+                                            tomorrow.setDate(tomorrow.getDate() + 1);
+                                            
                                             setDateRange({
-                                              startDate: new Date(date),
-                                              endDate: null,
+                                              startDate: today,
+                                              endDate: tomorrow,
                                               key: 'selection'
                                             });
                                             setSelectionStep('checkin');
-                                          }
-                                        } else {
-                                          // Both dates selected, start over
-                                          console.log('Starting over with new check-in date');
-                                          setDateRange({
-                                            startDate: new Date(date),
-                                            endDate: null,
-                                            key: 'selection'
-                                          });
-                                          setSelectionStep('checkin');
-                                        }
-                                      }}
-                                    >
-                                      <span>{date.getDate()}</span>
-                                      {/* Red dot indicator for booked dates */}
-                                      {isBooked && isCurrentMonth && (
-                                        <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-                                      )}
-                                    </div>
-                                  );
-                                }
-                                
-                                return days;
-                              })()}
-                            </div>
+                                            setAvailabilityChecked(false);
+                                            setAvailabilityError('');
+                                            setAvailability([]);
+                                          }}
+                                          className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                                        >
+                                          Reset to Today & Tomorrow
+                                        </button>
+                                      </div>
+                    </div>
+                
+              </div>
 
-                            {/* Legend for booked dates */}
-                            <div className="mt-3 flex items-center justify-center gap-4 text-xs text-gray-500">
-                              <div className="flex items-center gap-1">
-                                <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                                <span>Booked</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
-                                <span>Selected</span>
-                              </div>
-                            </div>
+              {/* Footer (Optional CTA like Airbnb) */}
+              <div className="px-4 py-3 border-t flex gap-3">
+                <button
+                  onClick={() => {
+                    setSelectionStep('checkin');
+                    setDateRange({ startDate: new Date(), endDate: null, key: 'selection' });
+                  }}
+                  className="flex-1 py-2 text-sm rounded-lg border border-gray-300"
+                >
+                  Clear
+                </button>
 
-                            {/* Reset Button */}
-                            <div className="mt-4 text-center">
-                              <button
-                                onClick={() => {
-                                  const today = new Date();
-                                  const tomorrow = new Date();
-                                  tomorrow.setDate(tomorrow.getDate() + 1);
-                                  
-                                  setDateRange({
-                                    startDate: today,
-                                    endDate: tomorrow,
-                                    key: 'selection'
-                                  });
-                                  setSelectionStep('checkin');
-                                  setAvailabilityChecked(false);
-                                  setAvailabilityError('');
-                                  setAvailability([]);
-                                }}
-                                className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                              >
-                                Reset to Today & Tomorrow
-                              </button>
-                            </div>
-                          </div>
-      {/* ⬇️ KEEP YOUR EXISTING CALENDAR CODE HERE ⬇️ */}
-      {/* Header (month navigation), grid, date logic — DO NOT CHANGE */}
-    </div>
-
-    {/* Footer (Optional CTA like Airbnb) */}
-    <div className="px-4 py-3 border-t flex gap-3">
-      <button
-        onClick={() => {
-          setSelectionStep('checkin');
-          setDateRange({ startDate: new Date(), endDate: null, key: 'selection' });
-        }}
-        className="flex-1 py-2 text-sm rounded-lg border border-gray-300"
-      >
-        Clear
-      </button>
-
-      <button
-        onClick={() => setShowDatePicker(false)}
-        className="flex-1 py-2 text-sm rounded-lg bg-indigo-600 text-white"
-      >
-        Done
-      </button>
-    </div>
-  </div>
-</div>
+                <button
+                  onClick={() => setShowDatePicker(false)}
+                  className="flex-1 py-2 text-sm rounded-lg bg-indigo-600 text-white"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
 
         );
       }
@@ -2327,7 +2491,11 @@ const getCalendarPosition = () => {
                                   
                                   const isCurrentMonth = date.getMonth() === month;
                                   const isToday = date.toDateString() === new Date().toDateString();
-                                  const isPast = date < new Date();
+                                  // const isPast = date < new Date();
+                                  const today = new Date();
+                                  today.setHours(0, 0, 0, 0);
+
+                                  const isPast = date < today;
                                   
                                   // Check if this date is booked/unavailable
                                   // FIXED: Use local date format to match bookedDates format
@@ -2484,11 +2652,7 @@ const getCalendarPosition = () => {
     })(),
     document.body
   )
-}
-
-                    
-
-                    
+}    
                       {/* Test Pricing Button removed */}
 
                       {/* Check Availability Button */}
@@ -2713,38 +2877,7 @@ const getCalendarPosition = () => {
                     </div>
                   )}
 
-                  {/* Special Requests - Modern Design */}
-                  {!isOwnProperty && (
-                    <div className="mb-6">
-                      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-200">
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
-                            <MessageCircle className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-bold text-gray-900">Special Requests</h3>
-                            <p className="text-sm text-gray-600">Let us know your preferences</p>
-                          </div>
-                        </div>
-                      <textarea
-                        value={specialRequests}
-                        onChange={(e) => setSpecialRequests(e.target.value)}
-                        placeholder="Any special requests or requirements..."
-                          className="w-full px-4 py-3 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white"
-                        rows={3}
-                        maxLength={500}
-                      />
-                        <div className="flex justify-between items-center mt-2">
-                          <div className="text-xs text-gray-500">
-                            We'll do our best to accommodate your requests
-                          </div>
-                          <div className="text-xs text-gray-500">
-                        {specialRequests.length}/500
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                 
 
                   {/* Booking Button - Modern Design */}
                   {isOwnProperty ? (
@@ -2843,7 +2976,10 @@ const getCalendarPosition = () => {
 
             
 
+            
+
             <MobileBookingBar
+            ownerProperty={isOwnProperty}
             property={property}
             dateRange={dateRange}
             nights={nights}
@@ -2857,10 +2993,177 @@ const getCalendarPosition = () => {
             setSelectionStep={setSelectionStep}
             checkAvailability={checkAvailability}
             handleBooking={handleBooking}
+            setShowTimePrompt={setShowTimePrompt}
+            setTimeConfirmed={setTimeConfirmed}
+/>
+{showTimePrompt && (
+  <div className="fixed inset-0 z-[100] bg-black/40 flex items-end">
+    <div className="bg-white w-full rounded-t-2xl p-5">
+
+      <h3 className="text-lg font-semibold mb-2">
+        Prefer a check-in time?
+      </h3>
+      <p className="text-sm text-gray-600 mb-4">
+        You can choose a time or skip to use the default.
+      </p>
+
+      <div className="flex gap-3">
+        <Button
+          className="flex-1 border"
+          onClick={() => {
+            setShowTimePrompt(false);
+            checkAvailability();
+          }}
+        >
+          Skip
+        </Button>
+
+        <Button
+          className="flex-1 bg-indigo-600 text-white"
+          onClick={() => {
+            setShowTimePrompt(false);
+            setShowTimeSelector(true);
+          }}
+        >
+          Choose time
+        </Button>
+      </div>
+    </div>
+  </div>
+)}
+
+ {showTimeSelector && (  
+        <div className="fixed inset-0 z-[101] bg-black/40 flex items-end">
+          <div className="bg-white w-full rounded-t-2xl p-5">
+            <h3 className="font-semibold mb-3">Select check-in time</h3>
+  timeOptions = generateTimeOptions();
+
+<TimeStepper
+  value={checkInTimeStr}
+  options={timeOptions}
+  formatTimeHour={formatTimeHour} 
+  onChange={(newTime) => {
+    const [selectedHour] = newTime.split(':').map(Number);
+
+    if (selectedHour >= 0 && selectedHour <= 5 && dateRange.startDate) {
+      const nextDay = new Date(dateRange.startDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+
+      setDateRange(prev => ({
+        ...prev,
+        startDate: nextDay,
+        endDate: prev.endDate
+          ? new Date(prev.endDate.getTime() + 86400000)
+          : null
+      }));
+    }
+
+    setCheckInTimeStr(newTime);
+    setAvailabilityChecked(false);
+  }}
 />
 
+
+            
+
+            <Button
+              className="w-full mt-4 bg-indigo-600 text-white"
+              onClick={() => {
+                setTimeConfirmed(true);
+                setShowTimeSelector(false);
+                checkAvailability();
+              }}
+            >
+              Continue
+            </Button>
           </div>
         </div>
+      )}
+
+
+          </div>
+            <div  className="mb-10 mt-10">
+            <ReviewsSection property={property} />
+              </div>
+              {/* Location Section with Map */}
+              <div className="mb-10">
+               
+                <PropertyMap
+                  address={property.location?.address || 'Address not specified'}
+                  city={property.location?.city || 'City not specified'}
+                  state={property.location?.state || 'State not specified'}
+                  country={property.location?.country || 'India'}
+                  coordinates={property.location?.coordinates}
+                />
+              </div>
+
+              {/* Host Section */}
+               <HostCard host={property.host} />
+        </div>
+
+
+{showWishlistModal && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="bg-white rounded-xl p-6 w-[400px]">
+      <h3 className="text-lg font-semibold mb-3">Create new list</h3>
+      <input
+        className="border w-full p-2 rounded mb-4"
+        placeholder="My dream stays"
+        value={wishlistName}
+        onChange={e => setWishlistName(e.target.value)}
+      />
+      <div className="flex justify-end gap-2">
+        <button onClick={() => setShowWishlistModal(false) 
+          // setIsFavorite(false)
+        }>
+          Cancel
+        </button>
+        <button
+          className="bg-red-500 text-white px-4 py-2 rounded"
+          onClick={createWishlistAndSave}
+        >
+          Create & Save
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+{showShare && (
+  <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    
+    {/* Backdrop */}
+    <div
+      onClick={() => setShowShare(false)}
+      className="absolute inset-0 bg-black/40"
+    />
+
+    {/* Modal */}
+    <div className="relative bg-white w-full sm:w-[420px] rounded-t-2xl sm:rounded-2xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold">Share this place</h3>
+        <button
+          onClick={() => setShowShare(false)}
+          className="p-2 rounded-full hover:bg-gray-100"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <ShareOption label="Copy link" onClick={handleCopyLink} />
+        <ShareOption label="WhatsApp" onClick={handleWhatsApp} />
+        <ShareOption label="Facebook" onClick={handleFacebook} />
+        <ShareOption label="Email" onClick={handleEmail} />
+      </div>
+    </div>
+  </div>
+)}
+
+
+
+
       </main>
       
       <Footer />

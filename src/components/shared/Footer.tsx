@@ -1,15 +1,20 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Home, Briefcase, User, Heart, Settings } from 'lucide-react';
+import { Home, Briefcase, User, Heart, Settings ,XIcon, Instagram, Facebook  ,Twitter ,Youtube} from 'lucide-react';
 import { useScrollDirection } from '@/hooks/userScrollDirection';
 import { useUI } from "@/core/store/uiContext";
+import { apiClient } from '@/infrastructure/api/clients/api-client';
 
 export default function Footer() {
   const [currentYear, setCurrentYear] = useState('');
   const [hideMobileNav, setHideMobileNav] = useState(false);
   const scrollDirection = useScrollDirection();
   const { hideBottomNav } = useUI();
+   const [email, setEmail] = useState('');
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [subscriptionMessage, setSubscriptionMessage] = useState('');
+  const [subscriptionStatus, setSubscriptionStatus] = useState<'success' | 'error' | ''>('');
 
 
   useEffect(() => {
@@ -24,6 +29,67 @@ export default function Footer() {
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
   }, []);
+
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!email.trim()) {
+    setSubscriptionMessage('Please enter your email address');
+    setSubscriptionStatus('error');
+    return;
+  }
+
+  setIsSubscribing(true);
+  setSubscriptionMessage('');
+
+  try {
+    // Get user info from localStorage or context if available
+    const userInfo = typeof window !== 'undefined' ? 
+      JSON.parse(localStorage.getItem('userInfo') || '{}') : {};
+
+    const response = await apiClient.subscribeEmail(
+      email,
+      userInfo.name || undefined,
+      userInfo.id || undefined,
+      'footer'
+    );
+
+    if (response.success) {
+      setSubscriptionMessage('Successfully subscribed! Check your email for confirmation.');
+      setSubscriptionStatus('success');
+      setEmail(''); // Clear the input
+      
+      // Clear message after 5 seconds
+      setTimeout(() => {
+        setSubscriptionMessage('');
+        setSubscriptionStatus('');
+      }, 5000);
+    } else {
+      // Handle specific error messages
+      if (response.message === 'Email is already subscribed') {
+        setSubscriptionMessage('You\'re already subscribed! Check your email for our latest updates.');
+        setSubscriptionStatus('success'); // Treat as success, not error
+      } else {
+        setSubscriptionMessage(response.message || 'Subscription failed. Please try again.');
+        setSubscriptionStatus('error');
+      }
+    }
+  } catch (error: any) {
+    console.error('Email subscription error:', error);
+    
+    // Handle API errors more gracefully
+    if (error.status === 400 && error.message === 'Email is already subscribed') {
+      setSubscriptionMessage('You\'re already subscribed! Check your email for our latest updates.');
+      setSubscriptionStatus('success');
+    } else {
+      setSubscriptionMessage('Something went wrong. Please try again later.');
+      setSubscriptionStatus('error');
+    }
+  } finally {
+    setIsSubscribing(false);
+  }
+};
 
   return (
     <>
@@ -87,7 +153,7 @@ export default function Footer() {
                 Discover incredible stays across India. From heritage havelis to modern apartments, 
                 find your perfect home away from home.
               </p>
-              <div className="flex space-x-3">
+              {/* <div className="flex space-x-3">
                 <a href="#" className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-2 rounded-full hover:scale-110 transition-transform duration-300 shadow-lg">
                   <span className="text-sm">📱</span>
                 </a>
@@ -100,7 +166,7 @@ export default function Footer() {
                 <a href="#" className="bg-gradient-to-r from-violet-500 to-purple-500 text-white p-2 rounded-full hover:scale-110 transition-transform duration-300 shadow-lg">
                   <span className="text-sm">🐦</span>
                 </a>
-              </div>
+              </div> */}
             </div>
 
             {/* Destinations */}
@@ -170,7 +236,47 @@ export default function Footer() {
                 Get travel inspiration and exclusive deals delivered to your inbox.
               </p>
               <div className="space-y-3">
-                <div className="flex">
+                 <form onSubmit={handleSubscribe} className="space-y-3">
+            <div className="flex">
+              <input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                disabled={isSubscribing}
+                required
+              />
+              <button 
+                type="submit"
+                disabled={isSubscribing}
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-r-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubscribing ? (
+                  <span className="animate-spin">⏳</span>
+                ) : (
+                  <span>✈️</span>
+                )}
+              </button>
+            </div>
+            
+            {/* Status Message */}
+            {subscriptionMessage && (
+              <div className={`text-xs p-2 rounded-md ${
+                subscriptionStatus === 'success' 
+                  ? 'bg-green-100 text-green-700 border border-green-200' 
+                  : 'bg-red-100 text-red-700 border border-red-200'
+              }`}>
+                {subscriptionMessage}
+              </div>
+            )}
+            
+            <div className="flex items-center space-x-2 text-xs text-gray-500">
+              <span>🔒</span>
+              <span>We respect your privacy</span>
+            </div>
+          </form>
+                {/* <div className="flex">
                   <input
                     type="email"
                     placeholder="Enter your email"
@@ -183,39 +289,59 @@ export default function Footer() {
                 <div className="flex items-center space-x-2 text-xs text-gray-500">
                   <span>🔒</span>
                   <span>We respect your privacy</span>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>
 
           {/* Divider */}
-          <div className="border-t border-purple-200 my-8"></div>
+           <div className="border-t border-purple-200 my-8"></div>
+<div className="flex flex-col md:flex-row justify-center gap-6 items-center space-y-4 md:space-y-0">
+  
+  {/* Existing text or links */}
+  <div className="flex flex-wrap items-center gap-6 text-sm text-gray-600">
+    <span>Follow us!!</span>
+  </div>
 
-          {/* Bottom section */}
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div className="flex flex-wrap items-center gap-6 text-sm text-gray-600">
-              <Link href="/privacy" className="hover:text-purple-600 transition-colors duration-200">Privacy Policy</Link>
-              <Link href="/terms" className="hover:text-purple-600 transition-colors duration-200">Terms of Service</Link>
-              <Link href="/refund-cancellation" className="hover:text-purple-600 transition-colors duration-200">Refund Policy</Link>
-              <Link href="/about" className="hover:text-purple-600 transition-colors duration-200">About Us</Link>
-              <Link href="/contact" className="hover:text-purple-600 transition-colors duration-200">Contact</Link>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <span>🌍</span>
-                <select className="bg-transparent border-none text-gray-600 focus:outline-none cursor-pointer">
-                  <option>English (IN)</option>
-                  <option>हिंदी</option>
-                  <option>தமிழ்</option>
-                </select>
-              </div>
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <span>₹</span>
-                <span>INR</span>
-              </div>
-            </div>
-          </div>
+  {/* Social Media Icons Group */}
+  <div className="flex items-center gap-4">
+    <a 
+      href="https://facebook.com/yourprofile" 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="text-gray-600 hover:text-blue-600 transition-colors"
+    >
+      <Facebook size={20} />
+    </a>
+    <a 
+      href="https://twitter.com/yourprofile" 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="text-gray-600 hover:text-sky-500 transition-colors"
+    >
+      <XIcon size={20} />
+    </a>
+    <a 
+      href="https://instagram.com/yourprofile" 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="text-gray-600 hover:text-pink-600 transition-colors"
+    >
+      <Instagram size={20} />
+    </a>
+
+    <a 
+    href="https://youtube.com/yourchannel" 
+    target="_blank" 
+    rel="noopener noreferrer"
+    className="text-gray-600 hover:text-red-600 transition-colors"
+  >
+    <Youtube size={20} />
+  </a>
+  </div>
+
+</div>
+        
 
           {/* Copyright */}
           <div className="text-center mt-8 pt-6 border-t border-purple-200">

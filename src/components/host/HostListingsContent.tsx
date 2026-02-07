@@ -20,6 +20,7 @@ import {
   Clock,
   AlertCircle,
   ArrowLeft,
+  ChevronDown,
   X,
   Wifi,
   Tv,
@@ -670,47 +671,57 @@ const HostListingsContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 pt-24">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 pt-8 md:pt-8 overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <Home className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent font-display">
-                    My Listings
-                  </h1>
-                  <p className="text-gray-600">Manage your properties and services</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <Button 
-                onClick={() => router.push('/host/dashboard')}
-                variant="outline"
-                className="flex items-center gap-2 bg-white/80 backdrop-blur-sm border-purple-200 hover:bg-white hover:shadow-lg transition-all duration-300 hover:scale-105"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Dashboard
-              </Button>
-              <Button 
-                onClick={() => router.push('/host/property/new/about-your-place')}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium rounded-xl transition-all duration-300 hover:shadow-xl hover:scale-105 border-0 shadow-lg"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add New Listing
-              </Button>
-            </div>
-          </div>
+      
+
+        <div className="mb-6 md:mb-8 px-4 md:px-0">
+  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+    
+    {/* Title Section: Responsive sizing and alignment */}
+    <div className="space-y-3">
+      <div className="flex items-center gap-3 sm:gap-4">
+        {/* Icon: Slightly smaller on mobile to save horizontal space */}
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shrink-0">
+          <Home className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+        </div>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent font-display tracking-tight">
+            My Listings
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 leading-tight">
+            Manage your properties and services
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    {/* Actions Section: Grid for 2-column buttons on mobile */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex items-center gap-3">
+      <Button 
+        onClick={() => router.push('/host/dashboard')}
+        variant="outline"
+        className="w-full lg:w-auto flex items-center justify-center gap-2 bg-white/80 backdrop-blur-sm border-purple-200 hover:bg-white py-6 lg:py-2 rounded-xl text-sm font-semibold transition-all"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span>Dashboard</span>
+      </Button>
+      
+      <Button 
+        onClick={() => router.push('/host/property/new/about-your-place')}
+        className="w-full lg:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-6 lg:py-2 rounded-xl shadow-lg active:scale-95 transition-all flex items-center justify-center"
+      >
+        <Plus className="w-4 h-4 mr-2" />
+        <span>Add Listing</span>
+      </Button>
+    </div>
+
+  </div>
         </div>
 
         {/* Summary Stats */}
-        {listings.length > 0 && (
+        {/* {listings.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <Card className="p-6 bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-500 hover:scale-105">
               <div className="flex items-center justify-between">
@@ -776,10 +787,46 @@ const HostListingsContent: React.FC = () => {
               </div>
             </Card>
           </div>
-        )}
+        )} */}
+        {listings.length > 0 && (
+  <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-6 mb-8">
+    {/* Common Card Logic for the first 4 cards */}
+    {[
+      { label: "Total", value: listings.length, icon: Home, color: "from-purple-500 to-purple-600", textColor: "text-gray-900" },
+      { label: "Live", value: listings.filter(l => l.status === 'published').length, icon: CheckCircle, color: "from-emerald-500 to-emerald-600", textColor: "text-emerald-600" },
+      { label: "Drafts", value: listings.filter(l => l.status === 'draft' && !l.approvalStatus).length, icon: Clock, color: "from-yellow-500 to-yellow-600", textColor: "text-yellow-600" },
+      { label: "Pending", value: listings.filter(l => l.status === 'draft' && l.approvalStatus === 'pending').length, icon: Clock, color: "from-blue-500 to-blue-600", textColor: "text-blue-600" }
+    ].map((stat, idx) => (
+      <Card key={idx} className="p-4 md:p-6 bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl flex flex-col items-center justify-center text-center transition-all duration-300 hover:scale-[1.02]">
+        {/* Icon First & Centered */}
+        <div className={`w-10 h-10 md:w-14 md:h-14 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center shadow-lg mb-3 shrink-0`}>
+          <stat.icon className="w-5 h-5 md:w-7 md:h-7 text-white" />
+        </div>
+        <div className="space-y-1">
+          <p className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest">{stat.label}</p>
+          <p className={`text-xl md:text-3xl font-black ${stat.textColor}`}>{stat.value}</p>
+        </div>
+      </Card>
+    ))}
+
+    {/* Total Earnings - Full width (col-span-2) on mobile, icon-first centered */}
+    <Card className="col-span-2 lg:col-span-1 p-4 md:p-6 bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl flex flex-col items-center justify-center text-center transition-all duration-300 hover:scale-[1.02]">
+      <div className="w-10 h-10 md:w-14 md:h-14 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg mb-3 shrink-0">
+        <span className="text-white font-black text-lg md:text-2xl">₹</span>
+      </div>
+      <div className="space-y-1">
+        <p className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest">Total Earnings</p>
+        <p className="text-xl md:text-3xl font-black text-gray-900">
+          {formatPrice(listings.reduce((sum, l) => sum + (l.totalEarnings || 0), 0))}
+        </p>
+      </div>
+    </Card>
+  </div>
+)}
+       
 
         {/* Filters and Search */}
-        <div className="mb-8">
+        {/* <div className="mb-8">
           <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-purple-200/50 shadow-xl">
             <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <div className="w-5 h-5 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center">
@@ -821,231 +868,193 @@ const HostListingsContent: React.FC = () => {
               </div>
             </div>
           </div>
+        </div> */}
+        <div className="mb-8 px-1">
+  <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-purple-200/50 shadow-xl">
+    {/* Header - Hidden or simplified on very small screens to save space */}
+    <h2 className="text-base md:text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+      <div className="w-5 h-5 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center shrink-0">
+        <Search className="w-3 h-3 text-white" />
+      </div>
+      Search & Filter
+    </h2>
+
+    <div className="flex flex-col lg:flex-row gap-4">
+      {/* 1. Search Bar - Always full width on mobile */}
+      <div className="w-full lg:flex-1">
+        <Input
+          placeholder="Search listings..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          leftIcon={<Search className="w-4 h-4 text-gray-400" />}
+          className="bg-white/80 backdrop-blur-sm border-purple-200 focus:border-purple-400 focus:ring-purple-200 rounded-xl h-11"
+        />
+      </div>
+
+      {/* 2. Filters Row - Two columns on mobile, auto-width on desktop */}
+      <div className="grid grid-cols-2 lg:flex gap-3">
+        <div className="relative">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full lg:w-auto pl-3 pr-8 py-2.5 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/80 backdrop-blur-sm text-sm font-medium text-gray-700 appearance-none transition-all cursor-pointer hover:shadow-sm"
+          >
+            <option value="all">All Status</option>
+            <option value="published">Published</option>
+            <option value="draft">Draft</option>
+            <option value="suspended">Suspended</option>
+          </select>
+          {/* Custom Arrow for select */}
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-purple-400">
+             <ChevronDown className="w-4 h-4" />
+          </div>
         </div>
 
-        {/* Listings Grid */}
-        {filteredListings.length === 0 ? (
-          <Card className="p-12 text-center bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-500">
-            <div className="w-20 h-20 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Home className="w-10 h-10 text-purple-600" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">No listings found</h3>
-            <p className="text-gray-600 mb-8 max-w-md mx-auto">
-              {listings.length === 0 
-                ? "You haven't created any listings yet. Start by adding your first property to begin earning."
-                : "No listings match your current filters. Try adjusting your search criteria."
-              }
-            </p>
-            <Button 
-              onClick={() => router.push('/host/property/new')}
-              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium rounded-xl transition-all duration-300 hover:shadow-xl hover:scale-105 border-0 shadow-lg"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Create Your First Listing
-            </Button>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredListings.map((listing, index) => (
-              <Card 
-                key={listing._id} 
-                className="overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-500 hover:scale-105"
-              >
-                {/* Image */}
-                <div className="relative aspect-[4/3] overflow-hidden">
-                  <img
-                    src={
-                      (listing.images?.[0] as any)?.url || 
-                      (typeof listing.images?.[0] === 'string' ? listing.images[0] : null) || 
-                      '/placeholder-property.jpg'
-                    }
-                    alt={listing.title}
-                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-                  />
-                  <div className="absolute top-3 right-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(listing)}`}>
-                      {getDisplayStatus(listing)}
-                    </span>
-                  </div>
-                  <div className="absolute top-3 left-3">
-                    <div className="flex items-center bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1">
-                      <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                      <span className="text-xs font-semibold ml-1">{listing.averageRating || 0}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <h3 className="font-bold text-gray-900 line-clamp-2 text-lg">{listing.title}</h3>
-                  </div>
-
-                  <div className="flex items-center text-sm text-gray-600 mb-3">
-                    <MapPin className="w-4 h-4 mr-2 text-purple-600" />
-                    <span>
-                      {listing.location?.city || 'Unknown City'}, {listing.location?.state || 'Unknown State'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-4 text-sm text-gray-600">
-                      <div className="flex items-center">
-                        <Users className="w-4 h-4 mr-1 text-purple-600" />
-                        <span>{listing.maxGuests || 0}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Home className="w-4 h-4 mr-1 text-purple-600" />
-                        <span>{listing.bedrooms || 0} bed</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-gray-900 text-lg">
-                        {formatPrice(listing.pricing?.basePrice || 0)}
-                      </p>
-                      <p className="text-xs text-gray-600">per night</p>
-                    </div>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="flex items-center justify-between text-sm text-gray-600 mb-6 p-3 bg-gray-50/50 rounded-xl">
-                    <span className="flex items-center">
-                      <Calendar className="w-4 h-4 mr-1 text-purple-600" />
-                      {listing.bookingCount || 0} bookings
-                    </span>
-                    <span className="flex items-center">
-                      <Clock className="w-4 h-4 mr-1 text-purple-600" />
-                      {formatDate(listing.createdAt)}
-                    </span>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="w-full bg-white/80 backdrop-blur-sm border-purple-200 hover:bg-white hover:shadow-md text-gray-700 font-medium rounded-lg transition-all duration-200"
-                      onClick={() => {
-                
-                        if (!listing._id) {
-                          alert('Error: Listing ID is missing. Cannot open edit page.');
-                          return;
-                        }
-                        router.push(`/host/property/${listing._id}/edit`);
-                      }}
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="w-full bg-white/80 backdrop-blur-sm border-purple-200 hover:bg-white hover:shadow-md text-gray-700 font-medium rounded-lg transition-all duration-200"
-                      onClick={() => router.push(`/host/property/${listing._id}/availability`)}
-                    >
-                      <Calendar className="w-4 h-4 mr-2" />
-                      Set Availability
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full bg-white/80 backdrop-blur-sm border-purple-200 hover:bg-white hover:shadow-md text-gray-700 font-medium rounded-lg transition-all duration-200"
-                      onClick={() => {
-                        setPreviewProperty(listing);
-                        setIsPreviewOpen(true);
-                      }}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View
-                    </Button>
-                  </div>
-
-                  {/* Status Actions */}
-                  {listing.status === 'draft' && !listing.approvalStatus && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full mt-3 bg-gradient-to-r from-emerald-50 to-emerald-100 border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-medium rounded-lg transition-all duration-200 hover:scale-105"
-                      onClick={() => handleStatusChange(listing._id, 'published')}
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Submit for Approval
-                    </Button>
-                  )}
-                  {listing.status === 'draft' && listing.approvalStatus === 'pending' && (
-                    <div className="w-full mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-center text-blue-700">
-                        <Clock className="w-4 h-4 mr-2" />
-                        <span className="text-sm font-medium">Submitted for Approval</span>
-                      </div>
-                      <p className="text-xs text-blue-600 mt-1">
-                        Your listing is under review by our admin team
-                      </p>
-                    </div>
-                  )}
-                  {/* Show Publish button when approved but NOT published (exclude suspended/deleted) */}
-                  {listing.approvalStatus === 'approved' && !listing.isPublished && listing.status !== 'suspended' && listing.status !== 'deleted' && (
-                    <div className="w-full mt-3 space-y-2">
-                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex items-center text-green-700">
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          <span className="text-sm font-medium">Approved by Admin</span>
-                        </div>
-                        <p className="text-xs text-green-600 mt-1">
-                          Your listing is approved and ready to publish
-                        </p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full bg-gradient-to-r from-emerald-50 to-emerald-100 border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-medium rounded-lg transition-all duration-200 hover:scale-105"
-                        onClick={() => handlePublishApproved(listing._id)}
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Publish Listing
-                      </Button>
-                    </div>
-                  )}
-                  {listing.status === 'draft' && listing.approvalStatus === 'rejected' && (
-                    <div className="w-full mt-3 space-y-2">
-                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <div className="flex items-center text-red-700">
-                          <XCircle className="w-4 h-4 mr-2" />
-                          <span className="text-sm font-medium">Listing Rejected</span>
-                        </div>
-                        <p className="text-xs text-red-600 mt-1">
-                          Please review and resubmit your listing
-                        </p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full bg-gradient-to-r from-emerald-50 to-emerald-100 border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-medium rounded-lg transition-all duration-200 hover:scale-105"
-                        onClick={() => handleStatusChange(listing._id, 'published')}
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Resubmit for Approval
-                      </Button>
-                    </div>
-                  )}
-                  {listing.status === 'published' && listing.isPublished && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full mt-3 bg-gradient-to-r from-amber-50 to-amber-100 border-amber-200 hover:bg-amber-100 text-amber-700 font-medium rounded-lg transition-all duration-200 hover:scale-105"
-                      onClick={() => handleStatusChange(listing._id, 'draft')}
-                    >
-                      <Clock className="w-4 h-4 mr-2" />
-                      Unpublish Listing
-                    </Button>
-                  )}
-                </div>
-              </Card>
-            ))}
+        <div className="relative">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="w-full lg:w-auto pl-3 pr-8 py-2.5 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/80 backdrop-blur-sm text-sm font-medium text-gray-700 appearance-none transition-all cursor-pointer hover:shadow-sm"
+          >
+            <option value="createdAt">Newest</option>
+            <option value="updatedAt">Updated</option>
+            <option value="title">A-Z</option>
+            <option value="price">Price</option>
+          </select>
+          {/* Custom Arrow for select */}
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-purple-400">
+             <ChevronDown className="w-4 h-4" />
           </div>
-        )}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+        {/* Listings Grid */}
+      {filteredListings.length === 0 ? (
+  <Card className="p-8 md:p-12 text-center bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl">
+    <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
+      <Home className="w-8 h-8 md:w-10 md:h-10 text-purple-600" />
+    </div>
+    <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">No listings found</h3>
+    <p className="text-sm md:text-base text-gray-600 mb-6 md:mb-8 max-w-xs md:max-w-md mx-auto">
+      {listings.length === 0 
+        ? "You haven't created any listings yet. Start by adding your first property."
+        : "No listings match your current filters. Try adjusting your search."
+      }
+    </p>
+    <Button 
+      onClick={() => router.push('/host/property/new')}
+      className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-6 px-8 rounded-xl shadow-lg"
+    >
+      <Plus className="w-5 h-5 mr-2" />
+      Create Listing
+    </Button>
+  </Card>
+) : (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+    {filteredListings.map((listing) => (
+      <Card 
+        key={listing._id} 
+        className="overflow-hidden bg-white/90 backdrop-blur-sm border-0 shadow-lg rounded-2xl flex flex-col"
+      >
+        {/* Image Section */}
+        <div className="relative aspect-[16/10] sm:aspect-[4/3] overflow-hidden shrink-0">
+          <img
+            src={(listing.images?.[0] as any)?.url || listing.images?.[0] || '/placeholder-property.jpg'}
+            alt={listing.title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute top-2 right-2">
+            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border backdrop-blur-md ${getStatusColor(listing)}`}>
+              {getDisplayStatus(listing)}
+            </span>
+          </div>
+          <div className="absolute top-2 left-2">
+            <div className="flex items-center bg-white/95 backdrop-blur-sm rounded-lg px-2 py-1 shadow-sm">
+              <Star className="w-3 h-3 text-yellow-400 fill-current" />
+              <span className="text-[11px] font-bold ml-1">{listing.averageRating || 0}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Section */}
+        <div className="pt-4 md:pt-6 md:p-5 flex-1 flex flex-col">
+          <div className="mb-2">
+            <h3 className="font-bold text-gray-900 line-clamp-1 text-base md:text-lg">{listing.title}</h3>
+            <div className="flex items-center text-xs text-gray-500 mt-1">
+              <MapPin className="w-3 h-3 mr-1 text-purple-500" />
+              <span className="truncate">{listing.location?.city}, {listing.location?.state}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mb-4 border-y border-gray-50 py-3">
+             <div className="flex gap-3 text-[11px] font-medium text-gray-600">
+                <span className="flex items-center gap-1"><Users className="w-3 h-3 text-purple-500"/> {listing.maxGuests}</span>
+                <span className="flex items-center gap-1"><Home className="w-3 h-3 text-purple-500"/> {listing.bedrooms} Bed</span>
+             </div>
+             <div className="text-right">
+                <span className="text-base font-black text-gray-900">{formatPrice(listing.pricing?.basePrice || 0)}</span>
+                <span className="text-[10px] text-gray-500 block">/night</span>
+             </div>
+          </div>
+
+          {/* Optimized Mobile Actions */}
+          <div className="mt-auto space-y-2">
+            {/* Row 1: Primary Actions */}
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl border-purple-100 bg-purple-50/30 text-xs font-bold py-5"
+                onClick={() => router.push(`/host/property/${listing._id}/edit`)}
+              >
+                <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl border-purple-100 bg-purple-50/30 text-xs font-bold py-5"
+                onClick={() => router.push(`/host/property/${listing._id}/availability`)}
+              >
+                <Calendar className="w-3.5 h-3.5 mr-1.5" /> Dates
+              </Button>
+            </div>
+
+            {/* Row 2: Secondary View Action */}
+            <Button
+              variant="outline"
+              className="w-full rounded-xl border-slate-200 text-xs font-bold py-5"
+              onClick={() => { setPreviewProperty(listing); setIsPreviewOpen(true); }}
+            >
+              <Eye className="w-3.5 h-3.5 mr-1.5" /> Preview Listing
+            </Button>
+
+            {/* Status-Based Actions (Full Width) */}
+            {listing.status === 'draft' && !listing.approvalStatus && (
+              <Button
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-5 rounded-xl"
+                onClick={() => handleStatusChange(listing._id, 'published')}
+              >
+                Submit for Approval
+              </Button>
+            )}
+
+            {listing.approvalStatus === 'approved' && !listing.isPublished && (
+              <Button
+                className="w-full bg-indigo-600 text-white text-xs font-bold py-5 rounded-xl shadow-md"
+                onClick={() => handlePublishApproved(listing._id)}
+              >
+                Go Live Now
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+    ))}
+  </div>
+)}
       </div>
       <PropertyPreviewModal
         property={previewProperty}

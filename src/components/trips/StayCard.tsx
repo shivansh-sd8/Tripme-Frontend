@@ -81,6 +81,16 @@ const StayCard: React.FC<StayCardProps> = ({
     // Open property page in new tab
     
   };
+const priceAmount =
+  stay.price?.amount ;
+
+const currency =
+  stay.price?.currency || "INR";
+
+  const imageSrc =
+  typeof stay.images?.[currentImage] === "string"
+    ? stay.images[currentImage]
+    : stay.images?.[currentImage]?.url;
 
   
 
@@ -96,7 +106,8 @@ const StayCard: React.FC<StayCardProps> = ({
         {/* Image Section - Top */}
         <div className="relative aspect-[4/3] w-full overflow-hidden">
           <Image
-            src={stay.images[currentImage]}
+            // src={stay.images[currentImage]}
+            src={imageSrc || "/placeholder.jpg"}
             alt={stay.title}
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-110"
@@ -187,12 +198,13 @@ const StayCard: React.FC<StayCardProps> = ({
           </div>
           
           {/* Price */}
-          <div className="flex items-baseline gap-1">
+
+         {priceAmount &&( <div className="flex items-baseline gap-1">
             <span className="text-lg font-bold text-gray-900">
               {formatCurrency(stay.price.amount, stay.price.currency)}
             </span>
             <span className="text-sm text-gray-600 font-medium">night</span>
-          </div>
+          </div> )}
         </div>
       </div>
     </div>

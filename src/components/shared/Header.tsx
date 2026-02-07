@@ -1,9 +1,14 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState ,useEffect } from 'react';
+import { useUI } from "@/core/store/uiContext";
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter, usePathname } from 'next/navigation';
-import { useUI } from '@/core/store/uiContext';
+import { useRouter ,usePathname } from 'next/navigation';
+import { useAuth } from '@/core/store/auth-context';
+import Dropdown from '../ui/Dropdown';
+import AirbnbSearchForm from '../trips/AirbnbSearchForm';
+import MobileSearchSheet from "@/components/trips/mobileSearchForm";
+
 import {
   Menu,
   X,
@@ -21,15 +26,11 @@ import {
   Star,
   Sparkles,
   Search,
-  Shield
+  Shield,
+  Filter
 } from 'lucide-react';
-import Button from '@/shared/components/ui/Button';
-import { apiClient } from '@/infrastructure/api/clients/api-client';
-import { useAuth } from '@/core/store/auth-context';
-import Dropdown from '../ui/Dropdown';
-import AirbnbSearchForm from '@/components/trips/AirbnbSearchForm';
-import { motion, AnimatePresence } from "framer-motion";
-import MobileSearchSheet from "@/components/trips/mobileSearchForm";
+import { boolean } from 'zod/v4';
+
 
 
 interface HeaderProps {
@@ -37,26 +38,35 @@ interface HeaderProps {
   onSearchToggle?: (expanded: boolean) => void;
   onSearch?: (location: any, guestsCount?: number, checkInDate?: string, checkOutDate?: string) => void;
   hideSearch?: boolean;
+  visibleFilter?: boolean;
+  onFilterClick?: () => void;
 }
 
-const Header = ({ searchExpanded: externalSearchExpanded, onSearchToggle, onSearch, hideSearch = false }: HeaderProps = {}) => {
+const Header =({searchExpanded: externalSearchExpanded, 
+  onSearchToggle, 
+  onSearch,
+  hideSearch = false,
+  visibleFilter = false,
+  onFilterClick 
+} : HeaderProps ={}) => {
+
+    // 
   const { hideHeader } = useUI();
   const router = useRouter();
   const pathname = usePathname();
+  const [activeCategory, setActiveCategory] = useState<'homes' | 'services' | 'stories' | null>(null);
   const { user, isAuthenticated, isLoading, logout, refreshUser } = useAuth();
-  const [scrolled, setScrolled] = useState(false);
-  const [hideMobileHeader, setHideMobileHeader] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [internalSearchExpanded, setInternalSearchExpanded] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<'homes' | 'services' | 'stories' | null>(null);
-  type SearchStep = 'where' | 'when' | 'who';
-  const [searchStep, setSearchStep] = useState<SearchStep>('where');
-  const SNAP_TOP = 0;                 // fully expanded
-const SNAP_MID = window.innerHeight * 0.4;
-const SNAP_BOTTOM = window.innerHeight * 0.9; // dismiss
+  const searchExpanded = externalSearchExpanded !== undefined ? externalSearchExpanded : internalSearchExpanded;
+  const setSearchExpanded = onSearchToggle || setInternalSearchExpanded;
+  const [scrolled, setScrolled] = useState(false);
+  const [hideMobileHeader, setHideMobileHeader] = useState(false);
+  
 
-
+  
+ 
   // Set active category based on current route
   useEffect(() => {
     if (pathname === '/services') {
@@ -68,22 +78,9 @@ const SNAP_BOTTOM = window.innerHeight * 0.9; // dismiss
     } else {
       setActiveCategory(null); // Default state - nothing selected
     }
-  }, [pathname]);
+  }, [pathname]); 
 
-  // Use external search state if provided, otherwise use internal state
-  const searchExpanded = externalSearchExpanded !== undefined ? externalSearchExpanded : internalSearchExpanded;
-  const setSearchExpanded = onSearchToggle || setInternalSearchExpanded;
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Refresh user data when component mounts to ensure we have the latest role
-  useEffect(() => {
+   useEffect(() => {
     if (isAuthenticated && !isLoading) {
       // Only refresh once when component mounts
       const shouldRefresh = !user || user.role === 'guest';
@@ -91,53 +88,19 @@ const SNAP_BOTTOM = window.innerHeight * 0.9; // dismiss
         refreshUser();
       }
     }
-  }, [isAuthenticated, isLoading]); // Removed refreshUser from dependencies
+  }, [isAuthenticated, isLoading]); 
+  
 
-  useEffect(() => {
-    if (searchExpanded) {
-      document.body.classList.add('search-open');
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.classList.remove('search-open');
-      document.body.style.overflow = '';
-    }
-  }, [searchExpanded]);
-
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const check = () => setHideMobileHeader(document.body.classList.contains('search-open'));
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
+   useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+  
 
-  // useEffect(() => {
-  //   const handleEscape = (e: KeyboardEvent) => {
-  //     if (e.key === 'Escape') {
-  //       setSearchExpanded(false);
-  //     }
-  //   };
-
-  //   const handleClickOutside = (e: MouseEvent) => {
-  //     const target = e.target as Element;
-  //     if (!target.closest('.search-container') && !target.closest('.header-container')) {
-  //       setSearchExpanded(false);
-  //     }
-  //   };
-
-  //   if (searchExpanded) {
-  //     document.addEventListener('keydown', handleEscape);
-  //     document.addEventListener('click', handleClickOutside);
-  //   }
-
-  //   return () => {
-  //     document.removeEventListener('keydown', handleEscape);
-  //     document.removeEventListener('click', handleClickOutside);
-  //   };
-  // }, [searchExpanded]);
-
+  // handle logout
   const handleLogout = async () => {
     try {
       // Logout is handled by the auth service
@@ -148,57 +111,72 @@ const SNAP_BOTTOM = window.innerHeight * 0.9; // dismiss
     }
   };
 
-  if (isLoading) {
+
+   useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+    };
+
+    if (searchExpanded) {
+      document.addEventListener('keydown', handleEscape);
+      document.addEventListener('click', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [searchExpanded]);
+
+
+ 
+
+   if (isLoading) {
     return null;
   }
 
-  // if (hideMobileHeader && typeof window !== 'undefined' && window.innerWidth < 640) {
-  //   return null;
-  // }
+    if (hideMobileHeader && typeof window !== 'undefined' && window.innerWidth < 640) {
+    return null;
+  }
+  
+   const shouldShowFullHeader = hideSearch ? true : ((!scrolled || searchExpanded) && (pathname !== '/stories' || searchExpanded) && (pathname !== '/search' || searchExpanded) &&
+   (pathname !== '/rooms' || searchExpanded)
+  );
 
-  // When search is expanded, show full header regardless of scroll state
-  // Show search bar on stories page only when expanded
-  // On search page, keep search compressed by default unless explicitly expanded
-  // If hideSearch is true, always show full header (navigation) without search form
-  const shouldShowFullHeader = hideSearch ? true : ((!scrolled || searchExpanded) && (pathname !== '/stories' || searchExpanded) && (pathname !== '/search' || searchExpanded));
-
+  
   return (
     <>
-   
-    <header
-        className={` 
-          w-full z-50 fixed top-0 left-0 right-0
-          transition-all duration-300
-           ${hideHeader ? "hidden sm:block" : ""}
-          ${scrolled && !searchExpanded
-            ? 'bg-white border-b border-gray-200 shadow-lg'
-            : 'bg-white border-b border-gray-100'}
-        `}
-        // 
->
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Main Navigation Bar */}
-        <div className={`flex items-center justify-between relative transition-all duration-500 ease-in-out ${shouldShowFullHeader ? 'h-20' : 'h-24 my-1'
+    <header className={`w-full z-50 fixed top-0 left-0 right-0
+                       transition-all duration-300"
+                       ${hideHeader ? "hidden sm:block" : ""}
+                        ${scrolled && !searchExpanded
+                        ? 'bg-white border-b border-gray-200 shadow-lg' 
+                        : 'bg-white border-b border-gray-100'}
+                       `}
+                       >
+    
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Main Nav Bar container */}
+      <div className={`flex item-center justify-between relative transition-all duration-500 ease-in-out ${
+          shouldShowFullHeader ? 'h-20' : 'h-24 my-1' }`}>
+          <Link href="/" className={`flex items-center group relative z-10 ${
+            !shouldShowFullHeader ? 'pt-1' : ''
           }`}>
-          {/* Logo */}
-          <Link href="/" className={`flex items-center group relative z-10 ${!shouldShowFullHeader ? 'pt-1' : ''
-            }`}>
-            <div className="relative">
-              <Image
-                src="/logo.png"
-                alt="TripMe"
-                width={120}
-                height={120}
-                className="h-30 w-30 object-contain transition-transform duration-300 group-hover:scale-110"
-                priority
-              />
-            </div>
-          </Link>
+                        <div className="relative">
+                          <Image
+                            src="/logo.png"
+                            alt="TripMe"
+                            width={120}
+                            height={120}
+                            className="h-30 w-30 object-contain transition-transform duration-300 group-hover:scale-110"
+                            priority
+                          />
+                        </div>
+                      </Link>
 
-          {/* Desktop Navigation - Centered - Show when not scrolled or search expanded */}
-          {shouldShowFullHeader ? (
-            <div className="hidden lg:flex items-center gap-12 transition-all duration-500 ease-in-out">
+                    {shouldShowFullHeader ? <div className="hidden lg:flex items-center gap-12 transition-all duration-500 ease-in-out">
               <button
                 onClick={() => {
                   setActiveCategory('homes');
@@ -238,10 +216,10 @@ const SNAP_BOTTOM = window.innerHeight * 0.9; // dismiss
                 <BookOpen size={22} className="group-hover:scale-110 transition-transform duration-200" />
                 <span className="font-medium text-base">Stories</span>
               </button>
-            </div>
-          ) : !hideSearch ? (
+                      </div>
+                      :(
             <div className="hidden lg:flex items-center transition-all duration-500 ease-in-out">
-              <div
+              <div 
                 className="bg-white border border-gray-300 rounded-full shadow-sm hover:shadow-md transition-all duration-500 ease-in-out p-1 cursor-pointer"
                 onClick={() => setSearchExpanded(true)}
               >
@@ -253,10 +231,10 @@ const SNAP_BOTTOM = window.innerHeight * 0.9; // dismiss
                       <div className="text-sm font-medium text-gray-900">Where?</div>
                     </div>
                   </div>
-
+                  
                   {/* Divider */}
                   <div className="w-px h-6 bg-gray-300"></div>
-
+                  
                   {/* Dates */}
                   <div className="flex items-center gap-3 px-3 py-1 flex-1 hover:bg-gray-50 rounded-lg transition-colors">
                     <Calendar className="text-gray-600" size={18} />
@@ -264,10 +242,10 @@ const SNAP_BOTTOM = window.innerHeight * 0.9; // dismiss
                       <div className="text-sm font-medium text-gray-900">When</div>
                     </div>
                   </div>
-
+                  
                   {/* Divider */}
                   <div className="w-px h-6 bg-gray-300"></div>
-
+                  
                   {/* Guests */}
                   <div className="flex items-center gap-3 px-3 py-1 flex-1 hover:bg-gray-50 rounded-lg transition-colors">
                     <User className="text-gray-600" size={18} />
@@ -275,7 +253,7 @@ const SNAP_BOTTOM = window.innerHeight * 0.9; // dismiss
                       <div className="text-sm font-medium text-gray-900">Who?</div>
                     </div>
                   </div>
-
+                  
                   {/* Search Button */}
                   <button className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white p-1.5 rounded-full transition-all duration-200 ml-2">
                     <Search className="w-4 h-4" />
@@ -283,25 +261,49 @@ const SNAP_BOTTOM = window.innerHeight * 0.9; // dismiss
                 </div>
               </div>
             </div>
-          ) : null}
+           
+          )} 
 
-          {/* Desktop Actions - Right Side */}
-          <div className={`hidden lg:flex items-center gap-4 ${!shouldShowFullHeader ? 'pt-1' : ''
-            }`}>
-            {/* Host Button */}
-            {isAuthenticated && user?.role === 'host' ? (
-              <Link href="/host/dashboard">
-                <span className="text-gray-700 hover:text-gray-900 font-medium text-sm transition-colors duration-200">
-                  Host Dashboard
-                </span>
-              </Link>
-            ) : (
-              <Link href="/become-host">
-                <span className="text-gray-700 hover:text-gray-900 font-medium text-sm transition-colors duration-200">
-                  Become a host
-                </span>
-              </Link>
-            )}
+          {visibleFilter && (
+            <div className="hidden lg:flex items-center transition-all duration-500 ease-in-out">
+             {/* className="bg-white border border-gray-300 rounded-full shadow-sm hover:shadow-md transition-all duration-500 ease-in-out p-1 cursor-pointer */}
+              <button
+      onClick={onFilterClick}
+      className="bg-white border border-gray-300 rounded-full shadow-sm
+                 hover:shadow-md transition-all duration-500 ease-in-out
+                 p-1 cursor-pointer"
+      type="button"
+    >
+            <div className="flex items-center gap-3 px-3 py-1 flex-1 hover:bg-gray-50 rounded-lg transition-colors"  onClick={onFilterClick}>
+                    <Filter className="text-gray-600" size={18} />
+                    <div className="text-left">
+                      <div className="text-sm font-medium text-gray-900">Filter</div>
+                    </div>
+              </div>
+               </button>
+          </div>
+         
+          ) }
+
+
+
+
+                       {/* Desktop actions right side*/}
+                       <div className={`hidden lg:flex items-center gap-4 ${!shouldShowFullHeader ? 'pt-1' : ''}`}>
+                        {/* Host Button */}
+                        {isAuthenticated && user?.role === 'host' ? (
+                          <Link href="/host/dashboard">
+                            <span className="text-gray-700 hover:text-gray-900 font-medium text-sm transition-colors duration-200">
+                              Host Dashboard
+                            </span>
+                          </Link>
+                        ) : (
+                          <Link href="/become-host">
+                            <span className="text-gray-700 hover:text-gray-900 font-medium text-sm transition-colors duration-200">
+                              Become a host
+                            </span>
+                          </Link>
+                        )}
 
             {/* User Menu */}
             {isAuthenticated ? (
@@ -334,6 +336,15 @@ const SNAP_BOTTOM = window.innerHeight * 0.9; // dismiss
                     >
                       <User size={20} />
                       <span className="font-medium">Profile</span>
+                    </Link>
+
+                    <Link
+                      href="/wishlist"
+                      className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <Heart size={20} />
+                      <span className="font-medium">Wishlist</span>
                     </Link>
                     <Link
                       href="/bookings"
@@ -401,24 +412,50 @@ const SNAP_BOTTOM = window.innerHeight * 0.9; // dismiss
                 </div>
               </Dropdown>
             )}
+                       </div>
+
+                       {/* mobile menu button */}
+                       {/* TODO . */}
+                      {/* Need to create three tabs like home , services and stories */}
+                          
+                         {visibleFilter ? (
+                             <div className="flex items-center transition-all duration-500 ease-in-out lg:hidden">
+             {/* className="bg-white border border-gray-300 rounded-full shadow-sm hover:shadow-md transition-all duration-500 ease-in-out p-1 cursor-pointer */}
+              <button
+      onClick={onFilterClick}
+      className="bg-white border border-gray-300 rounded-full shadow-sm
+                 hover:shadow-md transition-all duration-500 ease-in-out
+                 p-1 cursor-pointer "
+      type="button"
+    >
+            <div className="flex items-center gap-3 px-3 py-1 flex-1 hover:bg-gray-50 rounded-lg transition-colors"  onClick={onFilterClick}>
+                    <Filter className="text-gray-600" size={18} />
+                    <div className="text-left">
+                      <div className="text-sm font-medium text-gray-900">Filter</div>
+                    </div>
+              </div>
+               </button>
           </div>
+                         ) :  <button
+                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            className="lg:hidden p-2 rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200"
+                          >
+                            {mobileMenuOpen ? (
+                              <X size={24} className="text-gray-700" />
+                            ) : (
+                              <Menu size={24} className="text-gray-700" />
+                            )}
+                          </button>} 
+                          
+                         
+  
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200"
-          >
-            {mobileMenuOpen ? (
-              <X size={24} className="text-gray-700" />
-            ) : (
-              <Menu size={24} className="text-gray-700" />
-            )}
-          </button>
-        </div>
+      </div>
 
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50">
+      {/* Mobile menu */}
+      {/* this code replace with tab menu */}
+      {mobileMenuOpen && (
+       <div className="lg:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50">
             <div className="px-4 py-4 space-y-3">
               <button
                 onClick={() => {
@@ -474,6 +511,15 @@ const SNAP_BOTTOM = window.innerHeight * 0.9; // dismiss
                       <User size={20} />
                       <span className="font-medium">Profile</span>
                     </Link>
+
+                     <Link
+                      href="/wishlist"
+                      className="flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Heart size={20} />
+                      <span className="font-medium">Wishlist</span>
+                    </Link>
                     <Link
                       href="/bookings"
                       className="flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-700 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200"
@@ -523,32 +569,21 @@ const SNAP_BOTTOM = window.innerHeight * 0.9; // dismiss
                 </div>
               )}
             </div>
+      </div> )}
+   
+     {shouldShowFullHeader &&  !hideHeader &&( <div className="hidden lg:flex justify-center w-full pb-3">
+          <div className="w-full max-w-4xl">
+            <AirbnbSearchForm
+              variant="compact"
+              activeCategory={activeCategory}
+              onSearch={onSearch}
+            />
           </div>
-        )}
+        
+      </div> )}
 
-        {/* Search Bar - Show when not scrolled or search expanded, unless hideSearch is true */}
-        {/* {shouldShowFullHeader && !hideSearch && (
-          <div className="flex justify-center w-full pb-3">
-            <div className="w-full max-w-4xl">
-              <AirbnbSearchForm variant="compact" activeCategory={activeCategory} onSearch={onSearch} />
-            </div>
-          </div>
-        )} */}
-        {/* Desktop search only */}
-        <div className="hidden lg:flex justify-center w-full pb-3">
-          {!hideSearch && (
-            <div className="w-full max-w-4xl">
-              <AirbnbSearchForm
-                variant="compact"
-                activeCategory={activeCategory}
-                onSearch={onSearch}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* ================= MOBILE SEARCH PILL ================= */}
-        <div className="lg:hidden px-4 pb-3">
+{/* mobile search form */}
+   <div className="md:hidden px-4 pb-3">
           <button
             onClick={() => setSearchExpanded(true)}
             className="
@@ -568,40 +603,70 @@ const SNAP_BOTTOM = window.innerHeight * 0.9; // dismiss
             </span>
           </button>
         </div>
-      </div>
-      {/* ================= MOBILE SEARCH BOTTOM SHEET ================= */}
 
+    </div>
 
     </header>
-    {/* MOBILE BACK ARROW */}
-{hideHeader && <div className="sm:hidden fixed top-4 left-4 z-[60]">
-  <button
-   onClick={() => router.push("/")}
-    className="w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center"
-  >
-    <ArrowLeft className="w-5 h-5 text-gray-900" />
-  </button>
-</div>}
+
+    {hideHeader && (
+  <div className="lg:hidden sticky top-0 z-50 bg-white">
+    <div className="flex items-center gap-3 px-4 py-3">
+
+      {/* Back button */}
+      <button
+        onClick={() => router.push('/')}
+        className="w-9 h-9 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center shrink-0"
+      >
+        <ArrowLeft className="w-4 h-4 text-gray-900" />
+      </button>
+
+      {/* Search bar */}
+      <button
+        onClick={() => setSearchExpanded(true)}
+        className="
+          flex-1
+          bg-white
+          border border-gray-200
+          rounded-full
+          shadow-sm
+          flex items-center gap-3
+          px-4 py-2.5
+          text-left
+        "
+      >
+        <Search className="w-4 h-4 text-gray-500" />
+        <span className="text-gray-700 font-medium truncate">
+          Start your search
+        </span>
+      </button>
+
+      {/* Filter button */}
+      {visibleFilter && (
+        <button
+          onClick={onFilterClick}
+          className="w-9 h-9 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center shrink-0"
+        >
+          <Filter className="w-4 h-4 text-gray-700" />
+        </button>
+      )}
+    </div>
+  </div>
+)}
 
 
-     <MobileSearchSheet
-    open={searchExpanded}
+
+ <MobileSearchSheet
+    // open={searchExpanded}
+    open={searchExpanded && window.innerWidth < 1024}
     onClose={() => setSearchExpanded(false)}
   />
 
- 
 
-  </>
-    
-  );
-  
-    
- 
-};
+
+    </> 
+  )
+}
+
+
 
 export default Header;
-
-
-
-
-

@@ -12,6 +12,7 @@ import Header from "@/components/shared/Header";
 import Footer from "@/components/shared/Footer";
 import Button from "@/components/ui/Button";
 
+
 import { 
   Calendar, 
   MapPin, 
@@ -59,6 +60,7 @@ import {
 } from "lucide-react";
 import { start } from "repl";
 import { useUI } from "@/core/store/uiContext";
+import UserHeader from "@/components/shared/UserHeader";
 
 // Payment Modal Component with Razorpay Integration
 const PaymentModal: React.FC<{
@@ -1823,7 +1825,8 @@ export default function BookingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
       {/* <Header hideSearchBar={true} /> */}
-       <Header />
+       {/* <Header /> */}
+       <UserHeader/>
       
       {/* Main Content */}
       <main className={`${hideHeader ? "pt-0 sm:pt-24" : "pt-40"} pb-12 overflow-x-hidden`}>
