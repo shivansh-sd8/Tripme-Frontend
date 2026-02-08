@@ -9,7 +9,7 @@ export default function HostLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       <HostHeader />
-      <main className="pt-28">
+      <main className="pt-12 md:pt-28">
         {children}
       </main>
       <Footer />

@@ -1,7 +1,8 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState ,useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+
 import { 
   Shield, 
   Upload, 
@@ -17,6 +18,7 @@ import {
 import OnboardingLayout from '@/components/host/OnboardingLayout';
 import { useOnboarding } from '@/core/context/OnboardingContext';
 import { apiClient } from '@/infrastructure/api/clients/api-client';
+import { useAuth } from '@/core/store/auth-context';
 
 const identityDocTypes = [
   { id: 'aadhar-card', label: 'Aadhaar Card', icon: CreditCard, placeholder: '1234 5678 9012', pattern: /^\d{12}$/, hint: '12 digit Aadhaar number' },
@@ -44,6 +46,14 @@ export default function KYCPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [documentNumber, setDocumentNumber] = useState('');
   const [docNumberError, setDocNumberError] = useState('');
+  const [identityDocUrl, setIdentityDocUrl] = useState<string | null>(null);
+  const [addressProofUrl, setAddressProofUrl] = useState<string | null>(null);
+  const [checkingKyc, setCheckingKyc] = useState(true);
+   const { user } = useAuth();
+   
+
+
+
   
   // Address proof state
   const [selectedAddressProof, setSelectedAddressProof] = useState<string | null>(null);
@@ -53,17 +63,63 @@ export default function KYCPage() {
   const [kycSubmitted, setKycSubmitted] = useState(false);
   const [error, setError] = useState('');
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setUploadedFile(e.target.files[0]);
-    }
-  };
+  // const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   if (e.target.files && e.target.files[0]) {
+  //     setUploadedFile(e.target.files[0]);
+  //   }
+  // };
 
-  const handleAddressProofFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setAddressProofFile(e.target.files[0]);
-    }
-  };
+  useEffect(() => {
+  if (user?.isVerified) {
+    console.log("User is verified", user);
+    router.replace('/host/property/new/review');
+  }
+  console.log("User is not verified", user);
+}, [user]);
+
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (!e.target.files?.[0]) return;
+
+  try {
+    setIsSubmitting(true);
+    const file = e.target.files[0];
+    setUploadedFile(file);
+
+    const url = await uploadImage(file);
+    setIdentityDocUrl(url);
+  } catch (err) {
+    setError('Failed to upload identity document');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+
+
+
+  // const handleAddressProofFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   if (e.target.files && e.target.files[0]) {
+  //     setAddressProofFile(e.target.files[0]);
+  //   }
+  // };
+  const handleAddressProofFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (!e.target.files?.[0]) return;
+
+  try {
+    setIsSubmitting(true);
+    const file = e.target.files[0];
+    setAddressProofFile(file);
+
+    const url = await uploadImage(file);
+    setAddressProofUrl(url);
+  } catch (err) {
+    setError('Failed to upload address proof');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   // Validate document number based on selected document type
   const validateDocumentNumber = (docType: string, number: string): boolean => {
@@ -84,77 +140,140 @@ export default function KYCPage() {
   };
 
   // Check if KYC details are filled (identity doc is required, address proof is optional)
-  const hasIdentityDoc = selectedDoc && uploadedFile && documentNumber.trim() && !docNumberError;
+  const hasIdentityDoc =
+  selectedDoc &&
+  identityDocUrl &&
+  documentNumber.trim() &&
+  !docNumberError;
+
   const hasAddressProof = selectedAddressProof && addressProofFile;
 
-  const handleSubmitKyc = async () => {
-    if (!hasIdentityDoc) return;
-    
-    setIsSubmitting(true);
-    setError('');
-    try {
-      // Upload identity document
-      const formData = new FormData();
-      formData.append('image', uploadedFile!);
-      
-      const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/upload/image`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: formData,
-      });
-      
-      const uploadResult = await uploadResponse.json();
-      
-      if (!uploadResult.success) {
-        setError('Failed to upload identity document');
-        return;
-      }
 
-      // Upload address proof if provided
-      let addressProofUrl = null;
-      if (hasAddressProof) {
-        const addressFormData = new FormData();
-        addressFormData.append('image', addressProofFile!);
-        
-        const addressUploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/upload/image`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-          body: addressFormData,
-        });
-        
-        const addressUploadResult = await addressUploadResponse.json();
-        if (addressUploadResult.success) {
-          addressProofUrl = addressUploadResult.data.url;
-        }
-      }
+  const uploadImage = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('image', file);
 
-      // Submit KYC with uploaded document URLs
-      const kycResponse = await apiClient.submitKYC({
-        identityDocument: selectedDoc,
-        documentNumber: documentNumber.trim().toUpperCase().replace(/\s/g, ''),
-        documentImage: uploadResult.data.url,
-        ...(hasAddressProof && {
-          addressProofType: selectedAddressProof,
-          addressProofImage: addressProofUrl,
-        }),
-      });
-      
-      if (kycResponse.success) {
-        setKycSubmitted(true);
-      } else {
-        setError(kycResponse.message || 'Failed to submit KYC');
-      }
-    } catch (err: any) {
-      console.error('Error submitting KYC:', err);
-      setError(err?.message || 'Failed to submit KYC. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/upload/image`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('tripme_token')}`,
+      },
+      body: formData,
     }
-  };
+  );
+
+  const result = await res.json();
+
+  if (!result.success) {
+    throw new Error('Image upload failed');
+  }
+
+  return result.data.url;
+};
+
+
+
+
+  // const handleSubmitKyc = async () => {
+  //   if (!hasIdentityDoc) return;
+    
+  //   setIsSubmitting(true);
+  //   setError('');
+  //   try {
+  //     // Upload identity document
+  //     const formData = new FormData();
+  //     formData.append('image', uploadedFile!);
+      
+  //     const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/upload/image`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Authorization': `Bearer ${localStorage.getItem('token')}`,
+  //       },
+  //       body: formData,
+  //     });
+      
+  //     const uploadResult = await uploadResponse.json();
+      
+  //     if (!uploadResult.success) {
+  //       setError('Failed to upload identity document');
+  //       return;
+  //     }
+
+  //     // Upload address proof if provided
+  //     let addressProofUrl = null;
+  //     if (hasAddressProof) {
+  //       const addressFormData = new FormData();
+  //       addressFormData.append('image', addressProofFile!);
+        
+  //       const addressUploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/upload/image`, {
+  //         method: 'POST',
+  //         headers: {
+  //           'Authorization': `Bearer ${localStorage.getItem('token')}`,
+  //         },
+  //         body: addressFormData,
+  //       });
+        
+  //       const addressUploadResult = await addressUploadResponse.json();
+  //       if (addressUploadResult.success) {
+  //         addressProofUrl = addressUploadResult.data.url;
+  //       }
+  //     }
+
+  //     // Submit KYC with uploaded document URLs
+  //     const kycResponse = await apiClient.submitKYC({
+  //       identityDocument: selectedDoc,
+  //       documentNumber: documentNumber.trim().toUpperCase().replace(/\s/g, ''),
+  //       documentImage: uploadResult.data.url,
+  //       ...(hasAddressProof && {
+  //         addressProofType: selectedAddressProof,
+  //         addressProofImage: addressProofUrl,
+  //       }),
+  //     });
+      
+  //     if (kycResponse.success) {
+  //       setKycSubmitted(true);
+  //     } else {
+  //       setError(kycResponse.message || 'Failed to submit KYC');
+  //     }
+  //   } catch (err: any) {
+  //     console.error('Error submitting KYC:', err);
+  //     setError(err?.message || 'Failed to submit KYC. Please try again.');
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
+
+
+  const handleSubmitKyc = async () => {
+  if (!hasIdentityDoc) return;
+
+  setIsSubmitting(true);
+  setError('');
+
+  try {
+    const response = await apiClient.submitKYC({
+      identityDocument: selectedDoc,
+      documentNumber: documentNumber.trim().toUpperCase().replace(/\s/g, ''),
+      documentImage: identityDocUrl,
+      ...(addressProofUrl && {
+        addressProofType: selectedAddressProof,
+        addressProofImage: addressProofUrl,
+      }),
+    });
+
+    if (response.success) {
+      setKycSubmitted(true);
+    } else {
+      setError(response.message || 'Failed to submit KYC');
+    }
+  } catch (err: any) {
+    setError(err?.message || 'Failed to submit KYC');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const handleNext = () => {
     router.push('/host/property/new/review');
@@ -176,6 +295,11 @@ export default function KYCPage() {
   };
 
   const selectedDocInfo = identityDocTypes.find(d => d.id === selectedDoc);
+
+  if (!user) {
+  return null; // or loader
+}
+
 
   return (
     <OnboardingLayout

@@ -2,7 +2,7 @@
 
 import Button from "@/shared/components/ui/Button";
 import { motion, AnimatePresence } from "framer-motion";
-
+import { useRouter } from "next/navigation";
 
 interface MobileBookingBarProps {
   property: any;
@@ -13,6 +13,9 @@ interface MobileBookingBarProps {
   availabilityChecked: boolean;
   availabilityLoading: boolean;
   selectionStep: string;
+  ownerProperty: any;
+  setShowTimePrompt: (val: boolean) => void;
+  // setShowTimeSelector: (val: boolean) => void;
 
   formatPrice: (value: number) => string;
   formatDate: (date: Date) => string;
@@ -22,6 +25,7 @@ interface MobileBookingBarProps {
 
   checkAvailability: () => void;
   handleBooking: () => void;
+  setTimeConfirmed: (val: boolean) => void;
 }
 
 export default function MobileBookingBar({
@@ -38,7 +42,13 @@ export default function MobileBookingBar({
   setSelectionStep,
   checkAvailability,
   handleBooking,
+  ownerProperty,
+  setShowTimePrompt,
+  setTimeConfirmed,
 }: MobileBookingBarProps) {
+  const router = useRouter();
+  
+
 
   /* 🔔 Haptic Feedback (mobile safe) */
   const haptic = (type: "light" | "medium" = "light") => {
@@ -67,7 +77,8 @@ export default function MobileBookingBar({
         transition={{ type: "spring", stiffness: 260, damping: 22 }}
         className="lg:hidden fixed bottom-0 inset-x-0 z-50"
       >
-        <div className="bg-white border-t shadow-2xl px-4 py-3">
+        { !ownerProperty ? (
+          <div className="bg-white border-t shadow-2xl px-4 py-3">
 
           {/* Price + Dates */}
           <div className="flex items-center justify-between mb-2">
@@ -101,6 +112,7 @@ export default function MobileBookingBar({
                 onClick={() => {
                   haptic();
                   setShowDatePicker(true);
+                  setTimeConfirmed(true);
                   setSelectionStep("checkin");
                 }}
                 className="text-sm font-semibold text-indigo-600"
@@ -114,9 +126,15 @@ export default function MobileBookingBar({
           <Button
             onClick={() => {
               haptic("medium");
-              availabilityChecked && nights > 0
-                ? handleBooking()
-                : checkAvailability();
+               if (!availabilityChecked) {
+    setShowTimePrompt(true);
+    return;
+  }
+
+   handleBooking();
+              // availabilityChecked && nights > 0
+              //   ? handleBooking()
+              //   : checkAvailability();
             }}
             disabled={
               availabilityLoading ||
@@ -135,7 +153,17 @@ export default function MobileBookingBar({
               : "Check availability"}
           </Button>
 
-        </div>
+        </div>) :
+        ( <div className="bg-white border-t shadow-2xl px-4 py-3">
+    <Button
+      onClick={() => router.push(`/host/property/${property.id}/edit`)}
+      className="w-full py-3 rounded-xl font-semibold
+                 bg-gradient-to-r from-indigo-600 to-purple-600 text-white"
+    >
+      Edit your property
+    </Button>
+  </div>
+         )} 
       </motion.div>
     </AnimatePresence>
   );

@@ -104,6 +104,7 @@ interface OnboardingContextType {
   goToNextSubStep: () => string | null;
   goToPrevSubStep: () => string | null;
   getCurrentStepInfo: () => StepInfo;
+ 
 }
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);

@@ -373,17 +373,54 @@ class ApiClient {
     return this.request(`/listings/wishlist${queryString}`);
   }
 
-  async addToListingWishlist(listingId: string): Promise<ApiResponse<any>> {
-    return this.request(`/listings/${listingId}/wishlist`, {
+  async createWishList(data: {
+  name: string;
+  description?: string;
+  isPublic?: boolean;
+}): Promise<ApiResponse<any>> {
+    return this.request(`/wishlist`, {
       method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 
-  async removeFromListingWishlist(listingId: string): Promise<ApiResponse<any>> {
-    return this.request(`/listings/${listingId}/wishlist`, {
-      method: 'DELETE',
-    });
+  async getMyWishlists(): Promise<ApiResponse<any>> {
+  return this.request('/wishlist', {
+    method: 'GET',
+  });
+}
+
+
+  // async addToListingWishlist(listingId: string): Promise<ApiResponse<any>> {
+  //   return this.request(`/listings/${listingId}/wishlist`, {
+  //     method: 'POST',
+  //   });
+  // }
+async addToWishlist(
+  wishlistId: string,
+  data: {
+    itemType: 'Property' | 'Service';
+    itemId: string;
+    notes?: string;
   }
+) {
+  return this.request(`/wishlist/${wishlistId}/items`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+  // async removeFromListingWishlist(listingId: string): Promise<ApiResponse<any>> {
+  //   return this.request(`/wishlists/${wishlistId}/items`, {
+  //     method: 'DELETE',
+  //   });
+  // }
+  async removeFromWishlist(wishlistId: string, itemId: string) {
+  return this.request(`/wishlist/${wishlistId}/items/${itemId}`, {
+    method: 'DELETE',
+  });
+}
+
 
   async getListingStats(listingId: string, params?: any): Promise<ApiResponse<any>> {
     const queryString = params ? `?${new URLSearchParams(params).toString()}` : '';
@@ -933,6 +970,21 @@ class ApiClient {
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'DELETE',
+    });
+  }
+
+  // Email subscription endpoints
+  async subscribeEmail(email: string, name?: string, userId?: string, source?: string): Promise<ApiResponse<any>> {
+    return this.request('/email-subscription/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ email, name, userId, source }),
+    });
+  }
+
+  async unsubscribeEmail(email: string): Promise<ApiResponse<any>> {
+    return this.request('/email-subscription/unsubscribe', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
     });
   }
 }

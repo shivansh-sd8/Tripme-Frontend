@@ -249,7 +249,7 @@ const HostBookingsPage: React.FC = () => {
   }
 
   return (
-    <div className="pb-12">
+    <div className="pb-12 pt-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8">
@@ -282,7 +282,7 @@ const HostBookingsPage: React.FC = () => {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <Card className="p-6 bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-500 hover:scale-105">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
@@ -333,7 +333,61 @@ const HostBookingsPage: React.FC = () => {
                 </div>
               </div>
             </Card>
-          </div>
+          </div> */}
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+  {/* Total Bookings */}
+  <Card className="p-4 bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-2xl hover:shadow-xl transition-all duration-300 flex flex-col items-center justify-center text-center">
+    <div className="w-12 h-12 mb-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md shrink-0">
+      <Receipt className="w-6 h-6 text-white" />
+    </div>
+    <div className="space-y-1">
+      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total</p>
+      <p className="text-2xl font-bold text-gray-900 leading-none">
+        {bookings.length}
+      </p>
+    </div>
+  </Card>
+
+  {/* Pending */}
+  <Card className="p-4 bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-2xl hover:shadow-xl transition-all duration-300 flex flex-col items-center justify-center text-center">
+    <div className="w-12 h-12 mb-3 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-md shrink-0">
+      <Clock className="w-6 h-6 text-white" />
+    </div>
+    <div className="space-y-1">
+      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Pending</p>
+      <p className="text-2xl font-bold text-yellow-600 leading-none">
+        {bookings.filter(b => b.status === 'pending').length}
+      </p>
+    </div>
+  </Card>
+
+  {/* Confirmed */}
+  <Card className="p-4 bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-2xl hover:shadow-xl transition-all duration-300 flex flex-col items-center justify-center text-center">
+    <div className="w-12 h-12 mb-3 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-md shrink-0">
+      <CheckCircle className="w-6 h-6 text-white" />
+    </div>
+    <div className="space-y-1">
+      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Confirmed</p>
+      <p className="text-2xl font-bold text-green-600 leading-none">
+        {bookings.filter(b => b.status === 'confirmed').length}
+      </p>
+    </div>
+  </Card>
+
+  {/* Total Earnings */}
+  <Card className="p-4 bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-2xl hover:shadow-xl transition-all duration-300 flex flex-col items-center justify-center text-center">
+    <div className="w-12 h-12 mb-3 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md shrink-0">
+      <span className="text-white font-bold text-lg">₹</span>
+    </div>
+    <div className="space-y-1 w-full">
+      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Earnings</p>
+      <p className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight break-words">
+        {formatPrice(bookings.filter(b => b.status === 'confirmed').reduce((sum, b) => sum + b.totalAmount, 0))}
+      </p>
+    </div>
+  </Card>
+</div>
 
           {/* Filters */}
           <div className="mb-8">
@@ -373,214 +427,170 @@ const HostBookingsPage: React.FC = () => {
           </div>
 
           {/* Bookings List */}
-          {filteredBookings.length === 0 ? (
-            <Card className="p-12 text-center bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-500">
-              <div className="w-20 h-20 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Receipt className="w-10 h-10 text-purple-600" />
+         {filteredBookings.length === 0 ? (
+  <Card className="p-8 md:p-12 text-center bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl">
+    <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+      <Receipt className="w-8 h-8 md:w-10 md:h-10 text-purple-600" />
+    </div>
+    <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-3">No bookings found</h3>
+    <p className="text-sm md:text-base text-gray-600 mb-8 max-w-xs md:max-w-md mx-auto">
+      {bookings.length === 0 
+        ? "You haven't received any booking requests yet. Promote your listings to get more bookings."
+        : "No bookings match your current filters. Try adjusting your search criteria."
+      }
+    </p>
+    <Button 
+      onClick={() => router.push('/host/listings')}
+      className="w-full md:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium rounded-xl py-6"
+    >
+      <Home className="w-5 h-5 mr-2" />
+      Manage Listings
+    </Button>
+  </Card>
+) : (
+  <div className="space-y-4 md:space-y-6">
+    {filteredBookings.map((booking) => (
+      <Card 
+        key={booking._id}
+        className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-2xl overflow-hidden active:scale-[0.98] transition-all"
+      >
+        <div className="p-4 md:p-6">
+          <div className="flex flex-col gap-4">
+            
+            {/* 1. Header: Image + Title + Status Badge */}
+            <div className="flex gap-4">
+              <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden flex-shrink-0 shadow-inner">
+                <img
+                  src={
+                    (booking.listing?.images?.[0] as any)?.url || 
+                    (typeof booking.listing?.images?.[0] === 'string' ? booking.listing.images[0] : null) ||
+                    (booking.service?.media?.[0] as any)?.url ||
+                    (typeof booking.service?.media?.[0] === 'string' ? booking.service.media[0] : null) ||
+                    '/placeholder-property.jpg'
+                  }
+                  alt={booking.listing?.title || booking.service?.title}
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">No bookings found</h3>
-              <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                {bookings.length === 0 
-                  ? "You haven't received any booking requests yet. Promote your listings to get more bookings."
-                  : "No bookings match your current filters. Try adjusting your search criteria."
-                }
-              </p>
-              <Button 
-                onClick={() => router.push('/host/listings')}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium rounded-xl transition-all duration-300 hover:shadow-xl hover:scale-105 border-0 shadow-lg"
-              >
-                <Home className="w-5 h-5 mr-2" />
-                Manage Listings
-              </Button>
-            </Card>
-          ) : (
-            <div className="space-y-6">
-              {filteredBookings.map((booking) => (
-                <Card 
-                  key={booking._id}
-                  className="bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-500 hover:scale-105"
-                >
-                  <div className="p-6">
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                      {/* Left side - Booking details */}
-                      <div className="flex-1">
-                        <div className="flex items-start gap-4">
-                          {/* Property/Service Image */}
-                          <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
-                            <img
-                              src={
-                                (booking.listing?.images?.[0] as any)?.url || 
-                                (typeof booking.listing?.images?.[0] === 'string' ? booking.listing.images[0] : null) ||
-                                (booking.service?.media?.[0] as any)?.url ||
-                                (typeof booking.service?.media?.[0] === 'string' ? booking.service.media[0] : null) ||
-                                '/placeholder-property.jpg'
-                              }
-                              alt={booking.listing?.title || booking.service?.title}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
 
-                          {/* Booking Details */}
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900 mb-1">
-                              {booking.listing?.title || booking.service?.title}
-                            </h3>
-                            <p className="text-sm text-gray-600 mb-2">
-                              {booking.user?.name || 'Guest'} • {booking.guests.adults} guests
-                            </p>
-                            <div className="flex items-center gap-4 text-sm text-gray-600">
-                              <span>{formatDate(booking.checkIn)} - {formatDate(booking.checkOut)}</span>
-                              <span className="font-semibold text-gray-900">{formatPrice(booking.totalAmount)}</span>
-                            </div>
-                            
-                            {/* Check-in/out Times */}
-                            {(booking.checkInTime || booking.checkOutTime) && (
-                              <div className="flex items-center gap-3 mt-1 text-xs">
-                                {booking.checkInTime && (
-                                  <span className="text-blue-600 flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    In: {(() => {
-                                      const [h, m] = booking.checkInTime.split(':').map(Number);
-                                      const period = h >= 12 ? 'PM' : 'AM';
-                                      const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
-                                      return `${hour}:${m.toString().padStart(2, '0')} ${period}`;
-                                    })()}
-                                  </span>
-                                )}
-                                {booking.checkOutTime && (
-                                  <span className="text-purple-600 flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    Out: {(() => {
-                                      const [h, m] = booking.checkOutTime.split(':').map(Number);
-                                      const period = h >= 12 ? 'PM' : 'AM';
-                                      const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
-                                      return `${hour}:${m.toString().padStart(2, '0')} ${period}`;
-                                    })()}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                            
-                            {/* Check-in Status */}
-                            {booking.checkedIn && (
-                              <div className="mt-2 p-2 bg-green-50 rounded-lg">
-                                <div className="flex items-center gap-2 text-sm">
-                                  <CheckCircle className="w-4 h-4 text-green-600" />
-                                  <span className="text-green-700 font-medium">Guest Checked In</span>
-                                </div>
-                                <p className="text-xs text-green-600 mt-1">
-                                  {formatDateTime(booking.checkedInAt || '')}
-                                </p>
-                              </div>
-                            )}
-                            
-                            {/* Earnings Display */}
-                            {booking.hostFee && booking.hostFee > 0 && (
-                              <div className="mt-2 p-2 bg-green-50 rounded-lg">
-                                <div className="flex justify-between items-center text-sm">
-                                  <span className="text-green-700 font-medium">Your Earning:</span>
-                                  <span className="text-green-800 font-bold">{formatPrice(booking.hostFee)}</span>
-                                </div>
-                                <p className="text-xs text-green-600">After platform fee</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right side - Actions and Price */}
-                      <div className="lg:text-right">
-                        <div className="mb-4">
-                          <p className="text-2xl font-bold text-gray-900">{formatPrice(booking.totalAmount)}</p>
-                          <p className="text-sm text-gray-600">Total Amount</p>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex flex-col gap-2">
-                          {/* View Details Button */}
-                          <Button
-                            onClick={() => handleViewDetails(booking._id)}
-                            variant="outline"
-                            className="border-purple-200 text-purple-700 hover:bg-purple-50 font-semibold py-2 px-4 rounded-xl transition-all duration-200"
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            View Details
-                          </Button>
-
-                          {/* Status-specific actions */}
-                          {booking.status === 'pending' && (
-                            <div className="flex gap-2">
-                              <Button
-                                onClick={() => handleStatusUpdate(booking._id, 'confirmed')}
-                                disabled={updatingBooking === booking._id}
-                                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold py-2 px-4 rounded-xl transition-all duration-200 hover:shadow-lg"
-                              >
-                                {updatingBooking === booking._id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <CheckCircle className="w-4 h-4 mr-1" />
-                                    Accept
-                                  </>
-                                )}
-                              </Button>
-                              <Button
-                                onClick={() => handleStatusUpdate(booking._id, 'cancelled')}
-                                disabled={updatingBooking === booking._id}
-                                variant="outline"
-                                className="border-red-200 text-red-700 hover:bg-red-50 font-semibold py-2 px-4 rounded-xl transition-all duration-200"
-                              >
-                                {updatingBooking === booking._id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <XCircle className="w-4 h-4 mr-1" />
-                                    Cancel
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          )}
-
-                          {booking.status === 'confirmed' && (
-                            <div className="flex flex-col gap-2">
-                              <div className="text-green-600 font-semibold">
-                                <CheckCircle className="w-5 h-5 inline mr-1" />
-                                Confirmed
-                              </div>
-                              <Button
-                                onClick={() => handleStatusUpdate(booking._id, 'cancelled')}
-                                disabled={updatingBooking === booking._id}
-                                variant="outline"
-                                size="sm"
-                                className="border-red-200 text-red-700 hover:bg-red-50 text-xs"
-                              >
-                                {updatingBooking === booking._id ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <>
-                                    <XCircle className="w-3 h-3 mr-1" />
-                                    Cancel
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          )}
-
-                          {booking.status === 'cancelled' && (
-                            <div className="text-red-600 font-semibold">
-                              <XCircle className="w-5 h-5 inline mr-1" />
-                              Cancelled
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-start mb-1">
+                   <h3 className="font-bold text-gray-900 truncate pr-2">
+                    {booking.listing?.title || booking.service?.title}
+                  </h3>
+                </div>
+                <p className="text-xs md:text-sm text-gray-500 flex items-center gap-1 mb-2">
+                   <User className="w-3 h-3" />
+                   {booking.user?.name || 'Guest'} • {booking.guests.adults} guests
+                </p>
+                {/* Mobile Price Display */}
+                <p className="text-lg font-black text-gray-900 md:hidden">
+                  {formatPrice(booking.totalAmount)}
+                </p>
+              </div>
             </div>
-          )}
+
+            {/* 2. Detail Grid: Dates & Times */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-gray-50 rounded-xl">
+              <div className="flex items-center gap-3">
+                <Calendar className="w-4 h-4 text-purple-500" />
+                <div className="text-xs">
+                  <p className="text-gray-400 font-medium uppercase tracking-tighter">Stay Dates</p>
+                  <p className="text-gray-900 font-semibold">{formatDate(booking.checkIn)} - {formatDate(booking.checkOut)}</p>
+                </div>
+              </div>
+              
+              {(booking.checkInTime || booking.checkOutTime) && (
+                <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-gray-200 pt-2 sm:pt-0 sm:pl-3">
+                  <Clock className="w-4 h-4 text-blue-500" />
+                  <div className="text-xs flex gap-3">
+                    {booking.checkInTime && (
+                      <div>
+                        <p className="text-gray-400 font-medium uppercase tracking-tighter">In</p>
+                        <p className="font-semibold text-blue-600">{booking.checkInTime}</p>
+                      </div>
+                    )}
+                    {booking.checkOutTime && (
+                      <div>
+                        <p className="text-gray-400 font-medium uppercase tracking-tighter">Out</p>
+                        <p className="font-semibold text-purple-600">{booking.checkOutTime}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 3. Status Alerts (Checked In / Earnings) */}
+            <div className="space-y-2">
+              {booking.checkedIn && (
+                <div className="flex items-center justify-between p-3 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100">
+                  <div className="flex items-center gap-2 text-sm font-bold">
+                    <CheckCircle className="w-4 h-4" /> Guest Checked In
+                  </div>
+                  <span className="text-[10px] opacity-70">{formatDateTime(booking.checkedInAt || '')}</span>
+                </div>
+              )}
+
+              {booking.hostFee && booking.hostFee > 0 && (
+                <div className="flex justify-between items-center p-3 bg-blue-50 text-blue-700 rounded-xl border border-blue-100 text-sm">
+                  <span className="font-medium">Your Payout:</span>
+                  <span className="font-black text-blue-800">{formatPrice(booking.hostFee)}</span>
+                </div>
+              )}
+            </div>
+
+            {/* 4. Action Bar */}
+            <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-gray-100">
+              <Button
+                onClick={() => handleViewDetails(booking._id)}
+                variant="outline"
+                className="flex-1 border-gray-200 text-gray-700 font-bold rounded-xl h-12 order-2 sm:order-1"
+              >
+                <Eye className="w-4 h-4 mr-2" /> View Details
+              </Button>
+
+              <div className="flex gap-2 flex-1 order-1 sm:order-2">
+                {booking.status === 'pending' && (
+                  <>
+                    <Button
+                      onClick={() => handleStatusUpdate(booking._id, 'confirmed')}
+                      disabled={updatingBooking === booking._id}
+                      className="flex-1 bg-emerald-600 text-white font-bold rounded-xl h-12 shadow-lg shadow-emerald-100"
+                    >
+                      {updatingBooking === booking._id ? <Loader2 className="animate-spin" /> : 'Accept'}
+                    </Button>
+                    <Button
+                      onClick={() => handleStatusUpdate(booking._id, 'cancelled')}
+                      disabled={updatingBooking === booking._id}
+                      variant="outline"
+                      className="w-14 border-red-100 text-red-600 rounded-xl h-12"
+                    >
+                      <XCircle className="w-5 h-5" />
+                    </Button>
+                  </>
+                )}
+
+                {booking.status === 'confirmed' && (
+                   <div className="flex-1 flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 rounded-xl font-bold text-sm border border-emerald-100">
+                      <CheckCircle className="w-4 h-4" /> Confirmed
+                   </div>
+                )}
+
+                {booking.status === 'cancelled' && (
+                   <div className="flex-1 flex items-center justify-center gap-2 bg-red-50 text-red-700 rounded-xl font-bold text-sm border border-red-100">
+                      <XCircle className="w-4 h-4" /> Cancelled
+                   </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </Card>
+    ))}
+  </div>
+)}
         </div>
       </div>
     );

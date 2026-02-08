@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #ffffff !important;
+  --foreground: #171717 !important;
 }
 
 @theme inline {
@@ -13,12 +13,12 @@
   --font-heading: var(--font-poppins);
 }
 
-@media (prefers-color-scheme: dark) {
+/* @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
   }
-}
+} */
 
 body {
   background: var(--background);
@@ -254,6 +254,32 @@ body {
 
 .animate-icon-pulse {
   animation: iconPulse 2s ease-in-out infinite;
+}
+
+/* FULL mobile fix for react-date-range */
+.rdrCalendarWrapper {
+  width: 100% !important;
+}
+
+.rdrMonth {
+  width: 100% !important;
+}
+
+.rdrWeekDays {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+}
+
+.rdrDays {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+}
+
+.rdrDay {
+  width: 100% !important;
+  flex: none !important;
 }
 
 /* Calendar styles are now handled in separate CSS modules:

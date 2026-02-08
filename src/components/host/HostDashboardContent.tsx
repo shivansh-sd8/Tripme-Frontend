@@ -494,7 +494,7 @@ const HostDashboardContent: React.FC = () => {
                     <Home className="w-5 h-5 text-purple-600" />
                   </div>
                   <div className="text-left">
-                    <div className="font-bold text-lg">Manage Listings</div>
+                    <div className="font-bold text-md md:text-lg">Manage Listings</div>
                     <div className="text-xs opacity-70">View & edit properties</div>
                   </div>
                 </div>
@@ -510,7 +510,7 @@ const HostDashboardContent: React.FC = () => {
                     <Briefcase className="w-5 h-5 text-indigo-600" />
                   </div>
                   <div className="text-left">
-                    <div className="font-bold text-lg">Manage Services</div>
+                    <div className="font-bold text-md md:text-lg">Manage Services</div>
                     <div className="text-xs opacity-70">View & edit services</div>
                   </div>
                 </div>
