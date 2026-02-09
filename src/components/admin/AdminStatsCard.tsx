@@ -57,6 +57,7 @@ const AdminStatsCard: React.FC<AdminStatsCardProps> = ({
                 <dd className="mt-1">
                   <div className="text-xs text-gray-500">
                     {subtitle}
+                    Hi There
                   </div>
                 </dd>
               )}
