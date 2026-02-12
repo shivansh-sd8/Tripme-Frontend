@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Minus, Plus } from 'lucide-react';
 import OnboardingLayout from '@/components/host/OnboardingLayout';
 import { useOnboarding } from '@/core/context/OnboardingContext';
-
+import { useParams, useSearchParams } from "next/navigation";
 interface CounterProps {
   label: string;
   value: number;
@@ -13,6 +13,8 @@ interface CounterProps {
   min?: number;
   max?: number;
 }
+
+
 
 function Counter({ label, value, onChange, min = 0, max = 50 }: CounterProps) {
   return (
@@ -48,6 +50,13 @@ export default function FloorPlanPage() {
   const [beds, setBeds] = useState(data.floorPlan?.beds || 1);
   const [bathrooms, setBathrooms] = useState(data.floorPlan?.bathrooms || 1);
 
+   const params = useParams();
+    const searchParams = useSearchParams();
+    const id = params.id;
+    const isEditMode = searchParams.get("mode") === "edit";
+    const returnToReview = searchParams.get("return") === "review";
+
+
   const handleNext = () => {
     updateData({
       floorPlan: {
@@ -57,11 +66,27 @@ export default function FloorPlanPage() {
         bathrooms,
       },
     });
-    router.push('/host/property/new/location');
+
+     if (returnToReview) {
+    // Return to review page
+    if (isEditMode && id) {
+      router.push(`/host/property/${id}/review?mode=edit`);
+    } else {
+      router.push('/host/property/new/review');
+    }
+  } else {
+     if(isEditMode && id){
+      router.push(`/host/property/${id}/location?mode=edit`);
+    }else{
+      router.push('/host/property/new/location');
+    }
+  }
   };
+
 
   return (
     <OnboardingLayout
+    flow="property"
       currentMainStep={1}
       currentSubStep="floor-plan"
       onNext={handleNext}

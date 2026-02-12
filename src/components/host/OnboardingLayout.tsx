@@ -5,6 +5,7 @@ import { ArrowLeft, X } from 'lucide-react';
 import Image from 'next/image';
 import OnboardingProgress, { StepIndicator } from './OnboardingProgress';
 import { useOnboarding, ONBOARDING_STEPS } from '@/core/context/OnboardingContext';
+import { serviceOnboarding ,SERVICE_ONBOARDING_STEPS  } from '@/core/context/ServiceContext';
 import Button from '../ui/Button';
 
 interface OnboardingLayoutProps {
@@ -17,13 +18,15 @@ interface OnboardingLayoutProps {
   showNextButton?: boolean;
   nextDisabled?: boolean;
   nextLabel?: string;
+  flow: "property" | "service";
 }
 
 export default function OnboardingLayout({
   children,
   currentMainStep,
   currentSubStep,
-  onBack,
+  flow,
+  // onBack,
   onNext,
   showBackButton = true,
   showNextButton = true,
@@ -31,35 +34,67 @@ export default function OnboardingLayout({
   nextLabel = 'Next',
 }: OnboardingLayoutProps) {
   const router = useRouter();
-  const { goToPrevSubStep, setCurrentMainStep, setCurrentSubStep } = useOnboarding();
+  // const { goToPrevSubStep, setCurrentMainStep, setCurrentSubStep } = useOnboarding();
+const onboarding =
+  flow === "service"
+    ? serviceOnboarding()
+    : useOnboarding();
 
+    const {
+  goToPrevSubStep,
+  setCurrentMainStep,
+  setCurrentSubStep,
+} = onboarding;
   // Sync context state when component mounts
   React.useEffect(() => {
     setCurrentMainStep(currentMainStep);
     setCurrentSubStep(currentSubStep);
   }, [currentMainStep, currentSubStep, setCurrentMainStep, setCurrentSubStep]);
 
+  // const handleBack = () => {
+  //   if (onBack) {
+  //     onBack();
+  //   } else {
+  //     const prevUrl = goToPrevSubStep();
+  //     if (prevUrl) {
+  //       router.push(prevUrl);
+  //     } else {
+  //       router.push('/');
+  //     }
+  //   }
+  // };
+
   const handleBack = () => {
-    if (onBack) {
-      onBack();
-    } else {
-      const prevUrl = goToPrevSubStep();
-      if (prevUrl) {
-        router.push(prevUrl);
-      } else {
-        router.push('/');
-      }
-    }
-  };
+  const prevUrl = goToPrevSubStep();
+
+  if (prevUrl) {
+    router.push(prevUrl);
+  } else {
+    // Airbnb behavior: exit onboarding only on first step
+    router.push("/host/dashboard");
+  }
+};
+
 
   const handleExit = () => {
     router.push('/host/dashboard');
   };
 
-  const isFirstSubStep = () => {
-    const stepInfo = ONBOARDING_STEPS[currentMainStep as keyof typeof ONBOARDING_STEPS];
-    return currentMainStep === 1 && stepInfo.subSteps[0] === currentSubStep;
-  };
+  // const isFirstSubStep = () => {
+  //   const stepInfo = ONBOARDING_STEPS[currentMainStep as keyof typeof ONBOARDING_STEPS];
+  //   return currentMainStep === 1 && stepInfo.subSteps[0] === currentSubStep;
+  // };
+
+  const STEPS =
+  flow === "service"
+    ? SERVICE_ONBOARDING_STEPS
+    : ONBOARDING_STEPS;
+
+const isFirstSubStep = () => {
+  const stepInfo = STEPS[currentMainStep as keyof typeof STEPS];
+  return currentMainStep === 1 && stepInfo.subSteps[0] === currentSubStep;
+};
+
 
   return (
     <div className="min-h-screen bg-white flex flex-col">

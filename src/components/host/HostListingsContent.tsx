@@ -1008,7 +1008,7 @@ const HostListingsContent: React.FC = () => {
                 variant="outline"
                 size="sm"
                 className="rounded-xl border-purple-100 bg-purple-50/30 text-xs font-bold py-5"
-                onClick={() => router.push(`/host/property/${listing._id}/edit`)}
+                onClick={() => router.push(`/host/property/${listing._id}`)}
               >
                 <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit
               </Button>

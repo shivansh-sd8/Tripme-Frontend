@@ -13,6 +13,7 @@ import {
   Castle,
   Tent
 } from 'lucide-react';
+import { useParams, useSearchParams } from "next/navigation";
 import OnboardingLayout from '@/components/host/OnboardingLayout';
 import { useOnboarding, StructureType } from '@/core/context/OnboardingContext';
 
@@ -37,6 +38,12 @@ export default function StructurePage() {
   const { data, updateData } = useOnboarding();
   const [selected, setSelected] = useState<StructureType | undefined>(data.structureType);
 
+   const params = useParams();
+    const searchParams = useSearchParams();
+    const id = params.id;
+    const isEditMode = searchParams.get("mode") === "edit";
+    const returnToReview = searchParams.get("return") === "review";
+
   const handleSelect = (type: StructureType) => {
     setSelected(type);
     updateData({ structureType: type });
@@ -44,11 +51,26 @@ export default function StructurePage() {
 
   const handleNext = () => {
     if (!selected) return;
-    router.push('/host/property/new/privacy-type');
+
+     if (returnToReview) {
+    // Return to review page
+    if (isEditMode && id) {
+      router.push(`/host/property/${id}/review?mode=edit`);
+    } else {
+      router.push('/host/property/new/review');
+    }
+  } else{
+    if(isEditMode && id){
+      router.push(`/host/property/${id}/privacy-type?mode=edit`);
+    }else{
+      router.push('/host/property/new/privacy-type');
+    }
+  }
   };
 
   return (
     <OnboardingLayout
+    flow="property"
       currentMainStep={1}
       currentSubStep="structure"
       onNext={handleNext}
