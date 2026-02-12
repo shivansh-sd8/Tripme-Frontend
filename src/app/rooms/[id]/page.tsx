@@ -122,6 +122,7 @@ export default function PropertyDetailsPage() {
   const { setHideBottomNav ,setHideHeader} = useUI();
   const { hideHeader } = useUI();
   const [timeConfirmed, setTimeConfirmed] = useState(false);
+  const [searchExpanded, setSearchExpanded] = useState(false);
   
 
 const [calendarAnchor, setCalendarAnchor] =
@@ -468,6 +469,20 @@ const handleFavorite = async (stayId: string) => {
   setFavorites(prev => new Set(prev).add(stayId));
   setIsFavorite(true);
 };
+
+
+  useEffect(() => {
+  const mq = window.matchMedia("(max-width: 1023px)");
+
+  const update = () => setHideHeader(mq.matches);
+  update();
+
+  mq.addEventListener("change", update);
+  return () => {
+    mq.removeEventListener("change", update);
+    setHideHeader(false);
+  };
+}, []);
 
 
 const handleShare = async () => {
@@ -1541,7 +1556,10 @@ const saveToExistingWishlist = async (wishlistId: string) => {
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
-        <Header />
+        <Header
+        searchExpanded={searchExpanded}
+        onSearchToggle={setSearchExpanded}
+         />
         <div className="pt-40 flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-gray-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-6"></div>

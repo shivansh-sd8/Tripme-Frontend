@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import OnboardingLayout from '@/components/host/OnboardingLayout';
 import { useOnboarding } from '@/core/context/OnboardingContext';
+import { useParams, useSearchParams } from "next/navigation";
+
 
 const amenitiesList = [
   { id: 'wifi', label: 'Wifi', icon: Wifi },
@@ -39,6 +41,12 @@ export default function AmenitiesPage() {
   const { data, updateData } = useOnboarding();
   const [selected, setSelected] = useState<string[]>(data.amenities || []);
 
+   const params = useParams();
+    const searchParams = useSearchParams();
+    const id = params.id;
+    const isEditMode = searchParams.get("mode") === "edit";
+     const returnToReview = searchParams.get("return") === "review";
+
   const toggleAmenity = (id: string) => {
     setSelected(prev => 
       prev.includes(id) 
@@ -50,11 +58,26 @@ export default function AmenitiesPage() {
   const handleNext = () => {
     updateData({ amenities: selected });
     // Move to Step 3: pricing
-    router.push('/host/property/new/pricing');
+     if (returnToReview) {
+      // Return to review page
+      if (isEditMode && id) {
+        router.push(`/host/property/${id}/review?mode=edit`);
+      } else {
+        router.push('/host/property/new/review');
+      }
+    } else {
+    if (isEditMode && id) {
+    router.push(`/host/property/${id}/pricing?mode=edit`);
+  } else {
+   router.push('/host/property/new/pricing');
+  }
+}
+    
   };
 
   return (
     <OnboardingLayout
+    flow="property"
       currentMainStep={2}
       currentSubStep="amenities"
       onNext={handleNext}

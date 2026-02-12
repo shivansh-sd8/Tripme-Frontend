@@ -1,0 +1,1 @@
+export { default } from "@/app/host/(new-property)/service/new/groupSize/page";

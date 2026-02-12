@@ -112,7 +112,7 @@ export default function PricingPage() {
   };
 
   return (
-    <OnboardingLayout
+    <OnboardingLayout flow='property'
       currentMainStep={3}
       currentSubStep="pricing"
       onNext={handleNext}

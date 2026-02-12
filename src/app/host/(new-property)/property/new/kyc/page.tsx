@@ -2,7 +2,7 @@
 import React, { useState ,useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-
+import { useParams, useSearchParams } from "next/navigation";
 import { 
   Shield, 
   Upload, 
@@ -48,8 +48,16 @@ export default function KYCPage() {
   const [docNumberError, setDocNumberError] = useState('');
   const [identityDocUrl, setIdentityDocUrl] = useState<string | null>(null);
   const [addressProofUrl, setAddressProofUrl] = useState<string | null>(null);
+  // Add this with your other state variables
+const [isGracePeriodExpired, setIsGracePeriodExpired] = useState(false);
+const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
   const [checkingKyc, setCheckingKyc] = useState(true);
-   const { user } = useAuth();
+   const { user  ,refreshUser} = useAuth();
+
+    const params = useParams();
+     const searchParams = useSearchParams();
+     const id = params.id;
+     const isEditMode = searchParams.get("mode") === "edit";
    
 
 
@@ -69,13 +77,44 @@ export default function KYCPage() {
   //   }
   // };
 
+//   const handleRefreshUser = async () => {
+ 
+//   await refreshUser(true);
+//   console.log('User refreshed:', user);
+// };
+useEffect(() => {
+  // Only refresh once when component mounts
+  const initializeKYC = async () => {
+    await refreshUser(true);
+
+    if (user?.kyc?.deadline) {
+      const deadline = new Date(user.kyc.deadline);
+      const now = new Date();
+      const timeDiff = deadline.getTime() - now.getTime();
+      const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+      
+      setIsGracePeriodExpired(daysDiff < 0);
+      setDaysRemaining(daysDiff > 0 ? daysDiff : 0);
+    }
+    console.log('User refreshed:', user);
+  };
+  
+  initializeKYC();
+}, []);
+
   useEffect(() => {
-  if (user?.isVerified) {
+  if (user?.kyc?.status === "pending" || user?.kyc?.status === "verified") {
     console.log("User is verified", user);
-    router.replace('/host/property/new/review');
+     if(id && isEditMode) {
+     router.replace(`/host/property/${id}/review?mode=edit`);
+    }
+    else{
+  router.replace('/host/property/new/review');
+    }
+
   }
-  console.log("User is not verified", user);
-}, [user]);
+  console.log("User is not verified", user?.kyc?.status);
+}, [user ]);
 
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,11 +137,7 @@ export default function KYCPage() {
 
 
 
-  // const handleAddressProofFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   if (e.target.files && e.target.files[0]) {
-  //     setAddressProofFile(e.target.files[0]);
-  //   }
-  // };
+  
   const handleAddressProofFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
   if (!e.target.files?.[0]) return;
 
@@ -280,20 +315,37 @@ export default function KYCPage() {
   };
 
   // Determine button label and action
+  // const getNextLabel = () => {
+  //   if (kycSubmitted) return 'Continue';
+  //   if (hasIdentityDoc) return isSubmitting ? 'Submitting...' : 'Submit KYC';
+  //   return 'Skip for now';
+  // };
+
   const getNextLabel = () => {
-    if (kycSubmitted) return 'Continue';
-    if (hasIdentityDoc) return isSubmitting ? 'Submitting...' : 'Submit KYC';
-    return 'Skip for now';
-  };
+  if (kycSubmitted) return 'Continue';
+  if (isGracePeriodExpired) {
+    return hasIdentityDoc ? isSubmitting ? 'Submitting...' : 'Submit KYC' : 'Submit KYC Required';
+  }
+  if (hasIdentityDoc) return isSubmitting ? 'Submitting...' : 'Submit KYC';
+  return 'Skip for now';
+};
+
+  // const handleNextAction = () => {
+  //   if (kycSubmitted || !hasIdentityDoc) {
+  //     handleNext();
+  //   } else {
+  //     handleSubmitKyc();
+  //   }
+  // };
 
   const handleNextAction = () => {
-    if (kycSubmitted || !hasIdentityDoc) {
-      handleNext();
-    } else {
-      handleSubmitKyc();
-    }
-  };
-
+  if (kycSubmitted || (!isGracePeriodExpired && !hasIdentityDoc)) {
+    handleNext();
+  } else {
+    handleSubmitKyc();
+  }
+};
+  
   const selectedDocInfo = identityDocTypes.find(d => d.id === selectedDoc);
 
   if (!user) {
@@ -303,6 +355,7 @@ export default function KYCPage() {
 
   return (
     <OnboardingLayout
+    flow="property"
       currentMainStep={3}
       currentSubStep="kyc"
       onNext={handleNextAction}
@@ -325,7 +378,7 @@ export default function KYCPage() {
         </p>
 
         {/* 15-day grace period notice */}
-        <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+        {/* <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-xl">
           <div className="flex items-start gap-3">
             <Clock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <div>
@@ -336,7 +389,38 @@ export default function KYCPage() {
               </p>
             </div>
           </div>
-        </div>
+        </div> */}
+
+        {/* Grace period notice */}
+<div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+  <div className="flex items-start gap-3">
+    <Clock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+    <div>
+      {isGracePeriodExpired ? (
+        <>
+          <p className="font-medium text-red-900">Grace period expired</p>
+          <p className="text-sm text-red-700 mt-1">
+            Your 15-day grace period for KYC verification has ended. 
+            You must complete KYC verification to continue hosting.
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="font-medium text-amber-900">
+            {daysRemaining !== null && daysRemaining <= 3 
+              ? `Grace period ending soon (${daysRemaining} days left)` 
+              : 'Not required right now'
+            }
+          </p>
+          <p className="text-sm text-amber-700 mt-1">
+            You have <strong>{daysRemaining || 15} days</strong> after publishing your listing to complete KYC verification. 
+            Your listing will remain active during this period. You can skip this step and complete it later from your dashboard.
+          </p>
+        </>
+      )}
+    </div>
+  </div>
+</div>
 
         {/* Document Selection */}
         <div className="mb-6">

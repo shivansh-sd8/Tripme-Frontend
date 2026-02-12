@@ -19,6 +19,7 @@ export interface User {
     documentImage?: string;
     status: 'pending' | 'verified' | 'rejected' | 'not_submitted';
     rejectionReason?: string;
+    deadline?: string;
   };
 }
 

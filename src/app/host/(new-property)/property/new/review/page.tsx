@@ -1,20 +1,60 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState , useEffect} from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { CheckCircle, MapPin, Users, Bed, Bath, Home, Clock, Shield, Image } from 'lucide-react';
+import { CheckCircle, MapPin, Users, Bed, Bath, Home, Clock, Shield, Image ,Edit , Zap, Dog, PartyPopper, Camera, Car} from 'lucide-react';
 import OnboardingLayout from '@/components/host/OnboardingLayout';
 import { useOnboarding } from '@/core/context/OnboardingContext';
 import { apiClient } from '@/infrastructure/api/clients/api-client';
 import { useAuth } from '@/core/store/auth-context';
-
+import { useParams, useSearchParams } from "next/navigation";
+// Add this with other imports
 export default function ReviewPage() {
   const router = useRouter();
   const { data, resetData } = useOnboarding();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser ,refreshUser} = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [kycStatus, setKycStatus] = useState<string | null>(null);
+  
+   const params = useParams();
+    const searchParams = useSearchParams();
+    const id = params.id;
+    const isEditMode = searchParams.get("mode") === "edit";
 
+
+    useEffect(() => {
+      // Only refresh once when component mounts
+      const initializeKYC = async () => {
+        await refreshUser(true);
+      };
+      
+      initializeKYC();
+    }, []);
+
+    useEffect(() => {
+      console.log(user?.kyc?.status);
+      setKycStatus(user?.kyc?.status || null);
+    }, [user]);
+
+    // Helper function to generate edit URL
+  const getEditUrl = (step: string) => {
+    if (isEditMode && id) {
+          return `/host/property/${id}/${step}?mode=edit&return=review`;
+
+    }
+    return `/host/property/new/${step}`;
+  };
+
+     const EditButton = ({ step }: { step: string }) => (
+    <button
+      onClick={() => router.push(getEditUrl(step))}
+      className="flex items-center gap-1 px-3 py-1 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded-lg transition-colors"
+    >
+      <Edit className="w-3 h-3" />
+      Edit
+    </button>
+  );
   const handlePublish = async () => {
     setIsSubmitting(true);
     setError(null);
@@ -92,14 +132,24 @@ export default function ReviewPage() {
           securityDeposit: data.pricing?.securityDeposit || 0,
           weeklyDiscount: data.pricing?.weeklyDiscount || 0,
           monthlyDiscount: data.pricing?.monthlyDiscount || 0,
-          weekendPremium: data.pricing?.weekendPremium || 0,
+          // weekendPremium: data.pricing?.weekendPremium || 0,
           ...(data.pricing?.anytimeCheckInEnabled && {
             basePrice24Hour: data.pricing.anytimeCheckInPrice,
           }),
         },
-        minNights: data.availability?.minNights || 1,
-        maxNights: data.availability?.maxNights || 365,
-        instantBook: data.availability?.instantBook ?? true,
+         bookingSettings: {
+    instantBookable: data.availability?.instantBook ?? true,
+    minStay: data.availability?.minNights || 1,
+    maxStay: data.availability?.maxNights || 365,
+    // cancellationPolicy: data.cancellationPolicy || 'moderate',
+  },
+        // minNights: data.availability?.minNights || 1,
+        // maxStay: data.availability?.maxNights || 365,
+        checkInTime: data.checkInTime || '10:00',
+        checkOutTime: data.checkOutTime || '11:00',
+        cancellationPolicy: data.cancellationPolicy || 'moderate',
+        // instantBook: data.availability?.instantBook ?? true,
+        houseRules: data.houseRules,
         ...(data.pricing?.anytimeCheckInEnabled && {
           enable24HourBooking: true,
         }),
@@ -114,11 +164,17 @@ export default function ReviewPage() {
             },
           },
         }),
-      };
+      }; 
+       let response ;
+      if(isEditMode && id) {
+         response = await apiClient.updateListing(id as string, listingData);
+      }
+      else {
+      response = await apiClient.createListing(listingData);
+      }
+     
 
-      const response = await apiClient.createListing(listingData);
-
-      if (response.success) {
+      if (response?.success) {
         resetData();
         router.push('/host/listings');
       } else {
@@ -132,13 +188,27 @@ export default function ReviewPage() {
     }
   };
 
+   const handleBack = () => {
+    
+    if(isEditMode && id){
+      router.push(`/host/property/${id}/booking-settings?mode=edit`);
+    }else{
+      router.push('/host/property/new/booking-settings');
+    }
+  };
+
+
+
   return (
     <OnboardingLayout
+    flow="property"
       currentMainStep={3}
       currentSubStep="review"
       onNext={handlePublish}
       nextLabel={isSubmitting ? 'Publishing...' : 'Publish listing'}
       nextDisabled={isSubmitting}
+      onBack={handleBack}
+      
     >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -160,32 +230,102 @@ export default function ReviewPage() {
 
         <div className="space-y-6 max-w-lg">
           {/* Title */}
-          <div className="p-4 bg-gray-50 rounded-xl">
+          {/* <div className="p-4 bg-gray-50 rounded-xl">
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
               <Home className="w-4 h-4" />
               Title
+            </div>
+            
+            <p className="text-lg font-medium text-gray-900">
+              {data.title || 'No title set'}
+            </p>
+          </div> */}
+          <div className="p-4 bg-gray-50 rounded-xl">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Home className="w-4 h-4" />
+                Title
+              </div>
+              <EditButton step="title" />
             </div>
             <p className="text-lg font-medium text-gray-900">
               {data.title || 'No title set'}
             </p>
           </div>
-
-          {/* Location */}
+            {/* description */}
           <div className="p-4 bg-gray-50 rounded-xl">
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-              <MapPin className="w-4 h-4" />
-              Location
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-sm text-gray-500">Description</div>
+              <EditButton step="description" />
             </div>
-            <p className="text-lg font-medium text-gray-900">
-              {data.location ? `${data.location.city}, ${data.location.state}` : 'No location set'}
+            <p className="text-gray-900 line-clamp-3">
+              {data.description || 'No description set'}
             </p>
           </div>
 
-          {/* Floor Plan */}
+         
+          {/* location */}
           <div className="p-4 bg-gray-50 rounded-xl">
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-              <Users className="w-4 h-4" />
-              Space details
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <MapPin className="w-4 h-4" />
+                Location
+              </div>
+              <EditButton step="location" />
+            </div>
+            {data.location ?
+              <p className="text-lg font-medium text-gray-900">
+                {data.location.address},
+              {data.location.city}, {data.location.state}
+            </p>
+            :  <p className="text-lg font-medium text-gray-900">
+               No location set
+            </p>
+            }
+            {/* <p className="text-lg font-medium text-gray-900">
+              {data.location ? `${data.location.city}, ${data.location.state}` : 'No location set'}
+            </p> */}
+          </div>
+
+           <div className="p-4 bg-gray-50 rounded-xl">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Home className="w-4 h-4" />
+                Privacy Type
+              </div>
+              <EditButton step="privacy-type" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-gray-900 capitalize">
+                 {data.propertyType || 'Not specified'}
+              </p>
+            </div>
+          </div>
+
+        {/* property type */}
+           <div className="p-4 bg-gray-50 rounded-xl">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Home className="w-4 h-4" />
+                Property Type
+              </div>
+              <EditButton step="structure" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-gray-900 capitalize">
+                {data.structureType || 'Not specified'} 
+              </p>
+            </div>
+          </div>
+
+                    {/* Floor Plan */}
+          <div className="p-4 bg-gray-50 rounded-xl">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Users className="w-4 h-4" />
+                Space details
+              </div>
+              <EditButton step="floor-plan" />
             </div>
             <div className="flex flex-wrap gap-4 text-gray-900">
               <span className="flex items-center gap-1">
@@ -203,9 +343,13 @@ export default function ReviewPage() {
             </div>
           </div>
 
+
           {/* Price */}
           <div className="p-4 bg-gray-50 rounded-xl">
-            <div className="text-sm text-gray-500 mb-1">Price per night</div>
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-sm text-gray-500">Price per night</div>
+              <EditButton step="pricing" />
+            </div>
             <p className="text-2xl font-semibold text-gray-900">
               ₹{(data.pricing?.basePrice || 2500).toLocaleString()}
             </p>
@@ -214,7 +358,10 @@ export default function ReviewPage() {
           {/* Amenities */}
           {data.amenities && data.amenities.length > 0 && (
             <div className="p-4 bg-gray-50 rounded-xl">
-              <div className="text-sm text-gray-500 mb-2">Amenities</div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm text-gray-500">Amenities</div>
+                <EditButton step="amenities" />
+              </div>
               <div className="flex flex-wrap gap-2">
                 {data.amenities.map((amenity) => (
                   <span
@@ -227,10 +374,159 @@ export default function ReviewPage() {
               </div>
             </div>
           )}
+
+         
+{/* House Rules */}
+{data.houseRules && (
+  <div className="p-4 bg-gray-50 rounded-xl">
+    <div className="flex items-center justify-between mb-3">
+      <div className="text-sm text-gray-500">House Rules</div>
+      <EditButton step="house-rules" />
+    </div>
+    
+    {/* Common Rules - Only show selected ones */}
+    {data.houseRules.common && data.houseRules.common.length > 0 && (
+      <div className="space-y-2 mb-3">
+        {data.houseRules.common.map((ruleId) => {
+          // Create a minimal rule object with just what we need
+          const selectedRule = {
+            id: ruleId,
+            title: ruleId.charAt(0).toUpperCase() + ruleId.slice(1).replace(/([A-Z])/g, ' $1'), // Convert "noSmoking" -> "No Smoking"
+            icon: ruleId === 'noSmoking' ? Zap : 
+                   ruleId === 'noParties' ? PartyPopper :
+                   ruleId === 'quietHours' ? Clock :
+                   Home, // Default icon
+          };
+          
+          const Icon = selectedRule.icon;
+          return (
+            <div key={ruleId} className="flex items-center gap-2 text-sm">
+              <Icon className="w-4 h-4 text-gray-500" />
+              <span className="text-gray-900">{selectedRule.title}</span>
+            </div>
+          );
+        })}
+      </div>
+    )}
+
+    {/* Additional Rules - Only show selected ones */}
+    {data.houseRules.additional && Object.keys(data.houseRules.additional).length > 0 && (
+      <div className="space-y-2">
+        {Object.entries(data.houseRules.additional).map(([key, value]) => {
+          if (key === 'custom' && value) {
+            return (
+              <div key={key} className="text-sm text-gray-900">
+                <strong>Additional Rules:</strong> {value}
+              </div>
+            );
+          }
+          
+          // Create minimal rule object for selected additional rules
+          const ruleTitles = {
+            pets: 'Pets',
+            checkIn: 'Check-in Policy',
+            photography: 'Photography',
+            parking: 'Parking'
+          };
+          
+          const ruleLabels = {
+            allowed: 'Allowed',
+            not_allowed: 'Not Allowed',
+            conditional: 'With Permission',
+            flexible: 'Flexible',
+            strict: 'Strict',
+            free:  'Free',
+            paid: 'Paid',
+            street: 'Street',
+            none: 'No Parking'
+          };
+          
+          return (
+            <div key={key} className="flex items-center gap-2 text-sm">
+              {key !== 'custom' && (
+                <>
+                  {key === 'pets' && <Dog className="w-4 h-4 text-gray-500" />}
+                  {key === 'checkIn' && <Clock className="w-4 h-4 text-gray-500" />}
+                  {key === 'photography' && <Camera className="w-4 h-4 text-gray-500" />}
+                  {key === 'parking' && <Car className="w-4 h-4 text-gray-500" />}
+                  <span className="text-gray-900">
+                    {ruleTitles[key]}: <span className="font-medium">{ruleLabels[value]}</span>
+                  </span>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    )}
+  </div>
+)}
+
+           {/* Booking Settings */}
+          <div className="p-4 bg-gray-50 rounded-xl">
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-sm text-gray-500">Booking Settings</div>
+              <EditButton step="booking-settings" />
+            </div>
+            <p className="text-gray-900">
+              {data.availability?.instantBook ? 'Instant Book' : 'Request to Book'} • 
+              Min {data.availability?.minNights || 1} nights
+            </p>
+             {/* Check-in/Check-out times */}
+    <div className="flex items-center gap-4 text-sm mb-1">
+      <div className="flex items-center gap-1">
+        <Clock className="w-3 h-3 text-gray-500" />
+        <span className="text-gray-600 text-xs">Check-in:</span>
+        <span className="text-gray-900 font-medium">{data.checkInTime || '3:00 PM'}</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <Clock className="w-3 h-3 text-gray-500" />
+        <span className="text-gray-600 text-xs">Check-out:</span>
+        <span className="text-gray-900 font-medium">{data.checkOutTime || '11:00 AM'}</span>
+      </div>
+    </div>
+
+     {/* Cancellation Policy */}
+    <div className="flex items-center gap-1 text-sm mb-1">
+      <Shield className="w-3 h-3 text-gray-500" />
+      <span className="text-gray-600">Policy:</span>
+      <span className="text-gray-900 font-medium capitalize">
+        {data.cancellationPolicy || 'Moderate'}
+      </span>
+    </div>
+           
+          </div>
+
+            {data.photos && data.photos.length > 0 && (
+            <div className="p-4 bg-gray-50 rounded-xl">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <Image className="w-4 h-4" />
+                  Photos ({data.photos.length})
+                </div>
+                <EditButton step="photos" />
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {data.photos.slice(0, 5).map((photo, index) => (
+                  <img
+                    key={index}
+                    src={photo}
+                    alt={`Photo ${index + 1}`}
+                    className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+                  />
+                ))}
+                {data.photos.length > 5 && (
+                  <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm text-gray-600">+{data.photos.length - 5}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Photos Preview */}
-        {data.photos && data.photos.length > 0 && (
+        {/* {data.photos && data.photos.length > 0 && (
           <div className="p-4 bg-gray-50 rounded-xl">
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
               <Image className="w-4 h-4" />
@@ -252,10 +548,11 @@ export default function ReviewPage() {
               )}
             </div>
           </div>
-        )}
+        )} */}
+      
 
         {/* KYC Notice */}
-        <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+        {/* <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
           <div className="flex items-start gap-3">
             <Clock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <div>
@@ -266,7 +563,21 @@ export default function ReviewPage() {
               </p>
             </div>
           </div>
-        </div>
+        </div> */}
+        {user?.kyc?.status === 'not_submitted' &&
+        (<div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+          <div className="flex items-start gap-3">
+            <Clock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-amber-900">KYC Verification</p>
+              <p className="text-sm text-amber-700 mt-1">
+                You have <strong>15 days</strong> after publishing to complete KYC verification. 
+                Your listing will be active during this period. Complete KYC from your dashboard to get verified host badge.
+              </p>
+            </div>
+          </div>
+        </div>)  }
+        
 
         <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl">
           <div className="flex items-start gap-3">
