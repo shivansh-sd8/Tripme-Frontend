@@ -4,16 +4,29 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import OnboardingLayout from '@/components/host/OnboardingLayout';
 import { useOnboarding } from '@/core/context/OnboardingContext';
-
+import { useParams, useSearchParams } from "next/navigation";
 export default function PricingIntroPage() {
   const router = useRouter();
 
+   const params = useParams();
+    const searchParams = useSearchParams();
+    const id = params.id;
+    const isEditMode = searchParams.get("mode") === "edit";
+    const returnToReview = searchParams.get("return") === "review";
+
   const handleNext = () => {
-    router.push('/host/property/new/availability');
+
+    if(isEditMode && id) {
+    router.push(`/host/property/${id}/set-availability?mode=edit`);
+    } else {
+     router.push('/host/property/new/availability');
+    }
+   
   };
 
   return (
     <OnboardingLayout
+    flow="property"
       currentMainStep={3}
       currentSubStep="pricing"
       onNext={handleNext}

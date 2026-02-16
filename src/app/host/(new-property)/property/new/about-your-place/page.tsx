@@ -4,17 +4,31 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import OnboardingLayout from '@/components/host/OnboardingLayout';
 import { useOnboarding } from '@/core/context/OnboardingContext';
-
+import { useParams, useSearchParams } from "next/navigation";
 export default function AboutYourPlacePage() {
   const router = useRouter();
   const { goToNextSubStep } = useOnboarding();
 
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const id = params.id;
+  const isEditMode = searchParams.get("mode") === "edit";
+
+  // const handleNext = () => {
+  //   router.push('/host/property/new/structure');
+  // };
+
   const handleNext = () => {
+  if (isEditMode && id) {
+    router.push(`/host/property/${id}/structure?mode=edit`);
+  } else {
     router.push('/host/property/new/structure');
-  };
+  }
+};
 
   return (
     <OnboardingLayout
+    flow="property"
       currentMainStep={1}
       currentSubStep="about-your-place"
       onNext={handleNext}

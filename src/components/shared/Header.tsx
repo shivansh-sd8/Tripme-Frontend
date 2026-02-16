@@ -143,8 +143,8 @@ const Header =({searchExpanded: externalSearchExpanded,
   
    const shouldShowFullHeader = hideSearch ? true : ((!scrolled || searchExpanded) && (pathname !== '/stories' || searchExpanded) && (pathname !== '/search' || searchExpanded) &&
    (pathname !== '/rooms' || searchExpanded)
-  );
 
+  );
   
   return (
     <>

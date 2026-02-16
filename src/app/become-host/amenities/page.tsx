@@ -38,7 +38,7 @@ export default function AmenitiesPage() {
   const router = useRouter();
   const { data, updateData } = useOnboarding();
   const [selected, setSelected] = useState<string[]>(data.amenities || []);
-
+  const urlParams = new URLSearchParams(window.location.search);
   const toggleAmenity = (id: string) => {
     setSelected(prev => 
       prev.includes(id) 
@@ -50,11 +50,16 @@ export default function AmenitiesPage() {
   const handleNext = () => {
     updateData({ amenities: selected });
     // Move to Step 3: pricing
+    
+  if (urlParams.get('return') === 'review') {
+    router.push('/become-host/review');
+  } else {
     router.push('/become-host/pricing');
+  }
   };
 
   return (
-    <OnboardingLayout
+    <OnboardingLayout flow='property'
       currentMainStep={2}
       currentSubStep="amenities"
       onNext={handleNext}

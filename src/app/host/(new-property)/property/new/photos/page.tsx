@@ -5,7 +5,7 @@ import { motion, Reorder, useDragControls } from 'framer-motion';
 import { Upload, X, Plus, Loader2, GripVertical, Star, Image as ImageIcon } from 'lucide-react';
 import OnboardingLayout from '@/components/host/OnboardingLayout';
 import { useOnboarding } from '@/core/context/OnboardingContext';
-
+import { useParams, useSearchParams } from "next/navigation";
 interface PhotoItem {
   id: string;
   file?: File;
@@ -23,6 +23,13 @@ export default function PhotosPage() {
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [reorderMode, setReorderMode] = useState(false);
+
+   const params = useParams();
+    const searchParams = useSearchParams();
+    const id = params.id;
+    const isEditMode = searchParams.get("mode") === "edit";
+    const returnToReview = searchParams.get("return") === "review";
+
 
   // Initialize photos from context data on mount
   useEffect(() => {
@@ -143,7 +150,22 @@ export default function PhotosPage() {
       .filter((p) => p.uploaded && p.url)
       .map((p) => p.url as string);
     updateData({ photos: uploadedUrls });
-    router.push('/host/property/new/title');
+
+     if (returnToReview) {
+    // Return to review page
+    if (isEditMode && id) {
+      router.push(`/host/property/${id}/review?mode=edit`);
+    } else {
+      router.push('/host/property/new/review');
+    }
+  } else {
+      if(isEditMode && id){
+      router.push(`/host/property/${id}/title?mode=edit`);
+    }else{
+     router.push('/host/property/new/title');
+    }
+     
+  }
   };
 
   const minPhotos = 5;
@@ -153,6 +175,7 @@ export default function PhotosPage() {
 
   return (
     <OnboardingLayout
+    flow="property"
       currentMainStep={2}
       currentSubStep="photos"
       onNext={handleNext}

@@ -1,5 +1,6 @@
 "use client";
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { id } from 'date-fns/locale';
+import React, { createContext, useContext, useState, ReactNode ,useEffect } from 'react';
 
 export type PropertyType = 'entire' | 'private' | 'shared' | 'experience';
 export type StructureType = 'house' | 'apartment' | 'guesthouse' | 'hotel' | 'villa' | 'cottage' | 'cabin' | 'farm' | 'boat' | 'camper' | 'treehouse' | 'tent' | 'castle' | 'other';
@@ -19,7 +20,7 @@ export const ONBOARDING_STEPS = {
   3: {
     title: 'Finish up and publish',
     description: 'Choose a starting price, verify a few details, then publish your listing.',
-    subSteps: ['pricing', 'price-summary', 'booking-settings', 'kyc', 'review'],
+    subSteps: ['pricing', 'price-summary','house-rules', 'booking-settings', 'kyc', 'review'],
   },
 } as const;
 
@@ -66,6 +67,13 @@ export interface OnboardingData {
     anytimeCheckInEnabled?: boolean;
     anytimeCheckInPrice?: number;
   };
+  checkInTime?: string;
+  checkOutTime?: string;
+  cancellationPolicy?: string;
+  houseRules?: {
+    common :[]
+    additional:[]
+  };
   hourlyBooking?: {
     enabled: boolean;
     minStayDays: number;
@@ -110,9 +118,49 @@ interface OnboardingContextType {
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<OnboardingData>({});
-  const [currentMainStep, setCurrentMainStep] = useState(1);
-  const [currentSubStep, setCurrentSubStep] = useState('about-your-place');
+   const [data, setData] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedData = localStorage.getItem('propertyOnboardingData');
+      return savedData ? JSON.parse(savedData) : {};
+    }
+    return {};
+  });
+  const [currentMainStep, setCurrentMainStep] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedStep = localStorage.getItem('propertyMainStep');
+      return savedStep ? parseInt(savedStep) : 1;
+    }
+    return 1;
+  });
+  
+  const [currentSubStep, setCurrentSubStep] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedStep = localStorage.getItem('propertySubStep');
+      return savedStep || 'about-your-place';
+    }
+    return 'about-your-place';
+  });
+
+  
+
+    // Save data to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && data) {
+      localStorage.setItem('propertyOnboardingData', JSON.stringify(data));
+    }
+  }, [data]);
+
+    useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('propertyMainStep', currentMainStep.toString());
+    }
+  }, [currentMainStep]);
+ 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('propertySubStep', currentSubStep);
+    }
+  }, [currentSubStep]);
 
   const updateData = (updates: Partial<OnboardingData>) => {
     setData((prev) => ({
@@ -125,6 +173,11 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setData({});
     setCurrentMainStep(1);
     setCurrentSubStep('about-your-place');
+     if (typeof window !== 'undefined') {
+      localStorage.removeItem('propertyOnboardingData');
+      localStorage.removeItem('propertyMainStep');
+      localStorage.removeItem('propertySubStep');
+    }
   };
 
   const getCurrentStepInfo = () => {
@@ -194,38 +247,86 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
  
 
-  const goToPrevSubStep = (): string | null => {
+//   const goToPrevSubStep = (): string | null => {
+//   const stepInfo = getCurrentStepInfo();
+//   const currentIndex = stepInfo.subSteps.indexOf(currentSubStep);
+
+//   const isNewPropertyFlow =
+//     typeof window !== "undefined" &&
+//     window.location.pathname.startsWith("/host/property/new");
+
+//   const baseUrl = isNewPropertyFlow
+//     ? "/host/property/new"
+//     : "/become-host";
+
+//   if (currentIndex > 0) {
+//     // Move to previous sub-step within current main step
+//     const prevSubStep = stepInfo.subSteps[currentIndex - 1];
+//     setCurrentSubStep(prevSubStep);
+//     return `${baseUrl}/${prevSubStep}`;
+//   }
+
+//   if (currentMainStep > 1) {
+//     // Move to last sub-step of previous main step
+//     const prevMainStep = currentMainStep - 1;
+//     const prevStepInfo =
+//       ONBOARDING_STEPS[prevMainStep as keyof typeof ONBOARDING_STEPS];
+
+//     const lastSubStep =
+//       prevStepInfo.subSteps[prevStepInfo.subSteps.length - 1];
+
+//     setCurrentMainStep(prevMainStep);
+//     setCurrentSubStep(lastSubStep);
+
+//     return `${baseUrl}/${lastSubStep}`;
+//   }
+
+//   return null;
+// };
+
+const goToPrevSubStep = (): string | null => {
   const stepInfo = getCurrentStepInfo();
   const currentIndex = stepInfo.subSteps.indexOf(currentSubStep);
 
-  const isNewPropertyFlow =
-    typeof window !== "undefined" &&
-    window.location.pathname.startsWith("/host/property/new");
+  const pathname =
+    typeof window !== "undefined" ? window.location.pathname : "";
 
-  const baseUrl = isNewPropertyFlow
-    ? "/host/property/new"
-    : "/become-host";
+  let baseUrl = "/host/property/new";
 
-  if (currentIndex > 0) {
-    // Move to previous sub-step within current main step
-    const prevSubStep = stepInfo.subSteps[currentIndex - 1];
-    setCurrentSubStep(prevSubStep);
-    return `${baseUrl}/${prevSubStep}`;
+  if (pathname.startsWith("/host/property/new")) {
+    baseUrl = "/host/property/new";
+  } else if (pathname.startsWith("/host/property/")) {
+    const segments = pathname.split("/");
+    const propertyId = segments[3]; // /host/property/{id}/...
+    baseUrl = `/host/property/${propertyId}`;
   }
 
+  const search =
+    typeof window !== "undefined" ? window.location.search : "";
+
+  // 🔹 Previous sub-step in same main step
+  if (currentIndex > 0) {
+    const prevSubStep = stepInfo.subSteps[currentIndex - 1];
+    setCurrentSubStep(prevSubStep);
+    return `${baseUrl}/${prevSubStep}${search}`;
+  }
+
+  // 🔹 Move to previous main step
   if (currentMainStep > 1) {
-    // Move to last sub-step of previous main step
     const prevMainStep = currentMainStep - 1;
+    setCurrentMainStep(prevMainStep);
+
     const prevStepInfo =
-      ONBOARDING_STEPS[prevMainStep as keyof typeof ONBOARDING_STEPS];
+      ONBOARDING_STEPS[
+        prevMainStep as keyof typeof ONBOARDING_STEPS
+      ];
 
     const lastSubStep =
       prevStepInfo.subSteps[prevStepInfo.subSteps.length - 1];
 
-    setCurrentMainStep(prevMainStep);
     setCurrentSubStep(lastSubStep);
 
-    return `${baseUrl}/${lastSubStep}`;
+    return `${baseUrl}/${lastSubStep}${search}`;
   }
 
   return null;

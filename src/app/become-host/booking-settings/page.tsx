@@ -7,7 +7,9 @@ import {
   MessageSquare, 
   CheckCircle,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  Clock,
+  Shield 
 } from 'lucide-react';
 import OnboardingLayout from '@/components/host/OnboardingLayout';
 import { useOnboarding } from '@/core/context/OnboardingContext';
@@ -23,6 +25,9 @@ export default function BookingSettingsPage() {
   );
   const [minNights, setMinNights] = useState(data.availability?.minNights || 1);
   const [maxNights, setMaxNights] = useState(data.availability?.maxNights || 365);
+ const [checkInTime, setCheckInTime] = useState(data.checkInTime || '15:00');
+const [checkOutTime, setCheckOutTime] = useState(data.checkOutTime || '11:00');
+const [cancellationPolicy, setCancellationPolicy] = useState(data.cancellationPolicy || 'moderate');
 
   const handleNext = () => {
     updateData({
@@ -31,12 +36,15 @@ export default function BookingSettingsPage() {
         minNights,
         maxNights,
       },
+       checkInTime,
+      checkOutTime,
+      cancellationPolicy,
     });
     router.push('/become-host/kyc');
   };
 
   return (
-    <OnboardingLayout
+    <OnboardingLayout flow='property'
       currentMainStep={3}
       currentSubStep="booking-settings"
       onNext={handleNext}
@@ -197,6 +205,104 @@ export default function BookingSettingsPage() {
             </div>
           </div>
         </div>
+
+          <div className="border-t border-gray-200 pt-8">
+  <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+    <Clock className="w-5 h-5" />
+    Check-in & Check-out times
+  </h2>
+  
+  <div className="grid grid-cols-2 gap-6">
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Check-in time
+      </label>
+      <select
+        value={checkInTime}
+        onChange={(e) => setCheckInTime(e.target.value)}
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+      >
+        {Array.from({ length: 24 }, (_, i) => {
+          const hour = i.toString().padStart(2, '0');
+          return (
+            <option key={hour} value={`${hour}:00`}>
+              {hour}:00
+            </option>
+          );
+        })}
+      </select>
+    </div>
+    
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Check-out time
+      </label>
+      <select
+        value={checkOutTime}
+        onChange={(e) => setCheckOutTime(e.target.value)}
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+      >
+        {Array.from({ length: 24 }, (_, i) => {
+          const hour = i.toString().padStart(2, '0');
+          return (
+            <option key={hour} value={`${hour}:00`}>
+              {hour}:00
+            </option>
+          );
+        })}
+      </select>
+    </div>
+
+ 
+  </div>
+     {/* Cancellation Policy */}
+{/* Cancellation Policy */}
+<div className="border-t border-gray-200 pt-8">
+  <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+    <Shield className="w-5 h-5" />
+    Cancellation policy
+  </h2>
+  
+  <div className="space-y-3">
+    {[
+      { value: 'flexible', label: 'Flexible', description: 'Guests can cancel up to 24 hours before check-in for a full refund' },
+      { value: 'moderate', label: 'Moderate', description: 'Guests can cancel up to 5 days before check-in for a full refund' },
+      { value: 'strict', label: 'Strict', description: 'Guests can cancel up to 14 days before check-in for a 50% refund' },
+    ].map((policy) => (
+      <label
+        key={policy.value}
+        className={`block p-4 border-2 rounded-xl cursor-pointer transition-all ${
+          cancellationPolicy === policy.value
+            ? 'border-gray-900 bg-gray-50'
+            : 'border-gray-200 hover:border-gray-300'
+        }`}
+      >
+        <input
+          type="radio"
+          name="cancellationPolicy"
+          value={policy.value}
+          checked={cancellationPolicy === policy.value}
+          onChange={(e) => setCancellationPolicy(e.target.value)}
+          className="sr-only"
+        />
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="font-medium text-gray-900">{policy.label}</div>
+            <div className="text-sm text-gray-600 mt-1">{policy.description}</div>
+          </div>
+          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+            cancellationPolicy === policy.value ? 'border-gray-900 bg-gray-900' : 'border-gray-300'
+          }`}>
+            {cancellationPolicy === policy.value && (
+              <div className="w-2 h-2 bg-white rounded-full" />
+            )}
+          </div>
+        </div>
+      </label>
+    ))}
+  </div>
+</div>
+</div>
 
         {/* Info box */}
         <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">

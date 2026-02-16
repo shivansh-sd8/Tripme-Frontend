@@ -9,7 +9,10 @@ export default function DescriptionPage() {
   const router = useRouter();
   const { data, updateData } = useOnboarding();
   const [description, setDescription] = useState(data.description || '');
-  const maxLength = 500;
+   const maxLength = 500;
+  const minLength = 50;
+    const isTooShort = description.trim().length > 0 && description.trim().length < minLength;
+  const isTooLong = description.length > maxLength;
 
   const handleNext = () => {
     if (!description.trim()) return;
@@ -18,11 +21,11 @@ export default function DescriptionPage() {
   };
 
   return (
-    <OnboardingLayout
+    <OnboardingLayout flow='property'
       currentMainStep={2}
       currentSubStep="description"
       onNext={handleNext}
-      nextDisabled={!description.trim()}
+      nextDisabled={description.trim().length < minLength || description.trim().length > maxLength}
     >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -42,11 +45,17 @@ export default function DescriptionPage() {
             onChange={(e) => setDescription(e.target.value.slice(0, maxLength))}
             placeholder="You'll have a great time at this comfortable place to stay."
             rows={6}
-            className="w-full px-4 py-4 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all resize-none"
+           className={`w-full px-4 py-4 text-lg border rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all resize-none ${
+              isTooShort ? 'border-red-300' : isTooLong ? 'border-red-300' : 'border-gray-300'
+            }`}
           />
           <div className="flex justify-end mt-2">
-            <span className="text-sm text-gray-500">
-              {description.length}/{maxLength}
+           
+             <span className={`text-sm ${isTooShort ? 'text-red-500' : isTooLong ? 'text-red-500' : 'text-gray-500'}`}>
+              {isTooShort && `Minimum ${minLength} characters required (${description.trim().length}/${minLength})`}
+              {isTooLong && `Maximum ${maxLength} characters exceeded (${description.length}/${maxLength})`}
+              {!isTooShort && !isTooLong && `${description.length}/${maxLength} characters`}
+          
             </span>
           </div>
         </div>

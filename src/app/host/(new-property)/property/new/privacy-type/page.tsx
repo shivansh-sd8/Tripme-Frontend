@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Home, DoorOpen, Users } from 'lucide-react';
 import OnboardingLayout from '@/components/host/OnboardingLayout';
 import { useOnboarding, PropertyType } from '@/core/context/OnboardingContext';
-
+import { useParams, useSearchParams } from "next/navigation";
 const privacyTypes = [
   {
     type: 'entire' as PropertyType,
@@ -32,18 +32,42 @@ export default function PrivacyTypePage() {
   const { data, updateData } = useOnboarding();
   const [selected, setSelected] = useState<PropertyType | undefined>(data.propertyType);
 
+   const params = useParams();
+    const searchParams = useSearchParams();
+    const id = params.id;
+    const isEditMode = searchParams.get("mode") === "edit";
+    const returnToReview = searchParams.get("return") === "review";
+
+
   const handleSelect = (type: PropertyType) => {
     setSelected(type);
     updateData({ propertyType: type });
   };
 
+  
+
   const handleNext = () => {
     if (!selected) return;
-    router.push('/host/property/new/floor-plan');
+     if (returnToReview) {
+    // Return to review page
+    if (isEditMode && id) {
+      router.push(`/host/property/${id}/review?mode=edit`);
+    } else {
+      router.push('/host/property/new/review');
+    }
+  } else {
+    if(isEditMode && id){
+      router.push(`/host/property/${id}/floor-plan?mode=edit`);
+    }else{
+      router.push('/host/property/new/floor-plan');
+    }
+  }
   };
+
 
   return (
     <OnboardingLayout
+    flow="property"
       currentMainStep={1}
       currentSubStep="privacy-type"
       onNext={handleNext}

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Navigation, Search, Check, X, Loader2, ChevronRight } from 'lucide-react';
 import OnboardingLayout from '@/components/host/OnboardingLayout';
 import { useOnboarding } from '@/core/context/OnboardingContext';
-
+import { useParams, useSearchParams } from "next/navigation";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 // Types for location data
@@ -41,6 +41,13 @@ export default function LocationPage() {
   const autocompleteServiceRef = useRef<any>(null);
   const placesServiceRef = useRef<any>(null);
   const geocoderRef = useRef<any>(null);
+
+   const params = useParams();
+    const searchParams = useSearchParams();
+    const id = params.id;
+    const isEditMode = searchParams.get("mode") === "edit";
+    const returnToReview = searchParams.get("return") === "review";
+
   
   // Current step in the location flow
   const [step, setStep] = useState<Step>('search');
@@ -366,7 +373,22 @@ export default function LocationPage() {
           coordinates: location.coordinates,
         },
       });
+
+     if (returnToReview) {
+    // Return to review page
+    if (isEditMode && id) {
+      router.push(`/host/property/${id}/review?mode=edit`);
+    } else {
+      router.push('/host/property/new/review');
+    }
+  } else {
+    if(isEditMode && id){
+      router.push(`/host/property/${id}/photos?mode=edit`);
+    }else{
       router.push('/host/property/new/photos');
+    }
+  }
+     
     }
   };
 
@@ -390,6 +412,7 @@ export default function LocationPage() {
 
   return (
     <OnboardingLayout
+    flow="property"
       currentMainStep={1}
       currentSubStep="location"
       onNext={handleNext}

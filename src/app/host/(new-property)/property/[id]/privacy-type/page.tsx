@@ -1,0 +1,1 @@
+export { default } from "@/app/host/(new-property)/property/new/privacy-type/page";

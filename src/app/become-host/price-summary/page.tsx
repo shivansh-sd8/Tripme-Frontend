@@ -38,11 +38,11 @@ export default function PriceSummaryPage() {
   const gstOnPlatformFee = Math.round(platformFee * 0.18);
 
   const handleNext = () => {
-    router.push('/become-host/booking-settings');
+    router.push('/become-host/house-rules');
   };
 
   return (
-    <OnboardingLayout
+    <OnboardingLayout flow='property'
       currentMainStep={3}
       currentSubStep="price-summary"
       onNext={handleNext}

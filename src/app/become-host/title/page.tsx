@@ -9,7 +9,11 @@ export default function TitlePage() {
   const router = useRouter();
   const { data, updateData } = useOnboarding();
   const [title, setTitle] = useState(data.title || '');
+  
   const maxLength = 50;
+  const minLength =10;
+  const isTooShort = title.trim().length > 0 && title.trim().length < minLength;
+  const isTooLong = title.length > maxLength;
 
   const handleNext = () => {
     if (!title.trim()) return;
@@ -18,11 +22,11 @@ export default function TitlePage() {
   };
 
   return (
-    <OnboardingLayout
+    <OnboardingLayout flow='property'
       currentMainStep={2}
       currentSubStep="title"
       onNext={handleNext}
-      nextDisabled={!title.trim()}
+      nextDisabled={title.trim().length < minLength || title.trim().length > maxLength}
     >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -42,11 +46,15 @@ export default function TitlePage() {
             onChange={(e) => setTitle(e.target.value.slice(0, maxLength))}
             placeholder="Cozy apartment in the heart of the city"
             rows={3}
-            className="w-full px-4 py-4 text-2xl border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all resize-none"
+            className={`w-full px-4 py-4 text-lg border rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all resize-none ${
+              isTooShort ? 'border-red-300' : isTooLong ? 'border-red-300' : 'border-gray-300'
+            }`}
           />
           <div className="flex justify-end mt-2">
-            <span className="text-sm text-gray-500">
-              {title.length}/{maxLength}
+            <span className={`text-sm ${isTooShort ? 'text-red-500' : isTooLong ? 'text-red-500' : 'text-gray-500'}`}>
+              {isTooShort && `Minimum ${minLength} characters required (${title.trim().length}/${minLength})`}
+              {isTooLong && `Maximum ${maxLength} characters exceeded (${title.length}/${maxLength})`}
+              {!isTooShort && !isTooLong && `${title.length}/${maxLength} characters`}
             </span>
           </div>
         </div>

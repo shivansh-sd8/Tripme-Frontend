@@ -5,10 +5,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Minus, Plus, Sun, Clock, Users, Sparkles, IndianRupee, Percent, Calendar, Shield, AlertTriangle, Flame, Heart, MapPin, X, ChevronDown } from 'lucide-react';
 import OnboardingLayout from '@/components/host/OnboardingLayout';
 import { useOnboarding } from '@/core/context/OnboardingContext';
-
+import { useParams,useSearchParams } from 'next/navigation';
 export default function PricingPage() {
   const router = useRouter();
   const { data, updateData } = useOnboarding();
+   const params = useParams();
+      const searchParams = useSearchParams();
+      const id = params.id;
+      const isEditMode = searchParams.get("mode") === "edit";
+      const returnToReview = searchParams.get("returnToReview") === "true";
+
+  
   
   // Base pricing
   const [basePrice, setBasePrice] = useState(data.pricing?.basePrice || 2500);
@@ -108,11 +115,26 @@ export default function PricingPage() {
       },
       amenities: updatedAmenities,
     });
-    router.push('/host/property/new/price-summary');
+
+     if (returnToReview) {
+    // Return to review page
+    if (isEditMode && id) {
+      router.push(`/host/property/${id}/review?mode=edit`);
+    } else {
+      router.push('/host/property/new/review');
+    }
+  } else {
+     if(isEditMode && id){
+      router.push(`/host/property/${id}/price-summary?mode=edit`);
+    }else{
+      router.push('/host/property/new/price-summary');
+    }
+  }
   };
 
   return (
     <OnboardingLayout
+    flow="property"
       currentMainStep={3}
       currentSubStep="pricing"
       onNext={handleNext}
@@ -452,7 +474,7 @@ export default function PricingPage() {
               <label className="block text-sm font-medium text-gray-700 mb-4">
                 Extension rates (% of daily rate)
               </label>
-              <div className="grid grid-cols-3 gap-4">
+              {/* <div className="grid grid-cols-3 gap-4">
                 {[
                   { key: 'sixHours', label: '6 Hours', icon: '⏰' },
                   { key: 'twelveHours', label: '12 Hours', icon: '🕐' },
@@ -483,7 +505,7 @@ export default function PricingPage() {
                           ...prev,
                           [option.key]: Math.min(100, Math.max(10, Number(e.target.value) || 10))
                         }))}
-                        className="w-14 text-center text-lg font-bold text-purple-600 border-none outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-14 text-center text-xs font-bold text-purple-600 border-none outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                       <span className="text-purple-600 font-bold">%</span>
                       <button
@@ -501,7 +523,72 @@ export default function PricingPage() {
                     </div>
                   </div>
                 ))}
-              </div>
+              </div> */}
+              {/* Changed grid-cols-3 to responsive breakpoints */}
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+  {[
+    { key: 'sixHours', label: '6 Hours', icon: '⏰' },
+    { key: 'twelveHours', label: '12 Hours', icon: '🕐' },
+    { key: 'eighteenHours', label: '6 Hours', icon: '🕕' },
+  ].map((option) => (
+    <div
+      key={option.key}
+      className="bg-white rounded-xl p-4 border border-purple-200 shadow-sm"
+    >
+      <div className="flex flex-row sm:flex-col items-center justify-between sm:justify-center mb-3">
+        <div className="flex items-center gap-3 sm:block sm:text-center">
+          <div className="text-2xl mb-1">{option.icon}</div>
+          <div className="font-semibold text-gray-900 text-sm">{option.label}</div>
+        </div>
+        
+        {/* Price display moved here for better mobile layout flow */}
+        <div className="text-sm font-bold text-gray-700 sm:hidden">
+           ₹{Math.round(basePrice * hourlyRates[option.key as keyof typeof hourlyRates] / 100).toLocaleString()}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-center gap-3">
+        <button
+          onClick={() => setHourlyRates(prev => ({
+            ...prev,
+            [option.key]: Math.max(10, prev[option.key as keyof typeof prev] - 5)
+          }))}
+          className="w-10 h-10 sm:w-8 sm:h-8 rounded-full border border-gray-300 flex items-center justify-center text-lg sm:text-xs hover:bg-purple-50 hover:border-purple-500 transition-colors active:scale-95"
+        >
+          -
+        </button>
+        
+        <div className="flex items-center justify-center bg-gray-50 rounded-lg px-2">
+          <input
+            type="number"
+            value={hourlyRates[option.key as keyof typeof hourlyRates]}
+            onChange={(e) => setHourlyRates(prev => ({
+              ...prev,
+              [option.key]: Math.min(100, Math.max(10, Number(e.target.value) || 10))
+            }))}
+            className="w-12 text-center text-sm font-bold text-purple-600 border-none outline-none bg-transparent py-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          />
+          <span className="text-purple-600 font-bold text-sm">%</span>
+        </div>
+
+        <button
+          onClick={() => setHourlyRates(prev => ({
+            ...prev,
+            [option.key]: Math.min(100, prev[option.key as keyof typeof prev] + 5)
+          }))}
+          className="w-10 h-10 sm:w-8 sm:h-8 rounded-full border border-gray-300 flex items-center justify-center text-lg sm:text-xs hover:bg-purple-50 hover:border-purple-500 transition-colors active:scale-95"
+        >
+          +
+        </button>
+      </div>
+
+      {/* Desktop/Tablet Price View */}
+      <div className="hidden sm:block text-xs text-gray-500 text-center mt-2">
+        ₹{Math.round(basePrice * hourlyRates[option.key as keyof typeof hourlyRates] / 100).toLocaleString()}
+      </div>
+    </div>
+  ))}
+</div>
               <p className="text-xs text-purple-700 mt-3 text-center">
                 Guests can extend their checkout time at these rates
               </p>
@@ -530,7 +617,7 @@ export default function PricingPage() {
                 <button
                   key={option.id}
                   onClick={() => toggleSafetyItem(option.id)}
-                  className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left ${
+                  className={`flex items-center gap-2 p-2 rounded-xl border-2 transition-all text-left ${
                     isSelected
                       ? 'border-red-500 bg-red-50'
                       : 'border-gray-200 bg-white hover:border-red-300'
@@ -541,7 +628,7 @@ export default function PricingPage() {
                   }`}>
                     <Icon className="w-4 h-4" />
                   </div>
-                  <span className={`font-medium text-sm ${isSelected ? 'text-red-700' : 'text-gray-700'}`}>
+                  <span className={`font-medium text-xs ${isSelected ? 'text-red-700' : 'text-gray-700'}`}>
                     {option.label}
                   </span>
                 </button>

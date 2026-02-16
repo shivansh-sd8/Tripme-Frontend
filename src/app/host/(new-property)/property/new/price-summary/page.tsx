@@ -2,6 +2,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { useParams, useSearchParams } from "next/navigation";
 import { 
   CheckCircle, 
   TrendingUp, 
@@ -37,12 +38,26 @@ export default function PriceSummaryPage() {
   // GST calculation (18% on platform fee)
   const gstOnPlatformFee = Math.round(platformFee * 0.18);
 
+   const params = useParams();
+    const searchParams = useSearchParams();
+    const id = params.id;
+    const isEditMode = searchParams.get("mode") === "edit";
+    const returnToReview = searchParams.get("return") === "review";
+
+
   const handleNext = () => {
-    router.push('/host/property/new/booking-settings');
+    if(id && isEditMode) {
+     router.push(`/host/property/${id}/house-rules?mode=edit`);
+    }
+    else{
+  router.push('/host/property/new/house-rules');
+    }
+  
   };
 
   return (
     <OnboardingLayout
+    flow="property"
       currentMainStep={3}
       currentSubStep="price-summary"
       onNext={handleNext}

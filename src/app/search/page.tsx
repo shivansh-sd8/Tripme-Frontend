@@ -1223,13 +1223,31 @@ function SearchPageContent() {
     setFilteredResultsCount(count);
   };
 
-  useEffect(() => {
-    setHideHeader(true);
-    return () => {
-      setHideHeader(false);
-    };
-  }, []);
+  // useEffect(() => {
+  //   setHideHeader(true);
+  //   return () => {
+  //     setHideHeader(false);
+  //   };
+  // }, []);
 
+  useEffect(() => {
+  const mq = window.matchMedia("(max-width: 1023px)");
+
+  const update = () => setHideHeader(mq.matches);
+  update();
+
+  mq.addEventListener("change", update);
+  return () => {
+    mq.removeEventListener("change", update);
+    setHideHeader(false);
+  };
+}, []);
+
+
+ 
+
+
+// Fetching Properties
   useEffect(() => {
     const fetchProperties = async () => {
       if (isFetchingRef.current) return;
@@ -1319,6 +1337,7 @@ function SearchPageContent() {
     fetchProperties();
   }, [lng, lat, city, guests, checkIn, checkOut]);
 
+  // Map Bounds Change
   const handleBoundsChange = useCallback((bounds: { ne: { lat: number; lng: number }; sw: { lat: number; lng: number } }) => {
     if (mapBounds) {
       const latDiff = Math.abs(mapBounds.ne.lat - bounds.ne.lat) + Math.abs(mapBounds.sw.lat - bounds.sw.lat);
@@ -1331,6 +1350,10 @@ function SearchPageContent() {
   const handleCenterChange = useCallback((center: [number, number]) => {
     setMapCenter(center);
   }, []);
+
+  
+
+  // handle property clickl
 
   const handlePropertyClick = useCallback((propertyId: string) => {
     const property = allProperties.find(p => p._id === propertyId);
@@ -1488,7 +1511,9 @@ function SearchPageContent() {
       }
     }
   };
-  
+
+
+
   const mapMarkers = useMemo(() => {
     return allProperties.map((property: any) => ({
       id: property._id,
