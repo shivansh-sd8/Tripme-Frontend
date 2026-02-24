@@ -49,7 +49,11 @@ export interface OnboardingData {
     };
   };
   // Step 2: Make it stand out
-  photos?: string[];
+  // photos?: string[];
+  photos: {
+     url: string;
+     category: string;
+     }[];
   title?: string;
   description?: string;
   amenities?: string[];
@@ -292,8 +296,10 @@ const goToPrevSubStep = (): string | null => {
     typeof window !== "undefined" ? window.location.pathname : "";
 
   let baseUrl = "/host/property/new";
-
-  if (pathname.startsWith("/host/property/new")) {
+if (pathname.startsWith("/become-host")) {
+  baseUrl = "/become-host";
+}
+ else  if (pathname.startsWith("/host/property/new")) {
     baseUrl = "/host/property/new";
   } else if (pathname.startsWith("/host/property/")) {
     const segments = pathname.split("/");

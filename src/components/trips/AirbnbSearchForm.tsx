@@ -324,7 +324,12 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
   const [recentSearches, setRecentSearches] = useState<Array<{ location: string; dates?: string }>>([]);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [searchInputValue, setSearchInputValue] = useState('');
-  
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+const secondMonth = new Date(
+  currentDate.getFullYear(),
+  currentDate.getMonth() + 1
+);
   // Service options for Services category
   const serviceOptions = [
     { value: 'cleaning', label: 'Cleaning' },
@@ -485,6 +490,156 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
       }
     }
   };
+
+
+  function MonthCalendar({
+  date,
+  selectedDates,
+  handleDateClick,
+  isDateInRange,
+  isStartOrEnd
+}) {
+  const daysInMonth = new Date(
+    date.getFullYear(),
+    date.getMonth() + 1,
+    0
+  ).getDate();
+
+  const firstDayOfMonth = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    1
+  ).getDay();
+
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const emptyDays = Array.from({ length: firstDayOfMonth });
+
+  const monthYear = date.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+
+  const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+
+  return (
+    
+    <div className="space-y-3">
+      <h4 className="text-gray-800 font-semibold text-center">
+        {monthYear}
+      </h4>
+
+      <div className="grid grid-cols-7 gap-1">
+        {emptyDays.map((_, i) => (
+          <div key={`empty-${i}`} />
+        ))}
+
+        {days.map((day) => {
+            const currentDayDate = new Date(
+            date.getFullYear(),
+            date.getMonth(),
+            day
+          );
+
+          const isPast = currentDayDate < today;
+          const inRange = isDateInRange(day, date);
+          const isStartOrEndDay = isStartOrEnd(day, date);
+
+          return (
+            <button
+              key={day}
+             onClick={() => !isPast && handleDateClick(day, date)}
+              disabled={isPast}
+             className={`py-2 text-sm font-medium rounded-lg transition ${
+  isPast
+    ? "text-gray-300 cursor-not-allowed pointer-events-none"
+    : isStartOrEndDay
+    ? "bg-gray-800 text-white font-bold"
+    : inRange
+    ? "bg-gray-200 text-gray-800"
+    : "text-gray-600 hover:bg-gray-100"
+}`}
+
+            >
+              {day}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const handleDateClick = (day, monthDate) => {
+  const newDate = new Date(
+    monthDate.getFullYear(),
+    monthDate.getMonth(),
+    day
+  );
+
+  // first click OR reset
+  if (!dateRange.startDate || dateRange.endDate) {
+    setDateRange({
+      startDate: newDate,
+      endDate: null,
+      key: "selection",
+    });
+  } else {
+    // second click
+    if (newDate < dateRange.startDate) {
+      setDateRange({
+        startDate: newDate,
+        endDate: dateRange.startDate,
+        key: "selection",
+      });
+    } else {
+      setDateRange({
+        startDate: dateRange.startDate,
+        endDate: newDate,
+        key: "selection",
+      });
+    }
+
+   
+  }
+};
+
+const isDateInRange = (day, monthDate) => {
+  if (!dateRange.startDate) return false;
+
+  const date = new Date(
+    monthDate.getFullYear(),
+    monthDate.getMonth(),
+    day
+  );
+
+  if (!dateRange.endDate)
+    return date.getTime() === dateRange.startDate.getTime();
+
+  return date >= dateRange.startDate && date <= dateRange.endDate;
+};
+
+const isStartOrEnd = (day, monthDate) => {
+  const date = new Date(
+    monthDate.getFullYear(),
+    monthDate.getMonth(),
+    day
+  );
+
+  return (
+    (dateRange.startDate &&
+      date.getTime() === dateRange.startDate.getTime()) ||
+    (dateRange.endDate &&
+      date.getTime() === dateRange.endDate.getTime())
+  );
+};
+
+
+
+
+
+  
 
   // Calculate total guests
   const totalGuests = guestCounts.adults + guestCounts.children + guestCounts.infants;
@@ -1207,7 +1362,55 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
               </div>
             </div>
 
-            <DateRange
+            <div className="flex justify-between items-center mb-4 px-4">
+  <button
+    onClick={() =>
+      setCurrentDate(
+        new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth() - 1
+        )
+      )
+    }
+    className="text-lg text-gray-600 hover:text-black"
+  >
+    ←
+  </button>
+
+  <button
+    onClick={() =>
+      setCurrentDate(
+        new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth() + 1
+        )
+      )
+    }
+    className="text-lg text-gray-600 hover:text-black"
+  >
+    →
+  </button>
+</div>
+
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+  <MonthCalendar
+    date={currentDate}
+    handleDateClick={handleDateClick}
+    isDateInRange={isDateInRange}
+    isStartOrEnd={isStartOrEnd}
+  />
+
+  <MonthCalendar
+    date={secondMonth}
+    handleDateClick={handleDateClick}
+    isDateInRange={isDateInRange}
+    isStartOrEnd={isStartOrEnd}
+  />
+</div>
+
+
+            {/* <DateRange
               ranges={[dateRange]}
               onChange={(ranges: RangeKeyDict) => {
                 const selection = ranges.selection;
@@ -1248,7 +1451,7 @@ const AirbnbSearchForm: React.FC<AirbnbSearchFormProps> = ({
               className={`${searchCalendarStyles.searchCalendarWrapper} rounded-lg`}
               editableDateInputs={false}
               moveRangeOnFirstSelection={false}
-            />
+            /> */}
 
             {/* Date Flexibility Options */}
             {/* <div className="mt-6 pt-6 border-t border-gray-200">

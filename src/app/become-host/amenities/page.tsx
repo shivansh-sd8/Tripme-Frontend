@@ -49,7 +49,7 @@ export default function AmenitiesPage() {
 
   const handleNext = () => {
     updateData({ amenities: selected });
-    // Move to Step 3: pricing
+   
     
   if (urlParams.get('return') === 'review') {
     router.push('/become-host/review');

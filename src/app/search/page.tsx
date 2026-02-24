@@ -1219,6 +1219,8 @@ function SearchPageContent() {
     }
   };
 
+  
+
   const handleResultsCountChange = (count: number) => {
     setFilteredResultsCount(count);
   };
@@ -1271,7 +1273,7 @@ function SearchPageContent() {
           params.lng = lng;
           params.lat = lat;
           
-          const defaultRadius = city && ['delhi', 'mumbai', 'bangalore', 'chennai', 'kolkata', 'hyderabad', 'pune'].includes(city.toLowerCase()) 
+          const defaultRadius = city && ['ahmedabad', 'delhi', 'mumbai', 'bangalore', 'chennai', 'kolkata', 'hyderabad', 'pune' ,'jaipur'].includes(city.toLowerCase()) 
             ? '50000' : '25000';
           params.radius = searchParams.get('radius') || defaultRadius;
           
@@ -1286,6 +1288,14 @@ function SearchPageContent() {
         if (response.success && response.data) {
           const properties = response.data.listings || [];
           
+            // If no lng/lat params but we have properties, center map on first property
+  if (!lng && !lat && properties.length > 0 && properties[0].location?.coordinates) {
+    const firstPropertyCenter = [properties[0].location.coordinates[0], properties[0].location.coordinates[1]] as [number, number];
+    setSearchCenter(firstPropertyCenter);
+    setMapCenter(firstPropertyCenter);
+    setMapInitialized(false);
+  }
+
           if (properties.length < 3 && city && lng && lat) {
             try {
               const fallbackParams = { ...params };
@@ -1393,7 +1403,7 @@ function SearchPageContent() {
       if (guests) params.append('guests', guests);
       if (checkIn) params.append('checkIn', checkIn);
       if (checkOut) params.append('checkOut', checkOut);
-
+     
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
       const response = await fetch(`${API_URL}/listings/map?${params.toString()}`, {
         method: 'GET',
@@ -1708,6 +1718,7 @@ function SearchPageContent() {
                             if (guests) params.set('guests', guests);
                             if (checkIn) params.set('checkIn', checkIn);
                             if (checkOut) params.set('checkOut', checkOut);
+                             console.log('on click guests:', guests, 'checkIn:', checkIn, 'checkOut:', checkOut);
                             router.push(`/rooms/${stay.id}?${params.toString()}`);
                           }}
                         />

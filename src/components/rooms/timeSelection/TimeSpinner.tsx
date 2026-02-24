@@ -21,13 +21,13 @@ export function TimeSpinner({ value, onChange, minHour = 6 }: TimeSpinnerProps) 
 
   return (
     <div className="flex items-center gap-3 w-full">
-      <button onClick={decrement} className="px-3 py-2 bg-gray-500 rounded">▲</button>
+      <button onClick={decrement} className="px-3 py-2 bg-blue-100 rounded">▲</button>
 
-      <div className="flex-1 text-center font-semibold bg-gray-500 text-lg">
+      <div className="flex-1 text-center font-semibold bg-blue-100 text-lg">
         {value}
       </div>
 
-      <button onClick={increment} className="px-3 py-2 bg-gray-500 rounded">▼</button>
+      <button onClick={increment} className="px-3 py-2 bg-blue-100 rounded">▼</button>
     </div>
   );
 }

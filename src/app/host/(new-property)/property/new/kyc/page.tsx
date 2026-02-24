@@ -29,12 +29,12 @@ const identityDocTypes = [
 ];
 
 const addressProofTypes = [
-  { id: 'aadhar-card', label: 'Aadhaar Card', icon: Home },
-  { id: 'voter-id', label: 'Voter ID', icon: Home },
+  { id: 'aadhar-address', label: 'Aadhaar Card', icon: Home },
+  { id: 'voter-id-address', label: 'Voter ID', icon: Home },
   { id: 'passport', label: 'Passport', icon: FileText },
   { id: 'utility-bill', label: 'Utility Bill', icon: FileText },
   { id: 'bank-statement', label: 'Bank Statement', icon: FileText },
-  { id: 'rent-agreement', label: 'Rent Agreement', icon: Home },
+  { id: 'rental-agreement', label: 'Rent Agreement', icon: Home },
 ];
 
 export default function KYCPage() {
@@ -48,6 +48,7 @@ export default function KYCPage() {
   const [docNumberError, setDocNumberError] = useState('');
   const [identityDocUrl, setIdentityDocUrl] = useState<string | null>(null);
   const [addressProofUrl, setAddressProofUrl] = useState<string | null>(null);
+  const [selfiUrl, setselfiUrl] = useState<string | null>(null);
   // Add this with your other state variables
 const [isGracePeriodExpired, setIsGracePeriodExpired] = useState(false);
 const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
@@ -66,6 +67,7 @@ const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
   // Address proof state
   const [selectedAddressProof, setSelectedAddressProof] = useState<string | null>(null);
   const [addressProofFile, setAddressProofFile] = useState<File | null>(null);
+   const [selfieFile, setSelfieFile] = useState<File | null>(null);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [kycSubmitted, setKycSubmitted] = useState(false);
@@ -129,6 +131,24 @@ useEffect(() => {
     setIdentityDocUrl(url);
   } catch (err) {
     setError('Failed to upload identity document');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+
+const handleSelfieChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (!e.target.files?.[0]) return;
+
+  try {
+    setIsSubmitting(true);
+    const file = e.target.files[0];
+    setSelfieFile(file);
+
+    const url = await uploadImage(file);
+    setselfiUrl(url);
+  } catch (err) {
+    setError('Failed to upload address proof');
   } finally {
     setIsSubmitting(false);
   }
@@ -292,8 +312,9 @@ useEffect(() => {
       identityDocument: selectedDoc,
       documentNumber: documentNumber.trim().toUpperCase().replace(/\s/g, ''),
       documentImage: identityDocUrl,
+      selfie: selfiUrl,
       ...(addressProofUrl && {
-        addressProofType: selectedAddressProof,
+        addressProof: selectedAddressProof,
         addressProofImage: addressProofUrl,
       }),
     });
@@ -588,6 +609,55 @@ useEffect(() => {
                 </label>
               )}
             </div>
+
+            {/* Selfie Upload Section */}
+<div className="border-t border-gray-200 pt-4 mt-4">
+  <h3 className="text-lg font-medium text-gray-900 mb-3 flex items-center gap-2">
+    <Shield className="w-5 h-5" />
+    Selfie Verification (Required)
+  </h3>
+  <p className="text-sm text-gray-500 mb-4">
+    Please upload a clear selfie holding your identity document for verification
+  </p>
+  
+  <label className="block">
+    <div className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+      selfieFile 
+        ? 'border-green-400 bg-green-50' 
+        : 'border-gray-300 hover:border-gray-400'
+    }`}>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleSelfieChange}
+        className="hidden"
+      />
+      {selfieFile ? (
+        <div className="flex items-center justify-center gap-3">
+          <CheckCircle className="w-6 h-6 text-green-600" />
+          <div>
+            <p className="font-medium text-green-900">{selfieFile.name}</p>
+            <p className="text-sm text-green-600">Selfie uploaded successfully</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+          <p className="text-gray-700 font-medium">Click to upload selfie</p>
+          <p className="text-sm text-gray-500">PNG, JPG (max 5MB)</p>
+        </>
+      )}
+    </div>
+  </label>
+  
+  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+    <p className="text-sm text-blue-700">
+      <strong>Photo requirements:</strong> Clear front-facing photo holding your ID document, good lighting, no filters
+    </p>
+  </div>
+</div>
+
+            
 
             {/* Error Message */}
             {error && (

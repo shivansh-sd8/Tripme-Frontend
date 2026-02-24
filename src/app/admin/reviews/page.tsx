@@ -177,46 +177,56 @@ export default function AdminReviews() {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 md:p-6">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Enhanced Header */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                  Reviews
-                </h1>
-                <p className="mt-2 text-lg text-gray-600">
-                  Manage user reviews and handle flagged content
-                </p>
-                <div className="mt-4 flex items-center gap-6">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600">
-                      Total: {reviews.length}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600">
-                      Active: {reviews.filter(r => r.status === 'active').length}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600">
-                      Flagged: {reviews.filter(r => r.status === 'flagged').length}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="hidden md:block">
-                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <MessageSquare className="w-10 h-10 text-white" />
-                </div>
-              </div>
-            </div>
-          </div>
+        
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-5 md:p-8">
+  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+    <div className="flex-1">
+      {/* Adjusted text size for mobile */}
+      <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+        Reviews
+      </h1>
+      
+      <p className="mt-2 text-base md:text-lg text-gray-600">
+        Manage user reviews and handle flagged content
+      </p>
+
+      {/* Stats Container: Wrapped on mobile, spaced on desktop */}
+      <div className="mt-6 flex flex-wrap items-center gap-y-3 gap-x-4 md:gap-6">
+        <div className="flex items-center gap-2 bg-gray-50 md:bg-transparent px-3 py-1.5 md:p-0 rounded-full border md:border-0 border-gray-100">
+          <div className="w-2.5 h-2.5 bg-green-500 rounded-full shrink-0"></div>
+          <span className="text-xs md:text-sm font-medium text-gray-700">
+            Total: {reviews.length}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 bg-gray-50 md:bg-transparent px-3 py-1.5 md:p-0 rounded-full border md:border-0 border-gray-100">
+          <div className="w-2.5 h-2.5 bg-blue-500 rounded-full shrink-0"></div>
+          <span className="text-xs md:text-sm font-medium text-gray-700">
+            Active: {reviews.filter(r => r.status === 'active').length}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 bg-gray-50 md:bg-transparent px-3 py-1.5 md:p-0 rounded-full border md:border-0 border-gray-100">
+          <div className="w-2.5 h-2.5 bg-red-500 rounded-full shrink-0"></div>
+          <span className="text-xs md:text-sm font-medium text-gray-700">
+            Flagged: {reviews.filter(r => r.status === 'flagged').length}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    {/* Icon: Hidden on small mobile, shown from 'sm' up or keep md:block */}
+    <div className="hidden sm:block">
+      <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg transition-transform hover:rotate-3">
+        <MessageSquare className="w-8 h-8 md:w-10 md:h-10 text-white" />
+      </div>
+    </div>
+  </div>
+</div>
 
           {/* Enhanced Filters */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
@@ -250,118 +260,229 @@ export default function AdminReviews() {
           </div>
 
           {/* Reviews Grid */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Reviews</h3>
-            {filteredReviews.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-gray-500">
-                  <MessageSquare className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-                  <p className="text-xl font-medium">No reviews found</p>
-                  <p className="text-sm">Try adjusting your search or filters</p>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredReviews.map((review) => (
-                  <div key={review.id} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:bg-white/90 hover:shadow-2xl transition-all duration-300">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                          <MessageSquare className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                          <h4 className="text-lg font-semibold text-gray-900">Review #{review.id.slice(-8)}</h4>
-                          <p className="text-sm text-gray-600">{new Date(review.createdAt).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                      {getStatusBadge(review.status)}
-                    </div>
 
-                    <div className="space-y-4">
-                      {/* Review Content */}
-                      <div className="p-4 bg-gray-100/50 rounded-xl">
-                        <p className="text-sm text-gray-900 leading-relaxed">{review.content}</p>
-                      </div>
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-4 md:p-6">
+  <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-6">Reviews</h3>
+  
+  {filteredReviews.length === 0 ? (
+    <div className="text-center py-12 px-4">
+      <div className="text-gray-500">
+        <MessageSquare className="mx-auto h-12 w-12 md:h-16 md:w-16 text-gray-300 mb-4" />
+        <p className="text-lg md:text-xl font-medium">No reviews found</p>
+        <p className="text-sm">Try adjusting your search or filters</p>
+      </div>
+    </div>
+  ) : (
+    /* Grid: 1 col on mobile, 2 on lg, 3 on xl */
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+      {filteredReviews.map((review) => (
+        <div 
+          key={review.id} 
+          className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-md border border-white/20 p-4 md:p-6 hover:shadow-xl transition-all duration-300 flex flex-col h-full"
+        >
+         <div className="flex items-start justify-between gap-2 mb-4">
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex-shrink-0 flex items-center justify-center">
+        <MessageSquare className="w-5 h-5 text-white" />
+      </div>
+      <div>
+        <h5 className="text-xs font-bold text-gray-900 leading-tight">
+          Review #{review.id.slice(-8)}
+        </h5>
+        <p className="text-xs text-gray-500">
+          {new Date(review.createdAt).toLocaleDateString()}
+        </p>
+      </div>
+    </div>
+    {/* Status Badge - Ensure it doesn't shrink */}
+    <div className="shrink-0">
+      {getStatusBadge(review.status)}
+    </div>
+  </div>
 
-                      {/* Rating */}
-                      <div className="flex items-center space-x-2">
-                        {renderStars(review.rating)}
-                      </div>
+  {/* Review Content Box */}
+  <div className="p-3 bg-gray-50 rounded-xl mb-4">
+    <p className="text-sm text-gray-700 italic leading-snug">
+      "{review.content}"
+    </p>
+  </div>
 
-                      {/* Reviewer Info */}
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
-                          <span className="text-white font-semibold text-sm">{review.reviewerName.charAt(0)}</span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{review.reviewerName}</p>
-                          <p className="text-sm text-gray-600">{review.reviewerEmail}</p>
-                        </div>
-                      </div>
+  {/* Rating Stars */}
+  <div className="flex items-center gap-1 mb-4">
+    {renderStars(review.rating)}
+    <span className="text-xs text-gray-500 ml-1">({review.rating})</span>
+  </div>
 
-                      {/* Reviewee Info */}
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-                          <span className="text-white font-semibold text-sm">{review.revieweeName.charAt(0)}</span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{review.revieweeName}</p>
-                          <p className="text-sm text-gray-600">{review.revieweeEmail}</p>
-                        </div>
-                      </div>
+  {/* User Information - Using flex-col to avoid truncation/overlap */}
+  <div className="space-y-4 border-t border-gray-50 pt-4 mb-4">
+    {/* Reviewer */}
+    <div className="flex items-start gap-3">
+      <div className="w-9 h-9 bg-blue-500 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
+        {review.reviewerName.charAt(0).toUpperCase()}
+      </div>
+      <div className="min-w-0"> {/* min-w-0 is crucial for text wrapping in flex */}
+        <p className="text-sm font-semibold text-gray-900 break-words">{review.reviewerName}</p>
+        <p className="text-xs text-gray-500 break-all">{review.reviewerEmail}</p>
+      </div>
+    </div>
 
-                      {/* Property */}
-                      <div className="p-3 bg-gray-100/50 rounded-xl">
-                        <p className="text-sm font-medium text-gray-900">Property</p>
-                        <p className="text-sm text-gray-600">{review.propertyTitle}</p>
-                      </div>
+    {/* Reviewee */}
+    <div className="flex items-start gap-3">
+      <div className="w-9 h-9 bg-green-500 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
+        {review.revieweeName.charAt(0).toUpperCase()}
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-gray-900 break-words">{review.revieweeName}</p>
+        <p className="text-xs text-gray-500 break-all">{review.revieweeEmail}</p>
+      </div>
+    </div>
+  </div>
 
-                      {/* Flagged Reason */}
-                      {review.flaggedReason && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
-                          <p className="text-sm font-medium text-red-800">Flagged Reason</p>
-                          <p className="text-sm text-red-600">{review.flaggedReason}</p>
-                        </div>
-                      )}
+  {/* Property Section - Wrapping enabled */}
+  <div className="p-3 bg-gray-50 rounded-xl mb-5">
+    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">Property</p>
+    <p className="text-sm text-gray-700 font-medium leading-tight">
+      {review.propertyTitle}
+    </p>
+  </div>
 
-                      {/* Actions */}
-                      <div className="flex space-x-2 pt-2">
-                        {review.status === 'active' && (
-                          <>
-                            <button
-                              onClick={() => handleFlag(review.id)}
-                              className="flex-1 bg-yellow-100 text-yellow-700 px-4 py-2 rounded-xl hover:bg-yellow-200 transition-colors duration-200 flex items-center justify-center space-x-2"
-                            >
-                              <Flag className="w-4 h-4" />
-                              <span>Flag</span>
-                            </button>
-                            <button
-                              onClick={() => handleDelete(review.id)}
-                              className="flex-1 bg-red-100 text-red-700 px-4 py-2 rounded-xl hover:bg-red-200 transition-colors duration-200 flex items-center justify-center space-x-2"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              <span>Delete</span>
-                            </button>
-                          </>
-                        )}
-                        {review.status === 'flagged' && (
-                          <button
-                            onClick={() => handleDelete(review.id)}
-                            className="w-full bg-red-100 text-red-700 px-4 py-2 rounded-xl hover:bg-red-200 transition-colors duration-200 flex items-center justify-center space-x-2"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            <span>Delete</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+  {/* Action Buttons - Larger tap targets */}
+  <div className="grid grid-cols-2 gap-3">
+    <button
+      onClick={() => handleFlag(review.id)}
+      className="flex items-center justify-center gap-2 py-2.5 bg-yellow-50 text-yellow-700 rounded-xl font-semibold text-sm active:bg-yellow-100 transition-colors"
+    >
+      <Flag className="w-4 h-4" />
+      Flag
+    </button>
+    <button
+      onClick={() => handleDelete(review.id)}
+      className="flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 rounded-xl font-semibold text-sm active:bg-red-100 transition-colors"
+    >
+      <Trash2 className="w-4 h-4" />
+      Delete
+    </button>
+  </div>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+         
         </div>
       </div>
     </AdminLayout>
   );
 } 
+
+
+//  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+//             <h3 className="text-2xl font-bold text-gray-900 mb-6">Reviews</h3>
+//             {filteredReviews.length === 0 ? (
+//               <div className="text-center py-12">
+//                 <div className="text-gray-500">
+//                   <MessageSquare className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+//                   <p className="text-xl font-medium">No reviews found</p>
+//                   <p className="text-sm">Try adjusting your search or filters</p>
+//                 </div>
+//               </div>
+//             ) : (
+//               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+//                 {filteredReviews.map((review) => (
+//                   <div key={review.id} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 hover:bg-white/90 hover:shadow-2xl transition-all duration-300">
+//                     <div className="flex items-start justify-between mb-4">
+//                       <div className="flex items-center space-x-3">
+//                         <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+//                           <MessageSquare className="w-6 h-6 text-white" />
+//                         </div>
+//                         <div>
+//                           <h4 className="text-lg font-semibold text-gray-900">Review #{review.id.slice(-8)}</h4>
+//                           <p className="text-sm text-gray-600">{new Date(review.createdAt).toLocaleDateString()}</p>
+//                         </div>
+//                       </div>
+//                       {getStatusBadge(review.status)}
+//                     </div>
+
+//                     <div className="space-y-4">
+//                       {/* Review Content */}
+//                       <div className="p-4 bg-gray-100/50 rounded-xl">
+//                         <p className="text-sm text-gray-900 leading-relaxed">{review.content}</p>
+//                       </div>
+
+//                       {/* Rating */}
+//                       <div className="flex items-center space-x-2">
+//                         {renderStars(review.rating)}
+//                       </div>
+
+//                       {/* Reviewer Info */}
+//                       <div className="flex items-center space-x-3">
+//                         <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+//                           <span className="text-white font-semibold text-sm">{review.reviewerName.charAt(0)}</span>
+//                         </div>
+//                         <div>
+//                           <p className="font-medium text-gray-900">{review.reviewerName}</p>
+//                           <p className="text-sm text-gray-600">{review.reviewerEmail}</p>
+//                         </div>
+//                       </div>
+
+//                       {/* Reviewee Info */}
+//                       <div className="flex items-center space-x-3">
+//                         <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+//                           <span className="text-white font-semibold text-sm">{review.revieweeName.charAt(0)}</span>
+//                         </div>
+//                         <div>
+//                           <p className="font-medium text-gray-900">{review.revieweeName}</p>
+//                           <p className="text-sm text-gray-600">{review.revieweeEmail}</p>
+//                         </div>
+//                       </div>
+
+//                       {/* Property */}
+//                       <div className="p-3 bg-gray-100/50 rounded-xl">
+//                         <p className="text-sm font-medium text-gray-900">Property</p>
+//                         <p className="text-sm text-gray-600">{review.propertyTitle}</p>
+//                       </div>
+
+//                       {/* Flagged Reason */}
+//                       {review.flaggedReason && (
+//                         <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+//                           <p className="text-sm font-medium text-red-800">Flagged Reason</p>
+//                           <p className="text-sm text-red-600">{review.flaggedReason}</p>
+//                         </div>
+//                       )}
+
+//                       {/* Actions */}
+//                       <div className="flex space-x-2 pt-2">
+//                         {review.status === 'active' && (
+//                           <>
+//                             <button
+//                               onClick={() => handleFlag(review.id)}
+//                               className="flex-1 bg-yellow-100 text-yellow-700 px-4 py-2 rounded-xl hover:bg-yellow-200 transition-colors duration-200 flex items-center justify-center space-x-2"
+//                             >
+//                               <Flag className="w-4 h-4" />
+//                               <span>Flag</span>
+//                             </button>
+//                             <button
+//                               onClick={() => handleDelete(review.id)}
+//                               className="flex-1 bg-red-100 text-red-700 px-4 py-2 rounded-xl hover:bg-red-200 transition-colors duration-200 flex items-center justify-center space-x-2"
+//                             >
+//                               <Trash2 className="w-4 h-4" />
+//                               <span>Delete</span>
+//                             </button>
+//                           </>
+//                         )}
+//                         {review.status === 'flagged' && (
+//                           <button
+//                             onClick={() => handleDelete(review.id)}
+//                             className="w-full bg-red-100 text-red-700 px-4 py-2 rounded-xl hover:bg-red-200 transition-colors duration-200 flex items-center justify-center space-x-2"
+//                           >
+//                             <Trash2 className="w-4 h-4" />
+//                             <span>Delete</span>
+//                           </button>
+//                         )}
+//                       </div>
+//                     </div>
+//                   </div>
+//                 ))}
+//               </div>
+//             )}
+//           </div>

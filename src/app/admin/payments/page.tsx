@@ -397,7 +397,7 @@ export default function AdminPaymentsPage() {
   </div>
 )}
           {/* Enhanced Filters */}
-         ]<div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-4 md:p-6">
+         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-4 md:p-6">
   {/* Changed to flex-col for mobile, lg:flex-row for desktop */}
   <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
     

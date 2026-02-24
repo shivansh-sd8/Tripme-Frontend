@@ -254,14 +254,14 @@ export default function SignupPage() {
 
           {/* Phone field */}
           <Input
-            label="Phone number (optional)"
+            label="Phone number "
             type="tel"
             placeholder="Enter your phone number"
             value={formData.phone}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('phone', e.target.value)}
             leftIcon={<Phone size={20} />}
             error={errors.phone}
-            helperText="Enter your phone number (optional)"
+            helperText="Enter your phone number "
           />
 
           {/* Password field */}

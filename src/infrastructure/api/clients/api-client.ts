@@ -9,7 +9,8 @@ class ApiClient {
   private defaultHeaders: Record<string, string>;
 
   constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+    this.baseURL = process.env.NEXT_PUBLIC_API_URL || 'localhost:5000/api';
+    console.log('API Client initialized with base URL:', this.baseURL);
     this.defaultHeaders = {
       'Content-Type': 'application/json',
     };
@@ -335,6 +336,33 @@ class ApiClient {
   return this.request(`/host/profile/${hostId}`);
 }
 
+async getPropertyReviews(propertyId: string, params?: any): Promise<ApiResponse<any>> {
+  console.log("get property call",propertyId)
+  const queryParams = params ? `?${new URLSearchParams(params).toString()}` : '';
+  return this.request(`/reviews/properties/${propertyId}${queryParams}`);
+}
+
+async getPropertyReviewSummary(propertyId: string): Promise<ApiResponse<any>> {
+   console.log("get summary  call",propertyId)
+  return this.request(`/reviews/properties/${propertyId}/summary`);
+}
+
+async createReview(bookingId: string, reviewData: any): Promise<ApiResponse<any>> {
+  return this.request('/reviews', {
+    method: 'POST',
+    body: JSON.stringify({
+      bookingId,
+      ...reviewData
+    })
+  });
+}
+
+async updateReview(reviewId: string, reviewData: any): Promise<ApiResponse<any>> {
+  return this.request(`/reviews/${reviewId}`, {
+    method: 'PUT',
+    body: JSON.stringify(reviewData)
+  });
+}
 
   async getListingReviews(listingId: string, params?: any): Promise<ApiResponse<any>> {
     const queryString = params ? `?${new URLSearchParams(params).toString()}` : '';
@@ -547,10 +575,42 @@ async addToWishlist(
     });
   }
 
-  async createRazorpayOrder(bookingId: string | null, amount: number, currency: string = 'INR', propertyId?: string): Promise<ApiResponse<any>> {
+  async createRazorpayOrder(
+    bookingId: string | null,
+    amount: number,
+    currency: string = 'INR',
+    propertyId?: string,
+    securePricingContext?: {
+      pricingToken: string;
+      propertyId: string;
+      checkIn: string;
+      checkOut: string;
+      guests: { adults: number; children?: number; infants?: number };
+      nights: number;
+      totalAmount: number;
+      currency?: string;
+    }
+  ): Promise<ApiResponse<any>> {
     return this.request('/payments/create-order', {
       method: 'POST',
-      body: JSON.stringify({ bookingId, propertyId, amount, currency }),
+      body: JSON.stringify({
+        bookingId,
+        propertyId,
+        amount,
+        currency,
+        ...(securePricingContext && {
+          pricingToken: securePricingContext.pricingToken,
+          pricingContext: {
+            propertyId: securePricingContext.propertyId,
+            checkIn: securePricingContext.checkIn,
+            checkOut: securePricingContext.checkOut,
+            guests: securePricingContext.guests,
+            nights: securePricingContext.nights,
+            totalAmount: securePricingContext.totalAmount,
+            currency: securePricingContext.currency || currency
+          }
+        })
+      }),
     });
   }
 
@@ -867,6 +927,8 @@ async addToWishlist(
     return this.request(`/admin/reviews${queryParams}`);
   }
 
+ 
+
   async flagReview(reviewId: string, reason: string): Promise<ApiResponse<any>> {
     return this.request(`/admin/reviews/${reviewId}/flag`, {
       method: 'PUT',
@@ -874,11 +936,35 @@ async addToWishlist(
     });
   }
 
-  async deleteReview(reviewId: string): Promise<ApiResponse<void>> {
-    return this.request(`/admin/reviews/${reviewId}`, {
-      method: 'DELETE',
-    });
-  }
+  // async deleteReview(reviewId: string): Promise<ApiResponse<void>> {
+  //   return this.request(`/admin/reviews/${reviewId}`, {
+  //     method: 'DELETE',
+  //   });
+  // }
+async deleteReview(reviewId: string): Promise<ApiResponse<void>> {
+  return this.request(`/reviews/${reviewId}`, {
+    method: 'DELETE'
+  });
+}
+  async markReviewHelpful(reviewId: string): Promise<ApiResponse<void>> {
+  return this.request(`/reviews/${reviewId}/helpful`, {
+    method: 'POST'
+  });
+}
+
+async reportReview(reviewId: string, data: { reason: string }): Promise<ApiResponse<void>> {
+  return this.request(`/reviews/${reviewId}/report`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+}
+
+  async respondToReview(reviewId: string, data: { response: string }): Promise<ApiResponse<any>> {
+  return this.request(`/reviews/${reviewId}/response`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+}
 
   async getAdminSettings(): Promise<ApiResponse<any>> {
     return this.request('/admin/settings');

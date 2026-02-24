@@ -49,19 +49,19 @@ export default function PropertyAvailabilityCalendar({
   const [availability, setAvailability] = useState<AvailabilityData>({});
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDateState, setSelectedDateState] = useState<Date | null>(selectedDate || null);
+  // const [selectedDateState, setSelectedDateState] = useState<Date | null>(selectedDate || null);
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
 
   // Sync selectedDateState with checkInDate when provided
-  useEffect(() => {
-    if (checkInDate) {
-      setSelectedDateState(checkInDate);
-      // Navigate calendar to show check-in date month
-      setCurrentMonth(checkInDate);
-    } else if (selectedDate) {
-      setSelectedDateState(selectedDate);
-    }
-  }, [checkInDate, selectedDate]);
+  // useEffect(() => {
+  //   if (checkInDate) {
+  //     setSelectedDateState(checkInDate);
+  //     // Navigate calendar to show check-in date month
+  //     setCurrentMonth(checkInDate);
+  //   } else if (selectedDate) {
+  //     setSelectedDateState(selectedDate);
+  //   }
+  // }, [checkInDate, selectedDate]);
 
   // Navigate calendar to show check-out date month if available
   useEffect(() => {
@@ -321,7 +321,7 @@ export default function PropertyAvailabilityCalendar({
         const dateKey = format(day, 'yyyy-MM-dd');
         const dayData = availability[dateKey];
         const isCurrentMonth = isSameMonth(day, monthStart);
-        const isSelected = selectedDateState && isSameDay(day, selectedDateState);
+        const isSelected = selectedDate && isSameDay(day, selectedDate);
         const isCheckIn = checkInDate && isSameDay(day, checkInDate);
         const isCheckOut = checkOutDate && isSameDay(day, checkOutDate);
         const isTodayDate = isToday(day);
@@ -390,7 +390,7 @@ export default function PropertyAvailabilityCalendar({
             `}
             onClick={() => {
               if (isSelectable) {
-                setSelectedDateState(clonedDay);
+                // setSelectedDateState(clonedDay);
                 onDateSelect?.(clonedDay);
               }
             }}
@@ -701,18 +701,18 @@ export default function PropertyAvailabilityCalendar({
       </div>
 
       {/* Selected Date Info */}
-      {selectedDateState && (
+      {selectedDate && (
         <div className="mt-4 p-4 bg-indigo-50 rounded-xl border border-indigo-200">
           <div className="flex items-center gap-2 mb-2">
             <CalendarIcon className="w-4 h-4 text-indigo-600" />
             <span className="font-medium text-indigo-900">Selected Date</span>
           </div>
           <p className="text-indigo-800">
-            {format(selectedDateState, 'EEEE, MMMM do, yyyy')}
+            {format(selectedDate, 'EEEE, MMMM do, yyyy')}
           </p>
-          {availability[format(selectedDateState, 'yyyy-MM-dd')]?.price && (
+          {availability[format(selectedDate, 'yyyy-MM-dd')]?.price && (
             <p className="text-sm text-indigo-600 mt-1">
-              Price: ₹{availability[format(selectedDateState, 'yyyy-MM-dd')].price}
+              Price: ₹{availability[format(selectedDate, 'yyyy-MM-dd')].price}
             </p>
           )}
         </div>

@@ -61,6 +61,10 @@ export interface Property {
     country: string;
     coordinates: [number, number];
   };
+   houseRules?: {
+    common: string[];
+    additional: Record<string, string>;
+  };
   amenities: string[];
   images: string[];
   price: {
@@ -74,8 +78,11 @@ export interface Property {
   };
   host: User;
   status: 'pending' | 'approved' | 'rejected';
+  cancellationPolicy?: 'flexible' | 'moderate' | 'strict' | 'super-strict';
   createdAt: string;
   updatedAt: string;
+   rating?: number;
+  reviewCount?: number;
 }
 
 // Booking Types
@@ -98,6 +105,63 @@ export interface Booking {
   checkInNotes?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// Review Types 
+export interface Review {
+  _id: string;
+  property: string | Property; // Property ID or populated Property
+  booking: string | Booking;   // Booking ID or populated Booking
+  reviewer: User;              // User who wrote the review
+  host: User;                  // Property host
+  rating: {
+    overall: number;           // 1-5 stars
+    cleanliness: number;       // 1-5 stars
+    communication: number;     // 1-5 stars
+    checkIn: number;          // 1-5 stars
+    accuracy: number;         // 1-5 stars
+    location: number;         // 1-5 stars
+    value: number;            // 1-5 stars
+  };
+  comment: string;
+  response?: {
+    comment: string;
+    respondedAt: string;
+    respondedBy: User;
+  };
+  images?: string[];          // Review photos
+  isVerified: boolean;        // Verified stay review
+  isPublic: boolean;          // Public visibility
+  helpfulCount: number;       // Helpful votes
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReviewSummary {
+  averageRating: number;
+  totalReviews: number;
+  ratingBreakdown: {
+    5: number;
+    4: number;
+    3: number;
+    2: number;
+    1: number;
+  };
+  categoryAverages: {
+    cleanliness: number;
+    communication: number;
+    checkIn: number;
+    accuracy: number;
+    location: number;
+    value: number;
+  };
+  recentReviews: Review[];
+}
+
+export interface ReviewFormData {
+  rating: Review['rating'];
+  comment: string;
+  images?: File[];
 }
 
 // Service Types
@@ -318,4 +382,7 @@ export type {
   MapLocation,
   Payment,
   KYCVerification,
+  Review,
+  ReviewSummary,
+  ReviewFormData,
 }; 

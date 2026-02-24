@@ -8,7 +8,7 @@ import { useAuth } from '@/core/store/auth-context';
 import Dropdown from '../ui/Dropdown';
 import AirbnbSearchForm from '../trips/AirbnbSearchForm';
 import MobileSearchSheet from "@/components/trips/mobileSearchForm";
-
+import Button from '../ui/Button';
 import {
   Menu,
   X,
@@ -23,13 +23,21 @@ import {
   Bell,
   BookOpen,
   ArrowLeft,
+  Share2,
   Star,
   Sparkles,
   Search,
   Shield,
-  Filter
+  Filter,
+  AlertCircle,
+  Loader2,
+  CheckCircle,
+  Zap,
+  IndianRupee
+  
 } from 'lucide-react';
 import { boolean } from 'zod/v4';
+import { on } from 'events';
 
 
 
@@ -40,6 +48,21 @@ interface HeaderProps {
   hideSearch?: boolean;
   visibleFilter?: boolean;
   onFilterClick?: () => void;
+  visibleWishlist?: boolean;
+  visibleShare?: boolean;
+  onShareClick?: () => void;
+  onWishlistClick?: () => void;
+  isFavorited?: boolean;
+  checkAvailability?: boolean;
+  onCheckAvailability?: () => void;
+  showBookingButton?: boolean;
+  pricing?:String;
+  night?:Number ;
+  onHandleBooking?: () => void;
+  rating?: number;
+  isOwenProperty?: boolean;
+  // availabilityChecked?: boolean;
+
 }
 
 const Header =({searchExpanded: externalSearchExpanded, 
@@ -47,11 +70,26 @@ const Header =({searchExpanded: externalSearchExpanded,
   onSearch,
   hideSearch = false,
   visibleFilter = false,
-  onFilterClick 
+  onFilterClick,
+  visibleShare = false,
+  visibleWishlist = false, 
+  onShareClick,
+  onWishlistClick,
+  isFavorited = false,
+  showBookingButton = false,
+  checkAvailability = false,
+  pricing,
+  night ,
+  onCheckAvailability,
+  onHandleBooking,
+  rating,
+  isOwenProperty = false
+
 } : HeaderProps ={}) => {
 
     // 
-  const { hideHeader } = useUI();
+  const { hideHeader,availabilityLoading ,availabilityError ,
+    selectionStep ,availabilityChecked ,bookingLoading } = useUI();
   const router = useRouter();
   const pathname = usePathname();
   const [activeCategory, setActiveCategory] = useState<'homes' | 'services' | 'stories' | null>(null);
@@ -63,6 +101,9 @@ const Header =({searchExpanded: externalSearchExpanded,
   const setSearchExpanded = onSearchToggle || setInternalSearchExpanded;
   const [scrolled, setScrolled] = useState(false);
   const [hideMobileHeader, setHideMobileHeader] = useState(false);
+ 
+
+
   
 
   
@@ -94,6 +135,7 @@ const Header =({searchExpanded: externalSearchExpanded,
    useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
+      
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -155,11 +197,12 @@ const Header =({searchExpanded: externalSearchExpanded,
                         ? 'bg-white border-b border-gray-200 shadow-lg' 
                         : 'bg-white border-b border-gray-100'}
                        `}
+                      
                        >
     
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Main Nav Bar container */}
-      <div className={`flex item-center justify-between relative transition-all duration-500 ease-in-out ${
+      <div className={`hidden lg:flex item-center justify-between relative transition-all duration-500 ease-in-out ${
           shouldShowFullHeader ? 'h-20' : 'h-24 my-1' }`}>
           <Link href="/" className={`flex items-center group relative z-10 ${
             !shouldShowFullHeader ? 'pt-1' : ''
@@ -289,6 +332,126 @@ const Header =({searchExpanded: externalSearchExpanded,
 
 
                        {/* Desktop actions right side*/}
+
+                       {showBookingButton ? (
+                        /* 🟢 BOOKING STATE */
+                        <div className={`hidden lg:flex items-center gap-4 ${!shouldShowFullHeader ? "pt-1" : ""}`}>
+                          <div className="mt-4 flex items-center gap-4">
+                            <div className="flex flex-col items-start font-sans">
+                        {/* Price Row */}
+                        <div className="flex items-center gap-0.5 border-b-2 border-black pb-0.5">
+                          <IndianRupee className="w-4 h-4 stroke-[3px]" />
+                          <span className="text-xl font-bold tracking-tight">
+                            {pricing}
+                          </span>
+                        </div>
+
+                        {/* Night Info Row */}
+                        <div className="text-xs text-gray-800 mt-1">
+                          for {night} {night > 1 ? 'nights' : 'night'}
+                        </div>
+
+                        {/* Rating Row (Optional, based on your image) */}
+                        <div className="flex items-center gap-1 mt-2 text-xs text-gray-600">
+                          <span className="text-black">★</span>
+                          <span className="font-semibold text-black">{rating || 0}</span>
+                        
+                        </div>
+                      </div>
+
+                                              <Button 
+                                                  className={`w-full py-4 rounded-2xl font-bold text-sm shadow-xl transition-all duration-300 transform ${
+                                                  availabilityChecked && night > 0
+                                                      ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white hover:shadow-2xl hover:scale-105' 
+                                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                }`}
+                                                onClick={onHandleBooking}
+                                                disabled={bookingLoading || !availabilityChecked || night === 0}
+                                              >
+                                                {bookingLoading ? (
+                                                    <div className="flex items-center justify-center gap-3">
+                                                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                      <span>Processing...</span>
+                                                  </div>
+                                                ) : !availabilityChecked ? (
+                                                    <div className="flex items-center justify-center gap-3">
+                                                      <CheckCircle className="w-6 h-6" />
+                                                      <span>Check Availability First</span>
+                                                    </div>
+                                                ) : night === 0 ? (
+                                                    <div className="flex items-center justify-center gap-3">
+                                                      <Calendar className="w-6 h-6" />
+                                                      <span>Select Valid Dates</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center justify-center gap-3">
+                                                      <Zap className="w-6 h-6" />
+                                                      <span>Continue to Book </span>
+                                                    </div>
+                                                )}
+                                              </Button>
+                          </div>
+                        </div>
+
+                      ) :
+                        checkAvailability ? (
+                        <div className={`hidden lg:flex items-center gap-4 ${!shouldShowFullHeader ? 'pt-1' : ''}`}>
+ 
+                            <div className="mt-4 flex flex-row items-center justify-between gap-4">
+                            <div className="flex flex-col items-start font-sans">
+  {/* Price Row */}
+  <div className="flex items-center gap-0.5 border-b-2 border-black pb-0.5">
+    <IndianRupee className="w-4 h-4 stroke-[3px]" />
+    <span className="text-xl font-bold tracking-tight">
+      {pricing}
+    </span>
+  </div>
+
+  {/* Night Info Row */}
+  <div className="text-xs text-gray-800 mt-1">
+    for {night} {night > 1 ? 'nights' : 'night'}
+  </div>
+
+  {/* Rating Row (Optional, based on your image) */}
+  <div className="flex items-center gap-1 mt-2 text-xs text-gray-600">
+    <span className="text-black">★</span>
+    <span className="font-semibold text-black">{rating || 0}</span>
+  
+  </div>
+</div>
+
+
+                           <Button
+                              onClick={onCheckAvailability}
+                              disabled={availabilityLoading || selectionStep !== 'complete' || !!availabilityError}
+                              className={`w-full font-semibold py-3 rounded-xl transition-all duration-200 ${
+                              availabilityLoading || selectionStep !== 'complete' || !!availabilityError
+                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white'
+                              }`}
+                              >
+     {availabilityLoading ? (
+                                                          <>
+                                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                            Checking Availability...
+                                                          </>
+                                                        ) : selectionStep !== 'complete' ? (
+                                                          selectionStep === 'checkin' ? 'Select Check-in Date' : 'Select Check-out Date'
+                                                        ) : availabilityError ? (
+                                                          'Dates unavailable'
+                                                        ) : (
+                                                          <>
+                                                            <CheckCircle className="w-4 h-4 mr-2" />
+                                                            Check Availability
+                                                          </>
+                                                        )}
+                                                      </Button>                            
+                                                       
+                                                  
+                          </div>
+                                   
+                          </div>
+                       ) : ( 
                        <div className={`hidden lg:flex items-center gap-4 ${!shouldShowFullHeader ? 'pt-1' : ''}`}>
                         {/* Host Button */}
                         {isAuthenticated && user?.role === 'host' ? (
@@ -412,7 +575,7 @@ const Header =({searchExpanded: externalSearchExpanded,
                 </div>
               </Dropdown>
             )}
-                       </div>
+                       </div> )}
 
                        {/* mobile menu button */}
                        {/* TODO . */}
@@ -583,7 +746,7 @@ const Header =({searchExpanded: externalSearchExpanded,
       </div> )}
 
 {/* mobile search form */}
-   <div className="md:hidden px-4 pb-3">
+   <div className="md:hidden px-4 pb-3 mt-5">
           <button
             onClick={() => setSearchExpanded(true)}
             className="
@@ -602,7 +765,63 @@ const Header =({searchExpanded: externalSearchExpanded,
               Start your search
             </span>
           </button>
+
+                {/* Tabs */}
+  <div className="flex justify-around border-b border-gray-200">
+    <button
+      onClick={() => {
+        setActiveCategory("homes");
+        router.push("/search");
+      }}
+      className={`pb-2 text-sm font-medium relative ${
+        activeCategory === "homes"
+          ? "text-black"
+          : "text-gray-500"
+      }`}
+    >
+      Homes
+      {activeCategory === "homes" && (
+        <span className="absolute left-0 right-0 -bottom-[1px] h-[2px] bg-black rounded-full" />
+      )}
+    </button>
+
+    <button
+      onClick={() => {
+        setActiveCategory("services");
+        router.push("/services");
+      }}
+      className={`pb-2 text-sm font-medium relative ${
+        activeCategory === "services"
+          ? "text-black"
+          : "text-gray-500"
+      }`}
+    >
+      services
+      {activeCategory === "services" && (
+        <span className="absolute left-0 right-0 -bottom-[1px] h-[2px] bg-black rounded-full" />
+      )}
+    </button>
+
+    <button
+      onClick={() => {
+        setActiveCategory("stories");
+        router.push("/stories");
+      }}
+      className={`pb-2 text-sm font-medium relative ${
+        activeCategory === "stories"
+          ? "text-black"
+          : "text-gray-500"
+      }`}
+    >
+      stories
+      {activeCategory === "stories" && (
+        <span className="absolute left-0 right-0 -bottom-[1px] h-[2px] bg-black rounded-full" />
+      )}
+    </button>
+  </div>
         </div>
+
+   
 
     </div>
 
@@ -610,21 +829,52 @@ const Header =({searchExpanded: externalSearchExpanded,
 
     {hideHeader && (
   <div className="lg:hidden sticky top-0 z-50 bg-white">
-    <div className="flex items-center gap-3 px-4 py-3">
+    <div className="flex items-center justify-between px-4 py-3">
 
-      {/* Back button */}
-      <button
-        onClick={() => router.push('/')}
-        className="w-9 h-9 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center shrink-0"
-      >
-        <ArrowLeft className="w-4 h-4 text-gray-900" />
-      </button>
+  {/* LEFT SIDE */}
+  <button
+    onClick={() => router.push('/')}
+    className="w-9 h-9 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center shrink-0"
+  >
+    <ArrowLeft className="w-4 h-4 text-gray-900" />
+  </button>
 
-      {/* Search bar */}
+  {/* ===== SHARE MODE ===== */}
+  {visibleShare ? (
+    <div className="flex items-center gap-2 ml-auto">
+      {visibleShare && (
+        <button
+          onClick={onShareClick}
+          className="w-9 h-9 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center"
+        >
+          <Share2 className="w-4 h-4 text-gray-700" />
+        </button>
+      )}
+
+      {visibleWishlist && (
+        <button
+          onClick={onWishlistClick}
+          className="w-9 h-9 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center"
+        >
+         <Heart
+  className={`w-4 h-4 transition ${
+    isFavorited
+      ? "fill-red-500 text-red-500"
+      : "text-gray-700"
+  }`}
+/>
+
+        </button>
+      )}
+    </div>
+  ) : (
+    /* ===== NORMAL MODE ===== */
+    <>
       <button
         onClick={() => setSearchExpanded(true)}
         className="
           flex-1
+          mx-3
           bg-white
           border border-gray-200
           rounded-full
@@ -640,16 +890,18 @@ const Header =({searchExpanded: externalSearchExpanded,
         </span>
       </button>
 
-      {/* Filter button */}
       {visibleFilter && (
         <button
           onClick={onFilterClick}
-          className="w-9 h-9 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center shrink-0"
+          className="w-9 h-9 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center"
         >
           <Filter className="w-4 h-4 text-gray-700" />
         </button>
       )}
-    </div>
+    </>
+  )}
+</div>
+
   </div>
 )}
 

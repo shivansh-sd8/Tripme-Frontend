@@ -41,7 +41,7 @@ function CategoryTabs({ onClose, activeCategory, setActiveCategory }: {
 }
 
 function Calendar({ onNext, dateRange, setDateRange }) {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 0));
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDates, setSelectedDates] = useState({ start: null, end: null });
 
   const daysInMonth = (date) =>
@@ -86,22 +86,27 @@ function Calendar({ onNext, dateRange, setDateRange }) {
     year: "numeric",
   });
 
+   const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+
+
   return (
     <div className="space-y-4">
       <div className="space-y-3">
         <h3 className="text-2xl font-bold text-gray-800">When?</h3>
 
         {/* Tabs */}
-        <div className="flex gap-2">
+        <div className="flex justify-center  items-center">
           <button className="px-4 py-2 border border-gray-800 rounded-full text-sm font-medium text-gray-800">
             Dates
           </button>
-          <button className="px-4 py-2 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100">
+          {/* <button className="px-4 py-2 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100">
             Months
           </button>
           <button className="px-4 py-2 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100">
             Flexible
-          </button>
+          </button> */}
         </div>
       </div>
 
@@ -146,14 +151,24 @@ function Calendar({ onNext, dateRange, setDateRange }) {
             <div key={`empty-${i}`} />
           ))}
           {days.map((day) => {
+            const currentDayDate = new Date(
+            currentDate.getFullYear(),
+            currentDate.getMonth(),
+            day
+          );
+
+          const isPast = currentDayDate < today;
+
             const inRange = isDateInRange(day);
             const isStartOrEndDay = isStartOrEnd(day);
 
             return (
               <button
                 key={day}
-                onClick={() => handleDateClick(day)}
+                onClick={() => !isPast && handleDateClick(day)}
                 className={`py-2 text-sm font-medium rounded-lg transition ${
+                   isPast  ?
+               "text-gray-300 cursor-not-allowed pointer-events-none" :
                   isStartOrEndDay
                     ? "bg-gray-800 text-white font-bold"
                     : inRange
@@ -169,7 +184,7 @@ function Calendar({ onNext, dateRange, setDateRange }) {
       </div>
 
       {/* Flexible options */}
-      <div className="flex gap-2">
+      {/* <div className="flex gap-2">
         <button className="flex-1 py-2 border border-gray-800 rounded-full text-sm font-medium text-gray-800 hover:bg-gray-50">
           Exact dates
         </button>
@@ -179,7 +194,7 @@ function Calendar({ onNext, dateRange, setDateRange }) {
         <button className="flex-1 py-2 border border-gray-300 rounded-full text-sm font-medium text-gray-600 hover:bg-gray-50">
           ± 2 days
         </button>
-      </div>
+      </div> */}
     </div>
   );
 }

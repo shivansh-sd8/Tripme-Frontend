@@ -26,13 +26,15 @@ const identityDocTypes = [
   { id: 'drivers-license', label: 'Driving License', icon: CreditCard, placeholder: 'DL0120110012345', pattern: /^[A-Z]{2}[0-9]{13}$/, hint: 'Format: DL + 13 digits' },
 ];
 
+
+
 const addressProofTypes = [
   { id: 'aadhar-card', label: 'Aadhaar Card', icon: Home },
-  { id: 'voter-id', label: 'Voter ID', icon: Home },
+  { id: 'voter-id-address', label: 'Voter ID', icon: Home },
   { id: 'passport', label: 'Passport', icon: FileText },
   { id: 'utility-bill', label: 'Utility Bill', icon: FileText },
   { id: 'bank-statement', label: 'Bank Statement', icon: FileText },
-  { id: 'rent-agreement', label: 'Rent Agreement', icon: Home },
+  { id: 'rental-agreement', label: 'Rent Agreement', icon: Home },
 ];
 
 export default function KYCPage() {
@@ -48,7 +50,9 @@ export default function KYCPage() {
   // Address proof state
   const [selectedAddressProof, setSelectedAddressProof] = useState<string | null>(null);
   const [addressProofFile, setAddressProofFile] = useState<File | null>(null);
-  
+  // Selfie upload state
+const [selfieFile, setSelfieFile] = useState<File | null>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [kycSubmitted, setKycSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -84,8 +88,18 @@ export default function KYCPage() {
   };
 
   // Check if KYC details are filled (identity doc is required, address proof is optional)
-  const hasIdentityDoc = selectedDoc && uploadedFile && documentNumber.trim() && !docNumberError;
-  const hasAddressProof = selectedAddressProof && addressProofFile;
+  // const hasIdentityDoc = selectedDoc && uploadedFile && documentNumber.trim() && !docNumberError;
+  // Replace line 89
+// const hasIdentityDoc = selectedDoc && uploadedFile && documentNumber.trim() && !docNumberError && selfieFile && selfiUrl;
+  
+const hasIdentityDoc =
+  selectedDoc &&
+  uploadedFile &&
+  documentNumber.trim() &&
+  !docNumberError &&
+  selfieFile;
+
+const hasAddressProof = selectedAddressProof && addressProofFile;
 
   const handleSubmitKyc = async () => {
     if (!hasIdentityDoc) return;
@@ -97,10 +111,10 @@ export default function KYCPage() {
       const formData = new FormData();
       formData.append('image', uploadedFile!);
       
-      const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/upload/image`, {
+      const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/upload/image`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('tripme_token')}`,
         },
         body: formData,
       });
@@ -118,10 +132,10 @@ export default function KYCPage() {
         const addressFormData = new FormData();
         addressFormData.append('image', addressProofFile!);
         
-        const addressUploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/upload/image`, {
+        const addressUploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/upload/image`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${localStorage.getItem('tripme_token')}`,
           },
           body: addressFormData,
         });
@@ -132,17 +146,47 @@ export default function KYCPage() {
         }
       }
 
+
+      // Upload selfie
+const selfieFormData = new FormData();
+selfieFormData.append('image', selfieFile!);
+
+const selfieUploadResponse = await fetch(
+  `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/upload/image`,
+  {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('tripme_token')}`,
+    },
+    body: selfieFormData,
+  }
+);
+
+if (!selfieUploadResponse.ok) {
+  throw new Error('Selfie upload failed');
+}
+
+const selfieUploadResult = await selfieUploadResponse.json();
+
+if (!selfieUploadResult.success) {
+  throw new Error('Selfie upload failed');
+}
+
+const selfieUrl = selfieUploadResult.data.url;
+
+
       // Submit KYC with uploaded document URLs
-      const kycResponse = await apiClient.submitKYC({
-        identityDocument: selectedDoc,
-        documentNumber: documentNumber.trim().toUpperCase().replace(/\s/g, ''),
-        documentImage: uploadResult.data.url,
-        ...(hasAddressProof && {
-          addressProofType: selectedAddressProof,
-          addressProofImage: addressProofUrl,
-        }),
-      });
-      
+  // Submit KYC with uploaded document URLs
+const kycResponse = await apiClient.submitKYC({
+  identityDocument: selectedDoc,
+  documentNumber: documentNumber.trim().toUpperCase().replace(/\s/g, ''),
+  documentImage: uploadResult.data.url,
+  selfie: selfieUrl,  // Changed from selfieImage
+  ...(hasAddressProof && {
+    addressProof: selectedAddressProof,  // Changed from addressProofType
+    addressProofImage: addressProofUrl,
+  }),
+});
       if (kycResponse.success) {
         setKycSubmitted(true);
       } else {
@@ -155,6 +199,53 @@ export default function KYCPage() {
       setIsSubmitting(false);
     }
   };
+
+    const uploadImage = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/upload/image`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('tripme_token')}`,
+      },
+      body: formData,
+    }
+  );
+
+  const result = await res.json();
+
+  if (!result.success) {
+    throw new Error('Image upload failed');
+  }
+
+  return result.data.url;
+};
+
+const handleSelfieChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (!e.target.files?.[0]) return;
+  setSelfieFile(e.target.files[0]);
+};
+
+
+  // const handleSelfieChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   if (!e.target.files?.[0]) return;
+  
+  //   try {
+  //     setIsSubmitting(true);
+  //     const file = e.target.files[0];
+  //     setSelfieFile(file);
+  
+  //     // const url = await uploadImage(file);
+  //     // setselfiUrl(url);
+  //   } catch (err) {
+  //     setError('Failed to upload selfie');
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
 
   const handleNext = () => {
     router.push('/become-host/review');
@@ -178,7 +269,7 @@ export default function KYCPage() {
   const selectedDocInfo = identityDocTypes.find(d => d.id === selectedDoc);
 
   return (
-    <OnboardingLayout
+    <OnboardingLayout flow='property'
       currentMainStep={3}
       currentSubStep="kyc"
       onNext={handleNextAction}
@@ -379,6 +470,53 @@ export default function KYCPage() {
                   </div>
                 </label>
               )}
+            </div>
+
+             {/* Selfie Upload Section */}
+            <div className="border-t border-gray-200 pt-4 mt-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-3 flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                Selfie Verification (Required)
+              </h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Please upload a clear selfie holding your identity document for verification
+              </p>
+              
+              <label className="block">
+                <div className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+                  selfieFile 
+                    ? 'border-green-400 bg-green-50' 
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleSelfieChange}
+                    className="hidden"
+                  />
+                  {selfieFile ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <CheckCircle className="w-6 h-6 text-green-600" />
+                      <div>
+                        <p className="font-medium text-green-900">{selfieFile.name}</p>
+                        <p className="text-sm text-green-600">Selfie uploaded successfully</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-700 font-medium">Click to upload selfie</p>
+                      <p className="text-sm text-gray-500">PNG, JPG (max 5MB)</p>
+                    </>
+                  )}
+                </div>
+              </label>
+              
+              <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  <strong>Photo requirements:</strong> Clear front-facing photo holding your ID document, good lighting, no filters
+                </p>
+              </div>
             </div>
 
             {/* Error Message */}

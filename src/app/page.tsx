@@ -26,8 +26,8 @@ import PricesPopup from "@/components/shared/PricesPopup";
 import { useAuth } from '@/core/store/auth-context';
 import Button from '@/shared/components/ui/Button';
 import { useScrollDirection } from "@/hooks/userScrollDirection";
-
-
+import StayCard from '@/components/trips/StayCard';
+import { apiClient } from '@/infrastructure/api/clients/api-client';
 export default function Home() {
   const router = useRouter();
   const { isAuthenticated, user, isLoading, refreshUser } = useAuth();
@@ -42,6 +42,20 @@ export default function Home() {
     rating: number;
     reviewCount: number;
   }>>([]);
+const [cityProperties, setCityProperties] = useState<{[key: string]: any[]}>({});
+const [cityLoading, setCityLoading] = useState<{[key: string]: boolean}>({});
+const [recentSearches, setRecentSearches] = useState<any[]>([]);
+const [recentLoading, setRecentLoading] = useState(false);
+
+const RECENT_SEARCHES_KEY = 'tripme_recent_properties';
+const MAX_RECENT_SEARCHES = 8;
+const [allCities, setAllCities] = useState<Array<{
+  name: string;
+  image: string;
+  description: string;
+  propertyCount: number;
+}>>([]);
+ 
   const [popularDestinations, setPopularDestinations] = useState<Array<{
     name: string;
     image: string;
@@ -49,6 +63,129 @@ export default function Home() {
     description: string;
     icon: React.ReactNode;
   }>>([]);
+
+
+const getPropertyId = (property: any): string | null => {
+  const id = property?.id || property?._id;
+  return id ? String(id) : null;
+};
+
+const dedupeRecentSearches = (items: any[] = []): any[] => {
+  const seen = new Set<string>();
+  return items.filter((item: any) => {
+    const id = getPropertyId(item);
+    if (!id || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+};
+
+  const getRecentSearches = (): any[] => {
+  if (typeof window === 'undefined') return [];
+  
+  try {
+    const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+    const parsed = stored ? JSON.parse(stored) : [];
+    if (!Array.isArray(parsed)) return [];
+    return dedupeRecentSearches(parsed).slice(0, MAX_RECENT_SEARCHES);
+  } catch (error) {
+    console.error('Error reading recent searches from localStorage:', error);
+    return [];
+  }
+};
+
+const savePropertyToRecent = (property: any) => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const propertyId = getPropertyId(property);
+    if (!propertyId) return getRecentSearches();
+
+    const recent = getRecentSearches();
+    const filtered = recent.filter((item: any) => getPropertyId(item) !== propertyId);
+    const recentProperty = {
+      id: propertyId,
+      title: property.title,
+      description: property.description,
+      images: property.images,
+      location: property.location,
+      price: property.price,
+      rating: property.rating,
+      reviewCount: property.reviewCount,
+      maxGuests: property.maxGuests,
+      bedrooms: property.bedrooms,
+      beds: property.beds,
+      bathrooms: property.bathrooms,
+      host: property.host,
+      viewedAt: new Date().toISOString()
+    };
+    const updated = dedupeRecentSearches([recentProperty, ...filtered]).slice(0, MAX_RECENT_SEARCHES);
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+    return updated;
+  } catch (error) {
+    console.error('Error saving recent search to localStorage:', error);
+    return [];
+  }
+};
+
+const handlePropertyNavigation = (property: any) => {
+  const propertyId = property?.id || property?._id;
+  if (!propertyId) return;
+
+  const normalizedProperty = {
+    id: propertyId,
+    title: property?.title,
+    description: property?.description,
+    images: property?.images || [],
+    location: property?.location || {},
+    price: property?.price || {
+      amount: property?.pricing?.basePrice || 0,
+      currency: property?.pricing?.currency || 'INR'
+    },
+    rating: property?.rating?.average || property?.rating || 0,
+    reviewCount: property?.reviewCount || 0,
+    maxGuests: property?.maxGuests || 2,
+    bedrooms: property?.bedrooms || 1,
+    beds: property?.beds || 1,
+    bathrooms: property?.bathrooms || 1,
+    host: property?.host
+  };
+
+  const updated = savePropertyToRecent(normalizedProperty);
+  if (updated) setRecentSearches(updated);
+
+  router.push(`/rooms/${propertyId}`);
+};
+
+
+
+const clearRecentSearches = () => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    localStorage.removeItem(RECENT_SEARCHES_KEY);
+  } catch (error) {
+    console.error('Error clearing recent searches from localStorage:', error);
+  }
+};
+
+
+// Load recent searches from local storage only
+const loadRecentSearches = () => {
+  try {
+    setRecentLoading(true);
+    const recent = getRecentSearches();
+    setRecentSearches(recent);
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recent));
+  } catch (error) {
+    console.error('Error loading recent searches:', error);
+    setRecentSearches([]);
+  } finally {
+    setRecentLoading(false);
+  }
+};
+
+  
   const [activeCoupons, setActiveCoupons] = useState<Array<{
     _id: string;
     code: string;
@@ -72,6 +209,11 @@ export default function Home() {
   const [weekendProperties, setWeekendProperties] = useState<any[]>([]);
   const [weekendLoading, setWeekendLoading] = useState(true);
   const scrollDirection = useScrollDirection();
+    const [favorites, setFavorites] = useState<Set<string>>(new Set());
+    const [showWishlistModal, setShowWishlistModal] = useState(false);
+    const [selectedStay, setSelectedStay] = useState<string | null>(null);
+    const [wishlistName, setWishlistName] = useState('');
+    const [wishlists, setWishlists] = useState<any[]>([]);
 
   // Fetch weekend properties from database
   const fetchWeekendProperties = async () => {
@@ -91,6 +233,235 @@ export default function Home() {
       setWeekendLoading(false);
     }
   };
+
+  // Fetch all cities and their properties
+// const fetchAllCitiesAndProperties = async () => {
+//   try {
+//     // First, fetch all properties to get unique cities
+//     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/listings?limit=100`);
+    
+//     if (response.ok) {
+//       const data = await response.json();
+//       const allProperties = data.data?.listings || [];
+      
+//       // Group properties by city
+//       // const cityGroups: {[key: string]: any[]} = {};
+//       // const cityData: Array<{
+//       //   name: string;
+//       //   image: string;
+//       //   description: string;
+//       //   propertyCount: number;
+//       // }> = [];
+
+//       // Transform property data to match Stay interface
+// const transformedProperties = allProperties.map((property: any) => ({
+//   id: property._id,
+//   title: property.title,
+//   description: property.description,
+//   images: property.images?.map((img: any) => img.url || img) || [],
+//   location: {
+//     city: property.location?.city || 'Unknown',
+//     state: property.location?.state || '',
+//     country: property.location?.country || 'India',
+//     coordinates: property.location?.coordinates || [0, 0]
+//   },
+//   price: {
+//     amount: property.pricing?.basePrice || 0,
+//     currency: property.pricing?.currency || 'INR'
+//   },
+//   rating: property.rating?.average || property.rating || 0,
+//   reviewCount: property.reviewCount || 0,
+//   maxGuests: property.maxGuests || 2,
+//   bedrooms: property.bedrooms || 1,
+//   beds: property.beds || 1,
+//   bathrooms: property.bathrooms || 1,
+//   tags: property.amenities || [],
+//   instantBookable: property.instantBookable || false,
+//   amenities: property.amenities || [],
+//   host: {
+//     id: property.host?._id || property.host || 'unknown',
+//     name: property.host?.name || 'Host',
+//     avatar: property.host?.profileImage || '',
+//     isSuperhost: property.host?.isSuperhost || false
+//   },
+//   createdAt: property.createdAt || new Date(),
+//   updatedAt: property.updatedAt || new Date()
+// }));
+
+// transformedProperties.forEach((property: any) => {
+//   const cityName = property.location.city;
+//   if (cityName && !cityGroups[cityName]) {
+//     cityGroups[cityName] = [];
+//   }
+//   if (cityName) {
+//     cityGroups[cityName].push(property);
+//   }
+// });
+
+// // Group transformed properties by city
+// const cityGroups: {[key: string]: any[]} = {};
+// const cityData: Array<{
+//   name: string;
+//   image: string;
+//   description: string;
+//   propertyCount: number;
+// }> = [];
+
+      
+//       // allProperties.forEach((property: any) => {
+//       //   const cityName = property.location?.city;
+//       //   if (cityName && !cityGroups[cityName]) {
+//       //     cityGroups[cityName] = [];
+//       //   }
+//       //   if (cityName) {
+//       //     cityGroups[cityName].push(property);
+//       //   }
+//       // });
+      
+//       // Create city data with images and descriptions
+//       Object.keys(cityGroups).forEach(cityName => {
+//         const properties = cityGroups[cityName];
+//         const firstProperty = properties[0];
+        
+//         cityData.push({
+//           name: cityName,
+//           image: firstProperty?.images?.[0]?.url || '/placeholder-city.jpg',
+//           description: getCityDescription(cityName),
+//           propertyCount: properties.length
+//         });
+        
+//         setCityProperties(prev => ({ ...prev, [cityName]: properties }));
+//       });
+      
+//       // Sort cities by property count (descending) and limit to top cities
+//       cityData.sort((a, b) => b.propertyCount - a.propertyCount);
+//       setAllCities(cityData.slice(0, 8)); // Show top 8 cities
+      
+//     } else {
+//       console.error('Failed to fetch cities:', response.status);
+//     }
+//   } catch (error) {
+//     console.error('Error fetching cities and properties:', error);
+//   }
+// };
+
+// Fetch all cities and their properties
+const fetchAllCitiesAndProperties = async () => {
+  try {
+    // First, fetch all properties to get unique cities
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/listings?limit=100`);
+    
+    if (response.ok) {
+      const data = await response.json();
+      const allProperties = data.data?.listings || [];
+      
+      // Transform property data to match Stay interface
+      const transformedProperties = allProperties.map((property: any) => ({
+        id: property._id,
+        title: property.title,
+        description: property.description,
+        images: property.images?.map((img: any) => img.url || img) || [],
+        location: {
+          city: property.location?.city || 'Unknown',
+          state: property.location?.state || '',
+          country: property.location?.country || 'India',
+          coordinates: property.location?.coordinates || [0, 0]
+        },
+        price: {
+          amount: property.pricing?.basePrice || 0,
+          currency: property.pricing?.currency || 'INR'
+        },
+        rating: property.rating?.average || property.rating || 0,
+        reviewCount: property.reviewCount || 0,
+        maxGuests: property.maxGuests || 2,
+        bedrooms: property.bedrooms || 1,
+        beds: property.beds || 1,
+        bathrooms: property.bathrooms || 1,
+        tags: property.amenities || [],
+        instantBookable: property.instantBookable || false,
+        amenities: property.amenities || [],
+        host: {
+          id: property.host?._id || property.host || 'unknown',
+          name: property.host?.name || 'Host',
+          avatar: property.host?.profileImage || '',
+          isSuperhost: property.host?.isSuperhost || false
+        },
+        createdAt: property.createdAt || new Date(),
+        updatedAt: property.updatedAt || new Date()
+      }));
+
+      // Group transformed properties by city
+      const cityGroups: {[key: string]: any[]} = {};
+      const cityData: Array<{
+        name: string;
+        image: string;
+        description: string;
+        propertyCount: number;
+      }> = [];
+      
+      transformedProperties.forEach((property: any) => {
+        const cityName = property.location.city;
+        if (cityName && !cityGroups[cityName]) {
+          cityGroups[cityName] = [];
+        }
+        if (cityName) {
+          cityGroups[cityName].push(property);
+        }
+      });
+      
+      // Create city data with images and descriptions
+      Object.keys(cityGroups).forEach(cityName => {
+        const properties = cityGroups[cityName];
+        const firstProperty = properties[0];
+        
+        cityData.push({
+          name: cityName,
+          image: firstProperty?.images?.[0] || '/placeholder-city.jpg',
+          description: getCityDescription(cityName),
+          propertyCount: properties.length
+        });
+        
+        setCityProperties(prev => ({ ...prev, [cityName]: properties }));
+      });
+      
+      // Sort cities by property count (descending) and limit to top cities
+      cityData.sort((a, b) => b.propertyCount - a.propertyCount);
+      setAllCities(cityData.slice(0, 8)); // Show top 8 cities
+      
+    } else {
+      console.error('Failed to fetch cities:', response.status);
+    }
+  } catch (error) {
+    console.error('Error fetching cities and properties:', error);
+  }
+};
+
+// Helper function to get city descriptions
+const getCityDescription = (cityName: string): string => {
+  const descriptions: {[key: string]: string} = {
+    'Ahmedabad': 'Heritage City',
+    'Delhi': 'Capital Heritage',
+    'Mumbai': 'City of Dreams',
+    'Bangalore': 'Silicon Valley',
+    'Chennai': 'Cultural Capital',
+    'Kolkata': 'City of Joy',
+    'Hyderabad': 'Pearl City',
+    'Pune': 'Oxford of East',
+    'Jaipur': 'Pink City',
+    'Goa': 'Beaches & Nightlife',
+    'Manali': 'Mountains & Adventure',
+    'Udaipur': 'City of Lakes',
+    'Kochi': 'Queen of Arabian Sea',
+    'Chandigarh': 'City Beautiful',
+    'Lucknow': 'City of Nawabs',
+    'Indore': 'Clean City'
+  };
+  return descriptions[cityName] || 'Amazing Destination';
+};
+
+useEffect(() => {
+  fetchAllCitiesAndProperties();
+}, []);
 
   // Hotel carousel functions
   const nextHotel = () => {
@@ -134,6 +505,7 @@ export default function Home() {
     fetchHomeData();
     fetchActiveCoupons();
     fetchWeekendProperties();
+    loadRecentSearches();
   }, []);
 
   // Auto-hide copied coupon notification
@@ -239,6 +611,10 @@ export default function Home() {
     }
   };
 
+  
+
+
+
   const fetchActiveCoupons = async () => {
     try {
       setCouponLoading(true);
@@ -307,6 +683,89 @@ export default function Home() {
     });
   };
 
+    const findWishlistItem = (stayId: string) => {
+      for (const wl of wishlists) {
+        const item = wl.items.find((i: any) => (i.itemId._id || i.itemId) === stayId);
+        if (item) return { wishlistId: wl._id, wishlistItemId: item._id };
+      }
+      return null;
+    };
+  
+     const handleFavorite = async (stayId: string) => {
+        if (favorites.has(stayId)) {
+          const found = findWishlistItem(stayId);
+          if (!found) return;
+    
+          await apiClient.removeFromWishlist(found.wishlistId, found.wishlistItemId);
+          setFavorites(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(stayId);
+            return newSet;
+          });
+          setWishlists(prev =>
+            prev.map(wl =>
+              wl._id === found.wishlistId
+                ? { ...wl, items: wl.items.filter(i => i._id !== found.wishlistItemId) }
+                : wl
+            )
+          );
+          return;
+        }
+    
+        if (wishlists.length === 0) {
+          setSelectedStay(stayId);
+          setShowWishlistModal(true);
+          return;
+        }
+    
+        const wishlist = wishlists[0];
+        const res = await apiClient.addToWishlist(wishlist._id, {
+          itemType: 'Property',
+          itemId: stayId
+        });
+    
+        setWishlists(prev => prev.map(wl => wl._id === wishlist._id ? res.data : wl));
+        setFavorites(prev => new Set(prev).add(stayId));
+      };
+
+
+        useEffect(() => {
+          const loadWishlists = async () => {
+            const res = await apiClient.getMyWishlists();
+            setWishlists(res.data);
+      
+            const favSet = new Set<string>();
+            res.data.forEach((wl: any) => {
+              wl.items.forEach((item: any) => {
+                favSet.add(item.itemId.id.toString());
+              });
+            });
+            setFavorites(favSet);
+          };
+      
+          loadWishlists();
+        }, []);
+
+
+        
+
+
+      const createWishlistAndSave = async () => {
+        const wishlist = await apiClient.createWishList({
+          name: wishlistName,
+          isPublic: false
+        });
+    
+        await apiClient.addToWishlist(wishlist.data._id, {
+          itemType: 'Property',
+          itemId: selectedStay
+        });
+    
+        setFavorites(prev => new Set(prev).add(selectedStay!));
+        setWishlists(prev => [...prev, wishlist.data]);
+        setShowWishlistModal(false);
+      };
+
   const formatPrice = (amount: number, currency: string = 'INR') => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -368,9 +827,131 @@ const { label, action } = getCTAConfig();
       )}
 
       <main className="pt-0 z-0 relative">
+         
 
+          {/* Latest Viewed Properties */}
+         
+         
         <div className="block md:hidden  pt-[169px] pb-[120px]">
+                     {/* Dynamic Cities Section */}
 
+                      <section className="px-4 pb-2">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xl font-semibold">Latest viewed properties</h2>
+              {recentSearches.length > 0 && (
+                <button
+                  onClick={() => {
+                    clearRecentSearches();
+                    setRecentSearches([]);
+                  }}
+                  className="text-sm text-gray-600 hover:text-gray-900"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            {recentLoading ? (
+              <p className="text-sm text-gray-500">Loading latest properties...</p>
+            ) : recentSearches.length > 0 ? (
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {recentSearches.slice(0, MAX_RECENT_SEARCHES).map((stay: any, index: number) => (
+                  <div
+                    key={`${stay.id || stay._id || 'recent'}-${index}`}
+                    className="min-w-[300px] bg-white border rounded-xl p-3 cursor-pointer"
+                    onClick={() => handlePropertyNavigation(stay)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={stay.images?.[0] || '/placeholder-hotel.jpg'}
+                        alt={stay.title || 'Property'}
+                        className="w-20 h-16 rounded-lg object-cover"
+                      />
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-sm text-gray-900 line-clamp-1">
+                          {stay.title || 'Untitled Property'}
+                        </h3>
+                        <p className="text-xs text-gray-500 line-clamp-1">
+                          {stay.location?.city || 'Unknown'}, {stay.location?.state || ''}
+                        </p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {formatPrice(stay.price?.amount || 0, stay.price?.currency || 'INR')} / night
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No recent properties yet.</p>
+            )}
+          </section>
+
+<section className="py-20 bg-white">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <h2 className="text-2xl font-bold text-gray-900 mb-8">Popular Destinations</h2>
+    
+    {/* City-wise Horizontal Property Display */}
+    <div className="space-y-12">
+      {allCities.map((city) => (
+        <div key={city.name} className="space-y-4">
+          {/* City Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              {/* <div className="w-16 h-16 rounded-lg overflow-hidden">
+                <img
+                  src={city.image}
+                  alt={city.name}
+                  className="w-full h-full object-cover"
+                />
+              </div> */}
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">{city.name}</h3>
+                <p className="text-gray-600">{city.description}</p>
+                <p className="text-sm text-gray-500">{city.propertyCount} stays</p>
+              </div>
+            </div>
+            <button
+              onClick={() => router.push(`/search?city=${encodeURIComponent(city.name)}`)}
+              className="flex items-center gap-2 text-gray-700 hover:text-black font-medium transition-colors"
+            >
+              View all
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Horizontal Properties Scroll - Stay Cards */}
+         {/* Horizontal Properties Scroll - Stay Cards */}
+<div className="relative">
+  {cityProperties[city.name]?.length > 0 ? (
+    <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+      {cityProperties[city.name].map((property: any) => (
+        <div key={property.id} className="flex-shrink-0">
+          <StayCard
+            stay={property}
+            className="w-72"
+            isFavorite={
+              favorites.has(property.id)}
+              onFavorite={handleFavorite}
+              onCardClick={(stay) => {
+                const updated = savePropertyToRecent(stay);
+                if (updated) setRecentSearches(updated);
+              }}
+          />
+        </div>
+      ))}
+    </div>
+  ) : (
+    <div className="text-center py-8 text-gray-500">
+      <p>No properties available in {city.name}</p>
+    </div>
+  )}
+</div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+         
           <section className="px-4 pt-8">
             <h2 className="text-xl font-semibold mb-3">
               Active coupons
@@ -416,6 +997,8 @@ const { label, action } = getCTAConfig();
             </div>
           </section>
 
+
+
           {/* ================= MOBILE WEEKEND OFFERS ================= */}
         <section className="px-4 mt-10 md:hidden">
           <div className="mb-4">
@@ -447,7 +1030,7 @@ const { label, action } = getCTAConfig();
                   border
                   overflow-hidden
                 "
-                onClick={() => router.push(`/rooms/${property._id}`)}
+                onClick={() => handlePropertyNavigation(property)}
               >
                 {/* Image */}
                 <div className="relative h-48">
@@ -529,7 +1112,7 @@ const { label, action } = getCTAConfig();
                     border
                     overflow-hidden
                   "
-                  onClick={() => router.push(`/rooms/${stay._id}`)}
+                  onClick={() => handlePropertyNavigation(stay)}
                 >
                   {/* Image */}
                   <div className="relative h-52">
@@ -587,7 +1170,7 @@ const { label, action } = getCTAConfig();
                         className="text-sm font-semibold text-blue-600"
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push(`/rooms/${stay._id}`);
+                          handlePropertyNavigation(stay);
                         }}
                       >
                         View
@@ -673,6 +1256,7 @@ const { label, action } = getCTAConfig();
    
 
         </div>
+        
 
         <div className="hidden md:block">
           {/* Hero Section - Two Column Layout Inspired by Image */}
@@ -732,7 +1316,123 @@ const { label, action } = getCTAConfig();
             </div>
           </section>
 
+         <section className="py-10 bg-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h2 className="text-xl font-semibold">Latest viewed properties</h2>
+              {recentSearches.length > 0 && (
+                <button
+                  onClick={() => {
+                    clearRecentSearches();
+                    setRecentSearches([]);
+                  }}
+                  className="text-sm text-gray-600 hover:text-gray-900"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            {recentLoading ? (
+              <p className="text-sm text-gray-500">Loading latest properties...</p>
+            ) : recentSearches.length > 0 ? (
+              <div className="max-w-7xl mx-auto  px-4  sm:px-6 lg:px-8 flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {recentSearches.slice(0, MAX_RECENT_SEARCHES).map((stay: any, index: number) => (
+                  <div
+                    key={`${stay.id || stay._id || 'recent'}-${index}`}
+                    className="min-w-[320px] bg-white border rounded-xl p-3 cursor-pointer"
+                    onClick={() => handlePropertyNavigation(stay)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={stay.images?.[0] || '/placeholder-hotel.jpg'}
+                        alt={stay.title || 'Property'}
+                        className="w-20 h-16 rounded-lg object-cover"
+                      />
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-sm text-gray-900 line-clamp-1">
+                          {stay.title || 'Untitled Property'}
+                        </h3>
+                        <p className="text-xs text-gray-500 line-clamp-1">
+                          {stay.location?.city || 'Unknown'}, {stay.location?.state || ''}
+                        </p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {formatPrice(stay.price?.amount || 0, stay.price?.currency || 'INR')} / night
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No recent properties yet.</p>
+            )}
+          </section>
 
+                    {/* Dynamic Cities Section */}
+<section className="py-10 bg-white">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <h2 className="text-4xl font-bold text-gray-900 mb-8">Popular Destinations</h2>
+    
+    {/* City-wise Horizontal Property Display */}
+    <div className="space-y-12">
+      {allCities.map((city) => (
+        <div key={city.name} className="space-y-4">
+          {/* City Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              {/* <div className="w-16 h-16 rounded-lg overflow-hidden">
+                <img
+                  src={city.image}
+                  alt={city.name}
+                  className="w-full h-full object-cover"
+                />
+              </div> */}
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">{city.name}</h3>
+                <p className="text-gray-600">{city.description}</p>
+                <p className="text-sm text-gray-500">{city.propertyCount} stays</p>
+              </div>
+            </div>
+            <button
+              onClick={() => router.push(`/search?city=${encodeURIComponent(city.name)}`)}
+              className="flex items-center gap-2 text-gray-700 hover:text-black font-medium transition-colors"
+            >
+              View all
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Horizontal Properties Scroll - Stay Cards */}
+         {/* Horizontal Properties Scroll - Stay Cards */}
+<div className="relative">
+  {cityProperties[city.name]?.length > 0 ? (
+    <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+      {cityProperties[city.name].map((property: any) => (
+        <div key={property.id} className="flex-shrink-0">
+          <StayCard
+            stay={property}
+            className="w-72"
+           isFavorite={
+              favorites.has(property.id)}
+              onFavorite={handleFavorite}
+              onCardClick={(stay) => {
+                const updated = savePropertyToRecent(stay);
+                if (updated) setRecentSearches(updated);
+              }}
+          />
+        </div>
+      ))}
+    </div>
+  ) : (
+    <div className="text-center py-8 text-gray-500">
+      <p>No properties available in {city.name}</p>
+    </div>
+  )}
+</div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
           {/* Dynamic Coupon Section - Fixed Height Carousel */}
           <section className="py-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1100,7 +1800,7 @@ const { label, action } = getCTAConfig();
                                   : 'scale-95 translate-x-4 z-10 opacity-80 hover:scale-100 hover:opacity-90' // Right property - smaller
                           }
                       `}
-                        onClick={() => router.push(`/rooms/${property._id}`)}
+                        onClick={() => handlePropertyNavigation(property)}
                       >
                         <div className={`shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-2xl overflow-hidden ${weekendProperties.length === 1
                             ? 'w-96' // Single property - 20% wider
@@ -1206,7 +1906,7 @@ const { label, action } = getCTAConfig();
                       <div
                         key={stay._id}
                         className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-105 overflow-hidden cursor-pointer"
-                        onClick={() => router.push(`/rooms/${stay._id}`)}
+                        onClick={() => handlePropertyNavigation(stay)}
                       >
                         <div className="aspect-[4/3] relative overflow-hidden">
                           <img
@@ -1304,6 +2004,8 @@ const { label, action } = getCTAConfig();
           </section>
 
         </div>
+
+
       </main>
       <Footer />
 

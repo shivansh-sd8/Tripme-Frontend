@@ -8,6 +8,7 @@ import { useOnboarding } from '@/core/context/OnboardingContext';
 import { apiClient } from '@/infrastructure/api/clients/api-client';
 import { useAuth } from '@/core/store/auth-context';
 import { useParams, useSearchParams } from "next/navigation";
+import { image } from 'framer-motion/client';
 // Add this with other imports
 export default function ReviewPage() {
   const router = useRouter();
@@ -120,10 +121,16 @@ export default function ReviewPage() {
         beds: data.floorPlan?.beds || 1,
         bathrooms: data.floorPlan?.bathrooms || 1,
         amenities: data.amenities || [],
-        images: (data.photos || []).map((url: string, index: number) => ({
-          url,
-          isPrimary: index === 0,
+        images: (data.photos || []).map((p: any, index: number) => ({
+          url: p.url,
+          category: p.category,
+          isPrimary: index === 0, // cover photo
         })),
+        // images: (data.photos || []).map((url: string, index: number) => ({
+        //   url,
+        //   isPrimary: index === 0,
+        // })),
+
         pricing: {
           basePrice: data.pricing?.basePrice || 2500,
           currency: 'INR',
@@ -497,32 +504,36 @@ export default function ReviewPage() {
            
           </div>
 
-            {data.photos && data.photos.length > 0 && (
-            <div className="p-4 bg-gray-50 rounded-xl">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <Image className="w-4 h-4" />
-                  Photos ({data.photos.length})
-                </div>
-                <EditButton step="photos" />
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {data.photos.slice(0, 5).map((photo, index) => (
-                  <img
-                    key={index}
-                    src={photo}
-                    alt={`Photo ${index + 1}`}
-                    className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
-                  />
-                ))}
-                {data.photos.length > 5 && (
-                  <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm text-gray-600">+{data.photos.length - 5}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          {data.photos && data.photos.length > 0 && (
+  <div className="p-4 bg-gray-50 rounded-xl">
+    <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center gap-2 text-sm text-gray-500">
+        <Image className="w-4 h-4" />
+        Photos ({data.photos.length})
+      </div>
+      <EditButton step="photos" />
+    </div>
+
+    <div className="flex gap-2 overflow-x-auto pb-2">
+      {data.photos.slice(0, 5).map((photo: any, index: number) => (
+        <img
+          key={index}
+          src={photo.url}  
+          alt={`Photo ${index + 1}`}
+          className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+        />
+      ))}
+
+      {data.photos.length > 5 && (
+        <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+          <span className="text-sm text-gray-600">
+            +{data.photos.length - 5}
+          </span>
+        </div>
+      )}
+    </div>
+  </div>
+)}
         </div>
 
         {/* Photos Preview */}
@@ -594,3 +605,32 @@ export default function ReviewPage() {
     </OnboardingLayout>
   );
 }
+
+
+
+  // {data.photos && data.photos.length > 0 && (
+  //           <div className="p-4 bg-gray-50 rounded-xl">
+  //             <div className="flex items-center justify-between mb-2">
+  //               <div className="flex items-center gap-2 text-sm text-gray-500">
+  //                 <Image className="w-4 h-4" />
+  //                 Photos ({data.photos.length})
+  //               </div>
+  //               <EditButton step="photos" />
+  //             </div>
+  //             <div className="flex gap-2 overflow-x-auto pb-2">
+  //               {data.photos.slice(0, 5).map((photo, index) => (
+  //                 <img
+  //                   key={index}
+  //                   src={photo}
+  //                   alt={`Photo ${index + 1}`}
+  //                   className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+  //                 />
+  //               ))}
+  //               {data.photos.length > 5 && (
+  //                 <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+  //                   <span className="text-sm text-gray-600">+{data.photos.length - 5}</span>
+  //                 </div>
+  //               )}
+  //             </div>
+  //           </div>
+  //         )}

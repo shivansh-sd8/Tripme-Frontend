@@ -72,7 +72,17 @@ const PaymentModal: React.FC<{
   bookingId?: string | null;
   propertyId?: string;
   user?: any;
-}> = ({ isOpen, onClose, onSuccess, amount, loading, bookingId, propertyId, user }) => {
+  securePricingContext?: {
+    pricingToken?: string;
+    propertyId?: string;
+    checkIn: string;
+    checkOut: string;
+    guests: { adults: number; children?: number; infants?: number };
+    nights: number;
+    totalAmount: number;
+    currency?: string;
+  };
+}> = ({ isOpen, onClose, onSuccess, amount, loading, bookingId, propertyId, user, securePricingContext }) => {
   const [paymentStep, setPaymentStep] = useState<'init' | 'processing' | 'success' | 'error'>('init');
   const [error, setError] = useState('');
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
@@ -117,8 +127,27 @@ const PaymentModal: React.FC<{
     try {
       console.log('🔄 Creating Razorpay order...', { bookingId, amount, propertyId });
       
+      if (!bookingId && !securePricingContext?.pricingToken) {
+        throw new Error('Secure pricing token missing. Please refresh pricing and try again.');
+      }
+
       // Create Razorpay order (bookingId is temporary, actual booking created after payment)
-      const orderResponse = await apiClient.createRazorpayOrder(bookingId || null, amount, 'INR', propertyId);
+      const orderResponse = await apiClient.createRazorpayOrder(
+        bookingId || null,
+        amount,
+        'INR',
+        propertyId,
+        securePricingContext?.pricingToken ? {
+          pricingToken: securePricingContext.pricingToken,
+          propertyId: securePricingContext.propertyId || propertyId || '',
+          checkIn: securePricingContext.checkIn,
+          checkOut: securePricingContext.checkOut,
+          guests: securePricingContext.guests,
+          nights: securePricingContext.nights,
+          totalAmount: securePricingContext.totalAmount,
+          currency: securePricingContext.currency || 'INR'
+        } : undefined
+      );
       
       console.log('📦 Order response:', orderResponse);
       
@@ -456,6 +485,11 @@ export default function BookingPage() {
 
   const [priceBreakdown, setPriceBreakdown] = useState<{
     basePrice: number;
+    discountAmount: number;
+    discountType?: 'percentage' | 'fixed';
+    couponCode?: string;
+    couponValue?: number;
+    couponMaxDiscount?: number;
     serviceFee: number;
     cleaningFee: number;
     securityDeposit: number;
@@ -471,6 +505,7 @@ export default function BookingPage() {
     pricingToken?: string;
   }>({
     basePrice: 0,
+    discountAmount: 0,
     serviceFee: 0,
     cleaningFee: 0,
     securityDeposit: 0,
@@ -904,29 +939,8 @@ export default function BookingPage() {
     });
 
     if (!isAvailable) {
-      console.log(
-        '⚠️ Check-in date not available after refresh, finding next available date...'
-      );
-
-      const nextAvailableDate = findNextAvailableDate(
-        availabilityData,
-        bookingData.checkIn
-      );
-
-      if (nextAvailableDate) {
-        const newCheckOutDate = new Date(nextAvailableDate);
-        newCheckOutDate.setDate(nextAvailableDate.getDate() + 1);
-
-        console.log(
-          `🔄 Auto-updating check-in date to ${normalizeDate(nextAvailableDate)}`
-        );
-
-        setBookingData(prev => ({
-          ...prev,
-          checkIn: nextAvailableDate,
-          checkOut: newCheckOutDate
-        }));
-      }
+      console.log('⚠️ Check-in date not available after refresh; keeping user selection and showing error instead of auto-shifting.');
+      setBookingError('Selected check-in date is no longer available. Please pick new dates.');
     }
   } catch (error) {
     console.error('Failed to refresh availability:', error);
@@ -1070,9 +1084,24 @@ export default function BookingPage() {
     
     setAvailabilityLoading(true);
     try {
-      const response = await apiClient.getAvailability(id as string);
+      const response = await apiClient.checkTimeSlotAvailability(id as string,
+        String(bookingData.checkIn),
+        String(bookingData.checkOut),
+        bookingData.hourlyExtension || 0
+
+      );
       if (response.success && response.data) {
+        // If backend explicitly says the slot is available, short-circuit to success
+        if (response.data.available === true) {
+          console.log('✅ Slot-level availability returned true from backend, skipping daily checks');
+          setAvailability(response.data.availability || []);
+          setBookingError('');
+          setAvailabilityLoading(false);
+          return true;
+        }
+
         const availabilityData = response.data.availability || [];
+        console.log('Availability response received:', response);
         setAvailability(availabilityData);
         
         console.log('Availability data received:', availabilityData);
@@ -1210,13 +1239,20 @@ export default function BookingPage() {
         guests: bookingData.guests
       });
 
-      if (response.success && response.data) {
+      if (response.success && response.data?.coupon) {
         const coupon = response.data.coupon;
+        // Keep both the flat fields (used by pricing payload) and the full coupon object (used by UI)
         setCouponData({
-          code: coupon.code,
-          discountAmount: coupon.discountAmount,
+          code: coupon.code ?? code, // fallback to entered code if API omits it
+          discountAmount: response.data.discountAmount ?? coupon.discountAmount ?? 0,
           discountType: coupon.discountType,
-          description: coupon.description
+          description: coupon.description,
+          coupon: {
+            ...coupon,
+            // ensure amount exists for percentage/fixed display
+            amount: coupon.amount ?? coupon.discountAmount ?? 0,
+            code: coupon.code ?? code,
+          },
         });
         setCouponError('');
         console.log('✅ Coupon validated successfully:', coupon);
@@ -1250,7 +1286,7 @@ export default function BookingPage() {
         checkOut: bookingData.checkOut instanceof Date ? bookingData.checkOut.toLocaleDateString('en-CA') : bookingData.checkOut,
         guests: bookingData.guests,
         hourlyExtension: bookingData.hourlyExtension || 0,
-        couponCode: couponData?.code,
+        couponCode: couponData?.code ?? (couponCode?.trim() || undefined),
         bookingType: bookingData.is24Hour ? '24hour' : 'daily',
         checkInDateTime: bookingData.checkInDateTime ? (bookingData.checkInDateTime instanceof Date ? bookingData.checkInDateTime.toISOString() : bookingData.checkInDateTime) : undefined,
         extensionHours: bookingData.extensionHours
@@ -1271,6 +1307,7 @@ export default function BookingPage() {
       }
       
       const pricing = response.data.pricing;
+      const couponFromPricing = response.data.coupon;
       console.log('✅ Secure pricing calculated successfully:', {
         nights: pricing.nights,
         totalAmount: pricing.totalAmount,
@@ -1278,7 +1315,14 @@ export default function BookingPage() {
       });
       
       const newPriceBreakdown = {
-        basePrice: property.pricing?.basePrice || 0,
+        basePrice: bookingData.is24Hour
+          ? property.pricing?.basePrice24Hour || property.pricing?.basePrice || 0
+          : property.pricing?.basePrice || 0,
+        discountAmount: pricing.discountAmount || couponFromPricing?.discountAmount || 0,
+        discountType: couponFromPricing?.discountType,
+        couponCode: couponFromPricing?.code,
+        couponValue: couponFromPricing?.amount,
+        couponMaxDiscount: couponFromPricing?.maxDiscount,
         serviceFee: pricing.serviceFee,
         cleaningFee: pricing.cleaningFee,
         securityDeposit: pricing.securityDeposit,
@@ -1582,6 +1626,9 @@ export default function BookingPage() {
         }),
         // NEW: Include custom check-in time for 23-hour checkout calculation
         ...(bookingData.checkInTime && { checkInTime: bookingData.checkInTime }),
+        ...(bookingData.checkInDateTime && { checkInDateTime: bookingData.checkInDateTime instanceof Date ? bookingData.checkInDateTime.toISOString() : bookingData.checkInDateTime }),
+        ...(bookingData.extensionHours !== undefined && bookingData.extensionHours !== null && { extensionHours: bookingData.extensionHours }),
+        ...(bookingData.is24Hour && { bookingDuration: '24hour' }),
         ...(bookingData.couponCode && bookingData.couponCode.trim() && { couponCode: bookingData.couponCode.trim() }),
         ...(bookingData.hourlyExtension && bookingData.hourlyExtension > 0 && property?.hourlyBooking?.enabled && { 
           hourlyExtension: {
@@ -1829,7 +1876,7 @@ export default function BookingPage() {
        <UserHeader/>
       
       {/* Main Content */}
-      <main className={`${hideHeader ? "pt-0 sm:pt-24" : "pt-40"} pb-12 overflow-x-hidden`}>
+      <main className={`${hideHeader ? "pt-8 sm:pt-24" : "pt-40"} pb-12 overflow-x-hidden`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Back Button */}
           <div className="mb-8 hidden lg:block">
@@ -2017,7 +2064,7 @@ export default function BookingPage() {
                         Selected Extras
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {bookingData.specialRequests && (
+                        {/* {bookingData.specialRequests && (
                           <div className="bg-white rounded-xl p-4 border border-indigo-100">
                             <div className="flex items-start gap-3">
                               <MessageCircle className="w-5 h-5 text-blue-600 mt-0.5" />
@@ -2027,7 +2074,7 @@ export default function BookingPage() {
                               </div>
                             </div>
                           </div>
-                        )}
+                        )} */}
                         {bookingData.hourlyExtension && (
                           <div className="bg-white rounded-xl p-4 border border-indigo-100">
                             <div className="flex items-start gap-3">
@@ -2054,327 +2101,7 @@ export default function BookingPage() {
 
                 {/* Booking Form */}
                 <div className="space-y-8">
-                  {/* Dates Selection */}
-                  <div className="hidden md:block bg-white border border-gray-200 rounded-lg p-6 ">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Calendar className="w-5 h-5 text-gray-500" />
-                      Select dates
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Check-in <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="date"
-                          value={(() => {
-                            const year = bookingData.checkIn.getFullYear();
-                            const month = String(bookingData.checkIn.getMonth() + 1).padStart(2, '0');
-                            const day = String(bookingData.checkIn.getDate()).padStart(2, '0');
-                            return `${year}-${month}-${day}`;
-                          })()}
-                          onChange={(e) => {
-                            // Parse date string to LOCAL midnight (not UTC)
-                            // new Date('YYYY-MM-DD') creates UTC midnight which shifts by 1 day in IST
-                            const [year, month, day] = e.target.value.split('-').map(Number);
-                            const localDate = new Date(year, month - 1, day); // Creates LOCAL midnight
-                            updateLocalBookingData({ checkIn: localDate });
-                          }}
-                          min={(() => {
-                            const today = new Date();
-                            const year = today.getFullYear();
-                            const month = String(today.getMonth() + 1).padStart(2, '0');
-                            const day = String(today.getDate()).padStart(2, '0');
-                            return `${year}-${month}-${day}`;
-                          })()}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-400 focus:border-gray-400 text-lg font-medium bg-white text-gray-900 shadow-sm"
-                          style={{ color: '#111827' }}
-                        />
-                        <div className="mt-2 text-sm text-gray-600 flex items-center gap-2">
-                          <Clock3 className="w-4 h-4" />
-                          <span>
-                            {(() => {
-                              const checkInTime = bookingData.checkInTime || property?.checkInTime || '15:00';
-                              const [hours, minutes] = checkInTime.split(':').map(Number);
-                              const time = new Date();
-                              time.setHours(hours, minutes, 0);
-                              return `Check-in time: ${time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
-                            })()}
-                          </span>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Check-out <span className="text-red-500"></span>
-                        </label>
-                        <input
-                          type="date"
-                          value={(() => {
-                            const year = bookingData.checkOut.getFullYear();
-                            const month = String(bookingData.checkOut.getMonth() + 1).padStart(2, '0');
-                            const day = String(bookingData.checkOut.getDate()).padStart(2, '0');
-                            return `${year}-${month}-${day}`;
-                          })()}
-                          onChange={(e) => {
-                            // Parse date string to LOCAL midnight (not UTC)
-                            // new Date('YYYY-MM-DD') creates UTC midnight which shifts by 1 day in IST
-                            const [year, month, day] = e.target.value.split('-').map(Number);
-                            const localDate = new Date(year, month - 1, day); // Creates LOCAL midnight
-                            updateLocalBookingData({ checkOut: localDate });
-                          }}
-                          min={(() => {
-                            const year = bookingData.checkIn.getFullYear();
-                            const month = String(bookingData.checkIn.getMonth() + 1).padStart(2, '0');
-                            const day = String(bookingData.checkIn.getDate()).padStart(2, '0');
-                            return `${year}-${month}-${day}`;
-                          })()}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-400 focus:border-gray-400 text-lg font-medium bg-white text-gray-900 shadow-sm"
-                          style={{ color: '#111827' }}
-                        />
-                        <div className="mt-2 text-sm text-gray-600 flex items-center gap-2">
-                          <Clock3 className="w-4 h-4" />
-                          <span>
-                            {(() => {
-                              const checkInTime = bookingData.checkInTime || property?.checkInTime || '15:00';
-                              const [checkInHours, checkInMinutes] = checkInTime.split(':').map(Number);
-                              // Checkout = check-in time - 1 hour + extension
-                              let checkoutHours = checkInHours - 1;
-                              if (checkoutHours < 0) checkoutHours = 23;
-                              if (bookingData.hourlyExtension) {
-                                checkoutHours = (checkoutHours + bookingData.hourlyExtension) % 24;
-                              }
-                              const time = new Date();
-                              time.setHours(checkoutHours, checkInMinutes, 0);
-                              return `Check-out time: ${time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
-                            })()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Availability Status */}
-                    {availabilityLoading && (
-                      <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Checking availability...
-                      </div>
-                    )}
-                    
-                    {/* Blocking Timer Status */}
-                    {blockingExpiry && (
-                      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
-                        <div className="flex items-center gap-2 text-sm text-blue-700">
-                          <Clock className="w-4 h-4" />
-                          <span>
-                            🎯 <strong>Dates Reserved!</strong> Complete payment within{' '}
-                            <span className="font-bold text-blue-800">
-                              {Math.max(0, Math.floor((blockingExpiry.getTime() - currentTime) / 60000))}:{Math.max(0, Math.floor(((blockingExpiry.getTime() - currentTime) % 60000) / 1000)).toString().padStart(2, '0')}
-                            </span>
-                            <span className="text-blue-600"> (MM:SS)</span>
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Availability Summary */}
-                    {availability.length > 0 && (
-                      <div className="mt-4 p-3 bg-gray-50 rounded-xl">
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-sm text-gray-700">
-                            <Clock3 className="w-4 h-4" />
-                            <span>Availability Status:</span>
-                          </div>
-                          
-                          {/* Show blocked dates */}
-                          {blockedDates.length > 0 && (
-                            <div className="ml-6 text-sm">
-                              <div className="flex items-center gap-2 text-blue-600">
-                                <Lock className="w-4 h-4" />
-                                <span>Blocked dates: {blockedDates.join(', ')}</span>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Show available dates from Availability model */}
-                          {availability.filter((a: any) => {
-                            const dateStr = a.date instanceof Date ? a.date.toLocaleDateString('en-CA') : new Date(a.date).toLocaleDateString('en-CA');
-                            return a.status === 'available' && !blockedDates.includes(dateStr);
-                          }).length > 0 && (
-                            <div className="ml-6 text-sm">
-                              <div className="flex items-center gap-2 text-green-600">
-                                <CheckCircle className="w-4 h-4" />
-                                <span>Available dates: {availability.filter((a: any) => {
-                                  const dateStr = a.date instanceof Date ? a.date.toLocaleDateString('en-CA') : new Date(a.date).toLocaleDateString('en-CA');
-                                  return a.status === 'available' && !blockedDates.includes(dateStr);
-                                }).map((a: any) => {
-                                  const dateStr = a.date instanceof Date ? a.date.toLocaleDateString('en-CA') : new Date(a.date).toLocaleDateString('en-CA');
-                                  return dateStr;
-                                }).join(', ')}</span>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Show unavailable dates (not in Availability model) */}
-                          {(() => {
-                            const unavailableDates = [];
-                            const startDate = new Date(bookingData.checkIn);
-                            const endDate = new Date(bookingData.checkOut);
-                            const currentDate = new Date(startDate);
-                            
-                            while (currentDate < endDate) {
-                              const dateStr = currentDate.toLocaleDateString('en-CA');
-                              const existsInModel = availability.some((a: any) => {
-                                const availabilityDateStr = a.date instanceof Date ? a.date.toLocaleDateString('en-CA') : new Date(a.date).toLocaleDateString('en-CA');
-                                return availabilityDateStr === dateStr;
-                              });
-                              
-                              if (!existsInModel) {
-                                unavailableDates.push(dateStr);
-                              }
-                              currentDate.setDate(currentDate.getDate() + 1);
-                            }
-                            
-                            return unavailableDates.length > 0 ? (
-                              <div className="ml-6 text-sm">
-                                <div className="flex items-center gap-2 text-red-600">
-                                  <X className="w-4 h-4" />
-                                  <span>Unavailable (not in database): {unavailableDates.join(', ')}</span>
-                                </div>
-                              </div>
-                            ) : null;
-                          })()}
-                          
-                          {/* Show booked dates */}
-                          {availability.filter((a: any) => {
-                            const dateStr = a.date instanceof Date ? a.date.toLocaleDateString('en-CA') : new Date(a.date).toLocaleDateString('en-CA');
-                            return a.status === 'booked';
-                          }).length > 0 && (
-                            <div className="ml-6 text-sm">
-                              <div className="flex items-center gap-2 text-red-600">
-                                <X className="w-4 h-4" />
-                                <span>Booked dates: {availability.filter((a: any) => {
-                                  const dateStr = a.date instanceof Date ? a.date.toLocaleDateString('en-CA') : new Date(a.date).toLocaleDateString('en-CA');
-                                  return a.status === 'booked';
-                                }).map((a: any) => {
-                                  const dateStr = a.date instanceof Date ? a.date.toLocaleDateString('en-CA') : new Date(a.date).toLocaleDateString('en-CA');
-                                  return dateStr;
-                                }).join(', ')}</span>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Show maintenance dates */}
-                          {availability.filter((a: any) => {
-                            const dateStr = a.date instanceof Date ? a.date.toLocaleDateString('en-CA') : new Date(a.date).toLocaleDateString('en-CA');
-                            return a.status === 'maintenance';
-                          }).length > 0 && (
-                            <div className="ml-6 text-sm">
-                              <div className="flex items-center gap-2 text-orange-600">
-                                <AlertTriangle className="w-4 h-4" />
-                                <span>Maintenance dates: {availability.filter((a: any) => {
-                                  const dateStr = a.date instanceof Date ? a.date.toLocaleDateString('en-CA') : new Date(a.date).toLocaleDateString('en-CA');
-                                  return a.status === 'maintenance';
-                                }).map((a: any) => {
-                                  const dateStr = a.date instanceof Date ? a.date.toLocaleDateString('en-CA') : new Date(a.date).toLocaleDateString('en-CA');
-                                  return dateStr;
-                                }).join(', ')}</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Guests Selection */}
-                  <div className="hidden md:block bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Users className="w-5 h-5 text-gray-500" />
-                      Guests <span className="text-red-500">*</span>
-                      {(bookingData.guests.adults > 1 || bookingData.guests.children > 0 || bookingData.guests.infants > 0) && (
-                        <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                          Pre-filled
-                        </span>
-                      )}
-                    </h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200">
-                        <div>
-                          <div className="font-bold text-gray-900">Adults</div>
-                          <div className="text-sm text-gray-600">Ages 13 or above</div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <button
-                            onClick={() => updateLocalBookingData({
-                              guests: { ...bookingData.guests, adults: Math.max(1, bookingData.guests.adults - 1) }
-                            })}
-                            className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 text-xl font-bold transition-colors"
-                          >
-                            -
-                          </button>
-                          <span className="w-12 text-center font-bold text-lg">{bookingData.guests.adults}</span>
-                          <button
-                            onClick={() => updateLocalBookingData({
-                              guests: { ...bookingData.guests, adults: Math.min(10, bookingData.guests.adults + 1) }
-                            })}
-                            className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 text-xl font-bold transition-colors"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200">
-                        <div>
-                          <div className="font-bold text-gray-900">Children</div>
-                          <div className="text-sm text-gray-600">Ages 2-12</div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <button
-                            onClick={() => updateLocalBookingData({
-                              guests: { ...bookingData.guests, children: Math.max(0, bookingData.guests.children - 1) }
-                            })}
-                            className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 text-xl font-bold transition-colors"
-                          >
-                            -
-                          </button>
-                          <span className="w-12 text-center font-bold text-lg">{bookingData.guests.children}</span>
-                          <button
-                            onClick={() => updateLocalBookingData({
-                              guests: { ...bookingData.guests, children: Math.min(5, bookingData.guests.children + 1) }
-                            })}
-                            className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 text-xl font-bold transition-colors"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200">
-                        <div>
-                          <div className="font-bold text-gray-900">Infants</div>
-                          <div className="text-sm text-gray-600">Under 2</div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <button
-                            onClick={() => updateLocalBookingData({
-                              guests: { ...bookingData.guests, infants: Math.max(0, bookingData.guests.infants - 1) }
-                            })}
-                            className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 text-xl font-bold transition-colors"
-                          >
-                            -
-                          </button>
-                          <span className="w-12 text-center font-bold text-lg">{bookingData.guests.infants}</span>
-                          <button
-                            onClick={() => updateLocalBookingData({
-                              guests: { ...bookingData.guests, infants: Math.min(3, bookingData.guests.infants + 1) }
-                            })}
-                            className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 text-xl font-bold transition-colors"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                 
 
                   {/* Hourly Booking Extension */}
                  {property?.hourlyBooking?.enabled && (
@@ -2607,7 +2334,7 @@ export default function BookingPage() {
                   </div>
 
                   {/* Payment Method */}
-                  <div className="hidden md:block bg-white border border-gray-200 rounded-lg p-6">
+                  {/* <div className="hidden md:block bg-white border border-gray-200 rounded-lg p-6">
                     <div className="flex items-center gap-3 mb-4">
                       <CreditCard className="w-5 h-5 text-gray-500" />
                       <div>
@@ -2654,12 +2381,12 @@ export default function BookingPage() {
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* Coupon Code */}
-                  <div className="hidden md:bg-white border border-gray-200 rounded-lg p-6">
+                  {/* <div className="hidden md:bg-white border border-gray-200 rounded-lg p-6">
                     <div className="flex items-center gap-3 mb-4">
-                      <Gift className="w-5 h-5 text-gray-500" />
+                      <Home className="w-5 h-5 text-gray-500" />
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">Coupon Code</h3>
                         <p className="text-sm text-gray-600">Enter discount code if you have one</p>
@@ -2684,10 +2411,10 @@ export default function BookingPage() {
                         Apply
                       </button>
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* Special Requests */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-2 md:p-6">
+                  {/* <div className="bg-white border border-gray-200 rounded-lg p-2 md:p-6">
                     <div className="flex items-center gap-3 mb-4">
                       <MessageCircle className="w-5 h-5 text-gray-500" />
                       <div>
@@ -2713,7 +2440,7 @@ export default function BookingPage() {
                         {bookingData.specialRequests.length}/500 characters
                       </div>
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* Terms and Conditions */}
                   <div className="hidden md:block bg-white border border-gray-200 rounded-lg p-6">
@@ -2789,7 +2516,7 @@ export default function BookingPage() {
                     </div>
                 
                 {/* Coupon Code Section */}
-                <div className="mb-6">
+                {/* <div className="mb-6">
                   <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-200">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
@@ -2821,7 +2548,7 @@ export default function BookingPage() {
                         {couponData && (
                           <p className="text-green-600 text-sm mt-2 flex items-center gap-2">
                             <CheckCircle className="w-4 h-4" />
-                            Coupon applied! You saved {formatPrice(couponData.discountAmount)}
+                            Coupon applied! You saved {formatPrice(priceBreakdown.discountAmount || couponData.discountAmount || 0)}
                           </p>
                         )}
                       </div>
@@ -2855,7 +2582,7 @@ export default function BookingPage() {
                               }
                             </p>
                             <p className="text-green-600 text-sm">
-                              You saved {formatPrice(couponData.discountAmount)}
+                              You saved {formatPrice(priceBreakdown.discountAmount || couponData.discountAmount || 0)}
                             </p>
                           </div>
                           <button
@@ -2863,6 +2590,7 @@ export default function BookingPage() {
                               setCouponCode('');
                               setCouponData(null);
                               setCouponError('');
+                              setPriceBreakdown(prev => ({ ...prev, discountAmount: 0, discountType: undefined, couponCode: undefined, couponValue: undefined, couponMaxDiscount: undefined }));
                             }}
                             className="text-green-600 hover:text-green-800 p-1"
                           >
@@ -2872,7 +2600,125 @@ export default function BookingPage() {
                   </div>
                 )}
                   </div>
-                </div>
+                </div> */}
+
+                <div className="mb-6">
+  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-4 sm:p-6 border border-purple-200">
+    
+    {/* Header */}
+    <div className="flex items-start sm:items-center gap-3 mb-4">
+      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shrink-0">
+        <Gift className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+      </div>
+      <div>
+        <h3 className="text-base sm:text-lg font-bold text-gray-900">
+          Coupon Code
+        </h3>
+        <p className="text-xs sm:text-sm text-gray-600">
+          Enter a valid coupon code to get discounts
+        </p>
+      </div>
+    </div>
+
+    {/* Input + Button */}
+    <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex-1">
+        <input
+          type="text"
+          value={couponCode}
+          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+          onBlur={() => validateCoupon(couponCode)}
+          placeholder="Enter coupon code"
+          className="w-full px-4 py-3 text-sm sm:text-base border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white"
+          disabled={couponLoading}
+        />
+
+        {couponError && (
+          <p className="text-red-600 text-xs sm:text-sm mt-2 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            {couponError}
+          </p>
+        )}
+
+        {couponData && (
+          <p className="text-green-600 text-xs sm:text-sm mt-2 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4" />
+            Coupon applied! You saved{" "}
+            {formatPrice(
+              priceBreakdown.discountAmount ||
+              couponData.discountAmount ||
+              0
+            )}
+          </p>
+        )}
+      </div>
+
+      <button
+        onClick={() => validateCoupon(couponCode)}
+        disabled={!couponCode.trim() || couponLoading}
+        className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
+      >
+        {couponLoading ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Validating...
+          </>
+        ) : (
+          <>
+            <Gift className="w-4 h-4" />
+            Apply
+          </>
+        )}
+      </button>
+    </div>
+
+    {/* Applied Coupon Card */}
+    {couponData && (
+      <div className="mt-4 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-green-800 font-semibold text-sm sm:text-base">
+              {couponData.coupon.code} —{" "}
+              {couponData.coupon.discountType === "percentage"
+                ? `${couponData.coupon.amount}% off`
+                : `${formatPrice(couponData.coupon.amount)} off`}
+            </p>
+            <p className="text-green-600 text-xs sm:text-sm">
+              You saved{" "}
+              {formatPrice(
+                priceBreakdown.discountAmount ||
+                couponData.discountAmount ||
+                0
+              )}
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              setCouponCode("");
+              setCouponData(null);
+              setCouponError("");
+              setPriceBreakdown((prev) => ({
+                ...prev,
+                discountAmount: 0,
+                discountType: undefined,
+                couponCode: undefined,
+                couponValue: undefined,
+                couponMaxDiscount: undefined,
+              }));
+            }}
+            className="text-green-600 hover:text-green-800 p-1 shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    )}
+
+  </div>
+  
+</div>
+
 
                 {/* Price Breakdown */}
                 <div className="mb-8">
@@ -2941,18 +2787,12 @@ export default function BookingPage() {
                     console.log('🖱️ ===========================================');
                     console.log('🖱️ COMPLETE BOOKING BUTTON CLICKED!');
                     console.log('🖱️ ===========================================');
-                    // console.log('🖱️ Booking data',bookingData);
-                    // console.log('🖱️ Button disabled state:', !bookingData.agreeToTerms || bookingLoading || availabilityLoading);
-                    // console.log('🖱️ agreeToTerms:', bookingData.agreeToTerms);
-                    // console.log('🖱️ bookingLoading:', bookingLoading);
-                    // console.log('🖱️ availabilityLoading:', availabilityLoading);
-                    // console.log('🖱️ isAuthenticated:', isAuthenticated);
+                   
                     console.log('🖱️ user:', user);
                     console.log('🖱️ bookingData:', bookingData);
-                    // console.log('🖱️ property:', property);
-                    // console.log('🖱️ priceBreakdown:', priceBreakdown);
+                   
                     console.log('🖱️ validationErrors:', validationErrors);
-                    // console.log('🖱️ bookingError:', bookingError);
+                    
                     console.log('🖱️ ===========================================');
                     handleBooking();
                   }}
@@ -3073,6 +2913,16 @@ export default function BookingPage() {
         bookingId={null}
         propertyId={id as string}
         user={user}
+        securePricingContext={{
+          pricingToken: priceBreakdown?.pricingToken,
+          propertyId: id as string,
+          checkIn: bookingData.checkIn instanceof Date ? bookingData.checkIn.toLocaleDateString('en-CA') : String(bookingData.checkIn || ''),
+          checkOut: bookingData.checkOut instanceof Date ? bookingData.checkOut.toLocaleDateString('en-CA') : String(bookingData.checkOut || ''),
+          guests: bookingData.guests,
+          nights: priceBreakdown?.nights || 0,
+          totalAmount: priceBreakdown?.total || 0,
+          currency: 'INR'
+        }}
       />
     </div>
   );
