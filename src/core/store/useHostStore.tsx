@@ -42,39 +42,70 @@ export function HostProvider({ children }: HostProviderProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchHost = useCallback(async (hostId: string) => {
-    // Return early if we already have the host data
-    if (host?._id === hostId) {
-      return;
-    }
+  // const fetchHost = useCallback(async (hostId: string) => {
+  //   // Return early if we already have the host data
+  //   if (host?._id === hostId) {
+  //     return;
+  //   }
 
-    setLoading(true);
-    setError(null);
+  //   setLoading(true);
+  //   setError(null);
 
-    try {
-      const response = await apiClient.getHostById(hostId);
+  //   try {
+  //     const response = await apiClient.getHostById(hostId);
       
-      if (response.success && response.data) {
-        // Fetch host's listings as well
-        const listingsResponse = await apiClient.getHostListings(hostId);
+  //     if (response.success && response.data) {
+  //       // Fetch host's listings as well
+  //       const listingsResponse = await apiClient.getHostListings(hostId);
         
-        const hostData = {
-          ...response.data,
-          listings: listingsResponse.success ? listingsResponse.data.listings || [] : []
-        };
+  //       const hostData = {
+  //         ...response.data,
+  //         listings: listingsResponse.success ? listingsResponse.data.listings || [] : []
+  //       };
         
-        setHost(hostData);
-        setLoading(false);
-      } else {
-        setError('Host not found');
-        setLoading(false);
-      }
-    } catch (error) {
-      setError('Failed to load host profile');
+  //       setHost(hostData);
+  //       setLoading(false);
+  //     } else {
+  //       setError('Host not found');
+  //       setLoading(false);
+  //     }
+  //   } catch (error) {
+  //     setError('Failed to load host profile');
+  //     setLoading(false);
+  //   }
+  // }, [host?._id]);
+
+
+  const fetchHost = useCallback(async (hostId: string) => {
+  // Return early if we already have the host data
+  if (host?._id === hostId) {
+    return;
+  }
+
+  setLoading(true);
+  setError(null);
+
+  try {
+    const response = await apiClient.getHostById(hostId);
+      
+    if (response.success && response.data) {
+      // Only use the host data from getHostById, don't fetch listings separately
+      const hostData = {
+        ...response.data,
+        listings: [] // Empty listings for now
+      };
+      
+      setHost(hostData);
+      setLoading(false);
+    } else {
+      setError('Host not found');
       setLoading(false);
     }
-  }, [host?._id]);
-
+  } catch (error) {
+    setError('Failed to load host profile');
+    setLoading(false);
+  }
+}, [host?._id]);
   const clearHost = useCallback(() => {
     setHost(null);
     setError(null);

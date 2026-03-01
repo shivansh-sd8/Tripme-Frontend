@@ -14,7 +14,7 @@ export default function AboutYourPlacePage() {
   };
 
   return (
-    <OnboardingLayout
+    <OnboardingLayout flow='property'
       currentMainStep={1}
       currentSubStep="about-your-place"
       onNext={handleNext}

@@ -7,7 +7,7 @@ import Footer from '@/components/shared/Footer';
 import { apiClient } from '@/infrastructure/api/clients/api-client';
 import { useAuth } from '@/core/store/auth-context';
 import Button from '@/components/ui/Button';
-
+import ReviewForm from '@/components/rooms/reviews/ReviewForm';
 interface Booking {
   _id: string;
   propertyId: {
@@ -39,7 +39,11 @@ interface Booking {
   };
   bookingType?: 'daily' | '24hour' | 'hourly';
   is24Hour?: boolean;
+  bookingDuration?: 'daily' | '24hour' | 'hourly';
+  checkInTime?: string;
   checkOutTime?: string;
+  checkInDateTime?: string;
+  checkOutDateTime?: string;
   // Pricing breakdown
   pricingBreakdown?: {
     customerBreakdown: {
@@ -56,6 +60,8 @@ interface Booking {
       totalAmount: number;
     };
   };
+   hasReviewed?: boolean;
+  reviewId?: string;
 }
 
 const getStatusColor = (status: string) => {
@@ -96,6 +102,47 @@ const formatDate = (dateString: string) => {
   });
 };
 
+const formatDateTime = (dateString?: string, timeString?: string) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '';
+
+  if (timeString) {
+    const [rawHours = '0', rawMinutes = '0'] = timeString.split(':');
+    const hours = parseInt(rawHours, 10);
+    const minutes = parseInt(rawMinutes, 10) || 0;
+    if (!Number.isNaN(hours)) {
+      date.setHours(hours, minutes, 0, 0);
+    }
+  }
+
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
+const getDisplayDateTime = (booking: Booking, type: 'checkin' | 'checkout') => {
+  const is24Hour = booking.bookingDuration === '24hour' || !!booking.checkInDateTime || !!booking.checkOutDateTime;
+
+  if (is24Hour) {
+    const dateTimeString = type === 'checkin' ? booking.checkInDateTime : booking.checkOutDateTime;
+    const formatted = formatDateTime(dateTimeString);
+    if (formatted) return formatted;
+  }
+
+  const dateString = type === 'checkin' ? booking.checkIn : booking.checkOut;
+  const timeString = type === 'checkin' ? booking.checkInTime : booking.checkOutTime;
+  const formatted = formatDateTime(dateString, timeString);
+  if (formatted) return formatted;
+
+  return dateString ? formatDate(dateString) : 'N/A';
+};
+
 const formatPrice = (amount: number, currency: string = 'INR') => {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -112,6 +159,13 @@ export default function BookingsPage() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+const [showReviewForm, setShowReviewForm] = useState(false);
+ 
+useEffect(() => {
+  if (searchParams.get('review') === 'true') {
+    setShowReviewForm(true);
+  }
+}, [searchParams]);
 
 
   useEffect(() => {
@@ -297,15 +351,15 @@ export default function BookingsPage() {
                         <span>{booking.propertyId?.location?.city || ''}{booking.propertyId?.location?.city && booking.propertyId?.location?.state ? ', ' : ''}{booking.propertyId?.location?.state || ''}</span>
                       </div>
                       <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-2">
-                        <span>Check-in: {formatDate(booking.checkIn)}</span>
-                        <span>Check-out: {formatDate(booking.checkOut)}</span>
+                        <span>Check-in: {getDisplayDateTime(booking, 'checkin')}</span>
+                        <span>Check-out: {getDisplayDateTime(booking, 'checkout')}</span>
                         {booking.hourlyExtension?.hours && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
                             <Clock className="w-3 h-3" />
                             +{booking.hourlyExtension.hours}h extension
                           </span>
                         )}
-                        {booking.bookingType === '24hour' && (
+                        {(booking.bookingDuration === '24hour' || booking.bookingType === '24hour') && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
                             24-Hour Booking
                           </span>

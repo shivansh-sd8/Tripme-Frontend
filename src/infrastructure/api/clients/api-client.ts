@@ -9,7 +9,8 @@ class ApiClient {
   private defaultHeaders: Record<string, string>;
 
   constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+    this.baseURL = process.env.NEXT_PUBLIC_API_URL || 'localhost:5000/api';
+    console.log('API Client initialized with base URL:', this.baseURL);
     this.defaultHeaders = {
       'Content-Type': 'application/json',
     };
@@ -43,7 +44,7 @@ class ApiClient {
     try {
       console.log(`🔍 API Request: ${options.method || 'GET'} ${url}`);
       console.log(`🔍 Token present: ${!!token}`);
-      
+
       const response = await fetch(url, config);
       const data = await response.json();
 
@@ -200,7 +201,7 @@ class ApiClient {
   // These use the new AvailabilityEvent model for precise hourly tracking
   // If backend APIs don't work, comment out these methods
   // ========================================
-  
+
   async getHourlyAvailability(listingId: string, startDate?: string, endDate?: string, durationHours?: number): Promise<ApiResponse<any>> {
     const queryParams = [];
     if (startDate) queryParams.push(`startDate=${startDate}`);
@@ -235,9 +236,9 @@ class ApiClient {
 
   // Check if a specific time slot is available (for custom check-in times)
   async checkTimeSlotAvailability(
-    listingId: string, 
-    checkIn: string, 
-    checkOut: string, 
+    listingId: string,
+    checkIn: string,
+    checkOut: string,
     extension?: number
   ): Promise<ApiResponse<any>> {
     const queryParams = [`checkIn=${encodeURIComponent(checkIn)}`, `checkOut=${encodeURIComponent(checkOut)}`];
@@ -245,7 +246,7 @@ class ApiClient {
     const queryString = `?${queryParams.join('&')}`;
     return this.request(`/availability/${listingId}/check-slot${queryString}`);
   }
-  
+
   // ========================================
   // END NEW: Hourly availability methods
   // ========================================
@@ -332,9 +333,36 @@ class ApiClient {
   }
 
   async getHostById(hostId: string): Promise<ApiResponse<any>> {
-  return this.request(`/host/profile/${hostId}`);
-}
+    return this.request(`/host/profile/${hostId}`);
+  }
 
+  async getPropertyReviews(propertyId: string, params?: any): Promise<ApiResponse<any>> {
+    console.log("get property call", propertyId)
+    const queryParams = params ? `?${new URLSearchParams(params).toString()}` : '';
+    return this.request(`/reviews/properties/${propertyId}${queryParams}`);
+  }
+
+  async getPropertyReviewSummary(propertyId: string): Promise<ApiResponse<any>> {
+    console.log("get summary  call", propertyId)
+    return this.request(`/reviews/properties/${propertyId}/summary`);
+  }
+
+  async createReview(bookingId: string, reviewData: any): Promise<ApiResponse<any>> {
+    return this.request('/reviews', {
+      method: 'POST',
+      body: JSON.stringify({
+        bookingId,
+        ...reviewData
+      })
+    });
+  }
+
+  async updateReview(reviewId: string, reviewData: any): Promise<ApiResponse<any>> {
+    return this.request(`/reviews/${reviewId}`, {
+      method: 'PUT',
+      body: JSON.stringify(reviewData)
+    });
+  }
 
   async getListingReviews(listingId: string, params?: any): Promise<ApiResponse<any>> {
     const queryString = params ? `?${new URLSearchParams(params).toString()}` : '';
@@ -374,10 +402,10 @@ class ApiClient {
   }
 
   async createWishList(data: {
-  name: string;
-  description?: string;
-  isPublic?: boolean;
-}): Promise<ApiResponse<any>> {
+    name: string;
+    description?: string;
+    isPublic?: boolean;
+  }): Promise<ApiResponse<any>> {
     return this.request(`/wishlist`, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -385,10 +413,10 @@ class ApiClient {
   }
 
   async getMyWishlists(): Promise<ApiResponse<any>> {
-  return this.request('/wishlist', {
-    method: 'GET',
-  });
-}
+    return this.request('/wishlist', {
+      method: 'GET',
+    });
+  }
 
 
   // async addToListingWishlist(listingId: string): Promise<ApiResponse<any>> {
@@ -396,19 +424,19 @@ class ApiClient {
   //     method: 'POST',
   //   });
   // }
-async addToWishlist(
-  wishlistId: string,
-  data: {
-    itemType: 'Property' | 'Service';
-    itemId: string;
-    notes?: string;
+  async addToWishlist(
+    wishlistId: string,
+    data: {
+      itemType: 'Property' | 'Service';
+      itemId: string;
+      notes?: string;
+    }
+  ) {
+    return this.request(`/wishlist/${wishlistId}/items`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
-) {
-  return this.request(`/wishlist/${wishlistId}/items`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
 
   // async removeFromListingWishlist(listingId: string): Promise<ApiResponse<any>> {
   //   return this.request(`/wishlists/${wishlistId}/items`, {
@@ -416,10 +444,10 @@ async addToWishlist(
   //   });
   // }
   async removeFromWishlist(wishlistId: string, itemId: string) {
-  return this.request(`/wishlist/${wishlistId}/items/${itemId}`, {
-    method: 'DELETE',
-  });
-}
+    return this.request(`/wishlist/${wishlistId}/items/${itemId}`, {
+      method: 'DELETE',
+    });
+  }
 
 
   async getListingStats(listingId: string, params?: any): Promise<ApiResponse<any>> {
@@ -468,6 +496,26 @@ async addToWishlist(
     return this.request(`/listings/admin/${listingId}/feature`, {
       method: 'PATCH',
     });
+  }
+
+  // Admin featured/sponsored management
+  async setAdminListingFeatured(listingId: string, value: boolean): Promise<ApiResponse<any>> {
+    return this.request(`/admin/properties/${listingId}/featured`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isFeatured: value }),
+    });
+  }
+
+  async setAdminListingSponsored(listingId: string, value: boolean): Promise<ApiResponse<any>> {
+    return this.request(`/admin/properties/${listingId}/sponsored`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isSponsored: value }),
+    });
+  }
+
+  async getAdminFeaturedListings(params?: { isFeatured?: boolean; isSponsored?: boolean }): Promise<ApiResponse<any>> {
+    const queryParams = params ? `?${new URLSearchParams(params as any).toString()}` : '';
+    return this.request(`/admin/properties${queryParams}`);
   }
 
   // Service endpoints
@@ -547,10 +595,42 @@ async addToWishlist(
     });
   }
 
-  async createRazorpayOrder(bookingId: string | null, amount: number, currency: string = 'INR', propertyId?: string): Promise<ApiResponse<any>> {
+  async createRazorpayOrder(
+    bookingId: string | null,
+    amount: number,
+    currency: string = 'INR',
+    propertyId?: string,
+    securePricingContext?: {
+      pricingToken: string;
+      propertyId: string;
+      checkIn: string;
+      checkOut: string;
+      guests: { adults: number; children?: number; infants?: number };
+      nights: number;
+      totalAmount: number;
+      currency?: string;
+    }
+  ): Promise<ApiResponse<any>> {
     return this.request('/payments/create-order', {
       method: 'POST',
-      body: JSON.stringify({ bookingId, propertyId, amount, currency }),
+      body: JSON.stringify({
+        bookingId,
+        propertyId,
+        amount,
+        currency,
+        ...(securePricingContext && {
+          pricingToken: securePricingContext.pricingToken,
+          pricingContext: {
+            propertyId: securePricingContext.propertyId,
+            checkIn: securePricingContext.checkIn,
+            checkOut: securePricingContext.checkOut,
+            guests: securePricingContext.guests,
+            nights: securePricingContext.nights,
+            totalAmount: securePricingContext.totalAmount,
+            currency: securePricingContext.currency || currency
+          }
+        })
+      }),
     });
   }
 
@@ -867,6 +947,8 @@ async addToWishlist(
     return this.request(`/admin/reviews${queryParams}`);
   }
 
+
+
   async flagReview(reviewId: string, reason: string): Promise<ApiResponse<any>> {
     return this.request(`/admin/reviews/${reviewId}/flag`, {
       method: 'PUT',
@@ -874,9 +956,33 @@ async addToWishlist(
     });
   }
 
+  // async deleteReview(reviewId: string): Promise<ApiResponse<void>> {
+  //   return this.request(`/admin/reviews/${reviewId}`, {
+  //     method: 'DELETE',
+  //   });
+  // }
   async deleteReview(reviewId: string): Promise<ApiResponse<void>> {
-    return this.request(`/admin/reviews/${reviewId}`, {
-      method: 'DELETE',
+    return this.request(`/reviews/${reviewId}`, {
+      method: 'DELETE'
+    });
+  }
+  async markReviewHelpful(reviewId: string): Promise<ApiResponse<void>> {
+    return this.request(`/reviews/${reviewId}/helpful`, {
+      method: 'POST'
+    });
+  }
+
+  async reportReview(reviewId: string, data: { reason: string }): Promise<ApiResponse<void>> {
+    return this.request(`/reviews/${reviewId}/report`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async respondToReview(reviewId: string, data: { response: string }): Promise<ApiResponse<any>> {
+    return this.request(`/reviews/${reviewId}/response`, {
+      method: 'POST',
+      body: JSON.stringify(data)
     });
   }
 
@@ -985,6 +1091,56 @@ async addToWishlist(
     return this.request('/email-subscription/unsubscribe', {
       method: 'POST',
       body: JSON.stringify({ email }),
+    });
+  }
+
+  // ─── Popular Destinations ──────────────────────────────────────────────────
+
+  /** Public — used by homepage */
+  async getPopularDestinations(): Promise<ApiResponse<any>> {
+    return this.request('/popular-destinations');
+  }
+
+  /** Admin — get all (incl. inactive) */
+  async getAdminPopularDestinations(): Promise<ApiResponse<any>> {
+    return this.request('/popular-destinations/admin');
+  }
+
+  /** Admin — create */
+  async createPopularDestination(data: {
+    name: string;
+    description?: string;
+    image: string;
+    staysLabel?: string;
+    displayOrder?: number;
+    isActive?: boolean;
+    searchCity?: string;
+  }): Promise<ApiResponse<any>> {
+    return this.request('/popular-destinations/admin', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /** Admin — update */
+  async updatePopularDestination(id: string, data: any): Promise<ApiResponse<any>> {
+    return this.request(`/popular-destinations/admin/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /** Admin — delete */
+  async deletePopularDestination(id: string): Promise<ApiResponse<any>> {
+    return this.request(`/popular-destinations/admin/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /** Admin — toggle active/inactive */
+  async togglePopularDestination(id: string): Promise<ApiResponse<any>> {
+    return this.request(`/popular-destinations/admin/${id}/toggle`, {
+      method: 'PATCH',
     });
   }
 }

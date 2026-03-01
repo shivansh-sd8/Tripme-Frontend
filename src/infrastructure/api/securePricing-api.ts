@@ -20,6 +20,8 @@ export interface SecurePricingRequest {
   bookingType?: 'daily' | '24hour';
   checkInDateTime?: string;
   extensionHours?: number;
+  /** When true, apply basePrice24Hour rate per night even for multi-night (daily) bookings */
+  isLateCheckIn?: boolean;
 }
 
 export interface SecurePricingResponse {
@@ -105,7 +107,7 @@ class SecurePricingAPI {
         _timestamp: Date.now()
       };
       const response = await apiClient.post('/pricing/calculate', requestWithTimestamp);
-      
+
       console.log('✅ Pricing calculated successfully:', {
         nights: response.data.pricing.nights,
         serviceFee: response.data.pricing.serviceFee,
@@ -191,19 +193,19 @@ class SecurePricingAPI {
 
     if (request.guests) {
       const { adults, children = 0, infants = 0 } = request.guests;
-      
+
       if (adults < 1 || adults > 20) {
         errors.push('Adult count must be between 1 and 20');
       }
-      
+
       if (children < 0 || children > 10) {
         errors.push('Children count must be between 0 and 10');
       }
-      
+
       if (infants < 0 || infants > 5) {
         errors.push('Infants count must be between 0 and 5');
       }
-      
+
       if (adults + children + infants > 25) {
         errors.push('Total guest count cannot exceed 25');
       }
@@ -214,23 +216,23 @@ class SecurePricingAPI {
       const checkInDate = new Date(request.checkIn);
       const checkOutDate = new Date(request.checkOut);
       const now = new Date();
-      
+
       if (isNaN(checkInDate.getTime())) {
         errors.push('Invalid check-in date format');
       }
-      
+
       if (isNaN(checkOutDate.getTime())) {
         errors.push('Invalid check-out date format');
       }
-      
+
       // FIXED: Normalize to date-only for comparison so same-day check-in is allowed
       const checkInDateOnly = new Date(checkInDate.getFullYear(), checkInDate.getMonth(), checkInDate.getDate());
       const todayOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      
+
       if (checkInDateOnly < todayOnly) {
         errors.push('Check-in date cannot be in the past');
       }
-      
+
       if (checkOutDate <= checkInDate) {
         errors.push('Check-out date must be after check-in date');
       }

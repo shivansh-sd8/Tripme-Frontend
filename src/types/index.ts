@@ -42,8 +42,8 @@ export interface Stay {
   location: {
     city: string;
     state: string;
-    country: string;
-    coordinates: [number, number];
+    country?: string;
+    coordinates?: [number, number];
   };
   price: {
     amount: number;
@@ -51,21 +51,21 @@ export interface Stay {
   };
   rating: number;
   reviewCount: number;
-  maxGuests: number;
+  maxGuests?: number;
   bedrooms: number;
   beds: number;
   bathrooms: number;
-  tags: string[];
-  instantBookable: boolean;
-  amenities: string[];
-  host: {
+  tags?: string[];
+  instantBookable?: boolean;
+  amenities?: string[];
+  host?: {
     id: string;
     name: string;
     avatar?: string;
     isSuperhost: boolean;
   };
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 // Authentication types

@@ -8,6 +8,10 @@ interface PricingBreakdownProps {
     basePrice?: number;
     baseAmount?: number; // Backend calculated base amount
     nights: number;
+    discountType?: 'percentage' | 'fixed';
+    couponCode?: string;
+    couponValue?: number;
+    couponMaxDiscount?: number;
     extraGuestPrice?: number;
     extraGuests?: number;
     cleaningFee?: number;
@@ -49,6 +53,10 @@ export default function PricingBreakdown({
     securityDeposit = 0,
     hourlyExtension = 0,
     discountAmount = 0,
+    discountType,
+    couponCode,
+    couponValue,
+    couponMaxDiscount,
     currency = 'INR',
     // Calculated properties
     platformFee: passedPlatformFee,
@@ -87,7 +95,7 @@ export default function PricingBreakdown({
       </div>
 
       {/* Extra Guest Charges */}
-      {extraGuests > 0 && extraGuestPrice > 0 && (
+      {extraGuests > 0 && extraGuestCost  > 0 && (
         <div className="flex justify-between items-center py-2">
           <span className="text-gray-600">
             Extra guest{extraGuests > 1 ? 's' : ''} ({extraGuests} × {formatPrice(extraGuestPrice)})
@@ -129,10 +137,20 @@ export default function PricingBreakdown({
       {/* Discount */}
       {discountAmount > 0 && (
         <div className="flex justify-between items-center py-2 text-green-600">
-          <span className="font-medium">Discount</span>
+          <span className="font-medium">
+            {couponCode ? `Coupon ${couponCode}` : 'Discount'}
+            {discountType === 'percentage' && couponValue !== undefined && (
+              <> ({couponValue}%{couponMaxDiscount ? ` • max ${formatPrice(couponMaxDiscount)}` : ''})</>
+            )}
+            {discountType === 'fixed' && couponValue !== undefined && (
+              <> (-{formatPrice(couponValue)})</>
+            )}
+          </span>
           <span className="font-semibold">-{formatPrice(discountAmount)}</span>
         </div>
       )}
+
+    
 
       {/* Subtotal */}
       <div className="border-t border-gray-200 pt-3">

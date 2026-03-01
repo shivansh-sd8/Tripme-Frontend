@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo, useState  } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { DateRange } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
@@ -9,7 +9,7 @@ import Button from '../ui/Button';
 import Card from '../ui/Card';
 import { apiClient } from '@/infrastructure/api/clients/api-client';
 import { useRouter } from 'next/navigation';
-import { Calendar,X , Clock,ChevronLeft,ArrowLeft, CheckCircle, XCircle, Plus, Trash2, Save, AlertTriangle, Wrench, Pause, Eye, ExternalLink } from 'lucide-react';
+import { Calendar, X, Clock, ChevronLeft, ArrowLeft, CheckCircle, XCircle, Plus, Trash2, Save, AlertTriangle, Wrench, Pause, Eye, ExternalLink } from 'lucide-react';
 
 type TargetType = 'listing' | 'service';
 
@@ -108,10 +108,10 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
   const [success, setSuccess] = useState<string | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const isMobile = useIsMobile();
- 
 
 
-  const [dayMeta, setDayMeta] = useState<Record<string, { 
+
+  const [dayMeta, setDayMeta] = useState<Record<string, {
     status: 'available' | 'unavailable' | 'booked' | 'maintenance' | 'on-hold' | 'partially-available';
     checkInDate?: string;   // Full check-in date
     checkOutDate?: string;  // Full check-out date
@@ -119,7 +119,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
     checkOutTime?: string;
     guestName?: string;
   }>>({});
-  
+
   // ========================================
   // NEW: Maintenance time configuration
   // If this causes issues, comment out this section and the related UI below
@@ -146,7 +146,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
       // For range selection, use the actual range
       setRange({ startDate: selection.startDate, endDate: selection.endDate });
     }
-    
+
     // Track if we're in the middle of selecting
     if (selection.startDate && !selection.endDate) {
       setIsSelecting(true);
@@ -163,7 +163,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
         if (targetType === 'listing') {
           const availRes = await apiClient.getAvailability(targetId);
           const arr = (availRes as any)?.data?.availability || (availRes as any)?.data?.data?.availability || (availRes as any)?.data || [];
-          const map: Record<string, { 
+          const map: Record<string, {
             status: 'available' | 'unavailable' | 'booked' | 'maintenance' | 'on-hold' | 'partially-available';
             checkInDate?: string;
             checkOutDate?: string;
@@ -171,7 +171,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
             checkOutTime?: string;
             guestName?: string;
           }> = {};
-          
+
           // Process existing availability records
           arr.forEach((it: any) => {
             const d = format(new Date(it.date), 'yyyy-MM-dd');
@@ -199,7 +199,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                 break;
             }
             // Include booking details for booked dates (from backend populate)
-            map[d] = { 
+            map[d] = {
               status,
               checkInDate: it.checkInDate,
               checkOutDate: it.checkOutDate,
@@ -211,14 +211,14 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
               onHoldHours: it.onHoldHours || [] // Add onHoldHours
             };
           });
-          
+
           // ========================================
           // Fill in missing dates as UNAVAILABLE - host must explicitly set dates as available
           // ========================================
           const today = new Date();
           const endDateFill = new Date();
           endDateFill.setMonth(endDateFill.getMonth() + 3); // Show next 3 months
-          
+
           const currentDate = new Date(today);
           while (currentDate <= endDateFill) {
             const dateStr = format(currentDate, 'yyyy-MM-dd');
@@ -228,18 +228,18 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
             }
             currentDate.setDate(currentDate.getDate() + 1);
           }
-          
+
           setDayMeta(map);
         } else {
           const availRes = await apiClient.getServiceAvailability(targetId);
           const slots = (availRes as any)?.data?.availableSlots || (availRes as any)?.data?.data?.availableSlots || [];
-          const map: Record<string, { 
+          const map: Record<string, {
             status: 'available' | 'unavailable' | 'booked' | 'maintenance' | 'on-hold';
             checkInTime?: string;
             checkOutTime?: string;
             guestName?: string;
           }> = {};
-          
+
           // Process service availability slots
           slots.forEach((slot: any) => {
             if (!slot?.startTime) return;
@@ -269,12 +269,12 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
             }
             map[d] = { status };
           });
-          
+
           // Fill in missing dates as UNAVAILABLE for services - host must explicitly set dates as available
           const today = new Date();
           const endDate = new Date();
           endDate.setMonth(endDate.getMonth() + 3);
-          
+
           const currentDate = new Date(today);
           while (currentDate <= endDate) {
             const dateStr = format(currentDate, 'yyyy-MM-dd');
@@ -284,7 +284,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
             }
             currentDate.setDate(currentDate.getDate() + 1);
           }
-          
+
           setDayMeta(map);
         }
       } catch (e: any) {
@@ -292,7 +292,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
       }
     };
     fetchData();
-     
+
   }, [targetType, targetId]);
 
   const addSelectionFromRange = () => {
@@ -307,8 +307,8 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
     setSelections(prev => {
       const dedup = new Map(prev.map(item => [format(item.date, 'yyyy-MM-dd'), item]));
       for (const d of days) {
-        dedup.set(format(d, 'yyyy-MM-dd'), { 
-          date: d, 
+        dedup.set(format(d, 'yyyy-MM-dd'), {
+          date: d,
           status: selectedStatus,
           reason: reason.trim() || undefined
         });
@@ -326,8 +326,8 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
     const d = new Date(singleDate);
     setSelections(prev => {
       const dedup = new Map(prev.map(item => [format(item.date, 'yyyy-MM-dd'), item]));
-      dedup.set(format(d, 'yyyy-MM-dd'), { 
-        date: d, 
+      dedup.set(format(d, 'yyyy-MM-dd'), {
+        date: d,
         status: selectedStatus,
         reason: reason.trim() || undefined
       });
@@ -351,10 +351,10 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
     setSaving(true);
     setError(null);
     setSuccess(null);
-    
+
     try {
       console.log('🚀 Saving availability for:', { targetType, targetId, selections });
-      
+
       if (targetType === 'listing') {
         const payload = selections.map(s => {
           // Map frontend status back to backend status
@@ -378,43 +378,43 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
             default:
               backendStatus = 'blocked';
           }
-          
+
           const mapped: any = {
             date: format(s.date, 'yyyy-MM-dd'),
             status: backendStatus,
             reason: s.reason
           };
-          
+
           // Add availableHours if status is 'available' and not all day
           if (backendStatus === 'available' && !isAllDayAvailable && availableHours.length > 0) {
             mapped.availableHours = availableHours;
           } else if (backendStatus === 'available' && isAllDayAvailable) {
             mapped.availableHours = []; // Empty array means all day available
           }
-          
+
           // Add unavailableHours if status is 'available' and unavailable hours are set
           if (backendStatus === 'available' && unavailableHours.length > 0) {
             mapped.unavailableHours = unavailableHours;
           }
-          
+
           // Add onHoldHours if status is 'on-hold' and on-hold hours are set
           if (backendStatus === 'on-hold' && onHoldHours.length > 0) {
             mapped.onHoldHours = onHoldHours;
           }
-          
+
           console.log('📅 Mapping selection:', { frontend: s.status, backend: backendStatus, date: mapped.date, availableHours: mapped.availableHours, unavailableHours: mapped.unavailableHours, onHoldHours: mapped.onHoldHours });
           return mapped;
         });
-        
+
         console.log('📤 Sending to backend:', { updates: payload });
         const response = await apiClient.bulkUpdateAvailability(targetId, { updates: payload });
         console.log('✅ Backend response:', response);
-        
+
       } else {
         const availableSlots = selections.map(s => {
           const start = new Date(format(s.date, 'yyyy-MM-dd') + 'T00:00:00');
           const end = new Date(format(s.date, 'yyyy-MM-dd') + 'T23:59:59');
-          
+
           // Map frontend status to service availability
           let backendStatus: string;
           switch (s.status) {
@@ -436,10 +436,10 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
             default:
               backendStatus = 'blocked';
           }
-          
-          const mapped = { 
-            startTime: start, 
-            endTime: end, 
+
+          const mapped = {
+            startTime: start,
+            endTime: end,
             isAvailable: s.status === 'available',
             status: backendStatus,
             reason: s.reason
@@ -447,12 +447,12 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
           console.log('🛠️ Mapping service slot:', { frontend: s.status, backend: backendStatus, date: format(s.date, 'yyyy-MM-dd') });
           return mapped;
         });
-        
+
         console.log('📤 Sending service availability to backend:', availableSlots);
         const response = await apiClient.updateServiceAvailability(targetId, availableSlots as any);
         console.log('✅ Service backend response:', response);
       }
-      
+
       setSuccess('Availability updated successfully! 🎉');
       // Refresh the data
       setTimeout(() => window.location.reload(), 1500);
@@ -468,17 +468,17 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
     return STATUS_OPTIONS.find(option => option.value === status) || STATUS_OPTIONS[0];
   };
   function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
+    useEffect(() => {
+      const check = () => setIsMobile(window.innerWidth < 768);
+      check();
+      window.addEventListener('resize', check);
+      return () => window.removeEventListener('resize', check);
+    }, []);
 
-  return isMobile;
-}
+    return isMobile;
+  }
 
 
   return (
@@ -486,59 +486,58 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header Section */}
         <div className="mb-6 px-2 md:px-0">
-  <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-    
-    {/* Title Section: Compact & Left Aligned */}
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-2">
-        <button 
-          onClick={() => router.back()}
-          className="p-2 -ml-2 hover:bg-slate-100 rounded-full transition-colors md:hidden"
-        >
-          <ArrowLeft className="w-5 h-5 text-slate-600" />
-        </button>
-        <h1 className="text-xl md:text-3xl font-black text-slate-900 tracking-tight">
-          Manage Availability
-        </h1>
-      </div>
-      <p className="text-xs md:text-base text-slate-500 font-medium">
-        Calendar for {targetType === 'listing' ? 'Property' : 'Service'}
-      </p>
-    </div>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
 
-    {/* Buttons Section: Single line on mobile */}
-    <div className="flex items-center gap-2">
-      <Button 
-        onClick={() => router.back()} 
-        variant="ghost"
-        className="hidden md:flex items-center text-slate-600 font-bold"
-      >
-        <ChevronLeft className="w-4 h-4 mr-1" /> Back
-      </Button>
+            {/* Title Section: Compact & Left Aligned */}
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => router.back()}
+                  className="p-2 -ml-2 hover:bg-slate-100 rounded-full transition-colors md:hidden"
+                >
+                  <ArrowLeft className="w-5 h-5 text-slate-600" />
+                </button>
+                <h1 className="text-xl md:text-3xl font-black text-slate-900 tracking-tight">
+                  Manage Availability
+                </h1>
+              </div>
+              <p className="text-xs md:text-base text-slate-500 font-medium">
+                Calendar for {targetType === 'listing' ? 'Property' : 'Service'}
+              </p>
+            </div>
 
-      <Button 
-        onClick={() => {
-          const path = targetType === 'listing' ? `/rooms/${targetId}` : `/services/${targetId}`;
-          router.push(path);
-        }}
-        className="flex-1 md:flex-none h-10 px-4 bg-slate-900 text-white text-xs font-bold rounded-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
-      >
-        <ExternalLink className="w-3.5 h-3.5" />
-        <span>View {targetType === 'listing' ? 'Property' : 'Service'}</span>
-      </Button>
-    </div>
-  </div>
+            {/* Buttons Section: Single line on mobile */}
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => router.back()}
+                variant="ghost"
+                className="hidden md:flex items-center text-slate-600 font-bold"
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" /> Back
+              </Button>
 
-  {/* Status Messages: Ultra-Slim */}
-  {(error || success) && (
-    <div className={`mt-4 p-2.5 rounded-lg border flex items-center gap-2 animate-in fade-in slide-in-from-top-1 ${
-      error ? 'bg-red-50 border-red-100 text-red-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700'
-    }`}>
-      {error ? <XCircle className="w-4 h-4 shrink-0" /> : <CheckCircle className="w-4 h-4 shrink-0" />}
-      <span className="text-[11px] md:text-sm font-bold truncate">{error || success}</span>
-    </div>
-  )}
-</div>
+              <Button
+                onClick={() => {
+                  const path = targetType === 'listing' ? `/rooms/${targetId}` : `/services/${targetId}`;
+                  router.push(path);
+                }}
+                className="flex-1 md:flex-none h-10 px-4 bg-slate-900 text-white text-xs font-bold rounded-lg shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>View {targetType === 'listing' ? 'Property' : 'Service'}</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Status Messages: Ultra-Slim */}
+          {(error || success) && (
+            <div className={`mt-4 p-2.5 rounded-lg border flex items-center gap-2 animate-in fade-in slide-in-from-top-1 ${error ? 'bg-red-50 border-red-100 text-red-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700'
+              }`}>
+              {error ? <XCircle className="w-4 h-4 shrink-0" /> : <CheckCircle className="w-4 h-4 shrink-0" />}
+              <span className="text-[11px] md:text-sm font-bold truncate">{error || success}</span>
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
           {/* Control Panel - Left Sidebar */}
           <div className="xl:col-span-4 order-1 xl:order-none">
@@ -554,18 +553,16 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                 <div className="inline-flex rounded-xl border-2 border-slate-200 overflow-hidden shadow-sm">
                   <button
                     type="button"
-                    className={`px-6 py-3 text-sm font-medium transition-all duration-200 ${
-                      selectionType === 'range' 
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg' 
-                        : 'bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
-                    onClick={() => 
-                      {
-                        setSelectionType('range')
-                        if(isMobile){
-                          setIsCalendarOpen(true)
-                        }
+                    className={`px-6 py-3 text-sm font-medium transition-all duration-200 ${selectionType === 'range'
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
+                      : 'bg-white text-slate-600 hover:bg-slate-50'
+                      }`}
+                    onClick={() => {
+                      setSelectionType('range')
+                      if (isMobile) {
+                        setIsCalendarOpen(true)
                       }
+                    }
                     }
                   >
                     <Calendar className="w-4 h-4 inline mr-2" />
@@ -573,15 +570,14 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                   </button>
                   <button
                     type="button"
-                    className={`px-6 py-3 text-sm font-medium border-l-2 border-slate-200 transition-all duration-200 ${
-                      selectionType === 'single' 
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg' 
-                        : 'bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
+                    className={`px-6 py-3 text-sm font-medium border-l-2 border-slate-200 transition-all duration-200 ${selectionType === 'single'
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
+                      : 'bg-white text-slate-600 hover:bg-slate-50'
+                      }`}
                     onClick={
                       () => {
                         setSelectionType('single')
-                        if(isMobile){
+                        if (isMobile) {
                           setIsCalendarOpen(true)
                         }
                       }
@@ -661,67 +657,67 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                   })}
                 </div>
               </div> */}
-              
+
               <div>
-  <div className="flex items-center justify-between mb-3">
-    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-      Set Status
-    </label>
-    <span className="text-[10px] font-medium px-2 py-0.5 bg-slate-100 rounded-full text-slate-600">
-      Tap to select
-    </span>
-  </div>
-  
-  {/* Horizontal Scroll on very small screens, or tight grid */}
-  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-    {STATUS_OPTIONS.map((option) => {
-      const Icon = option.icon;
-      const isSelected = selectedStatus === option.value;
-      
-      const getColors = (val: string) => {
-        switch (val) {
-          case 'available': return 'border-emerald-500 text-emerald-700 bg-emerald-50';
-          case 'unavailable': return 'border-red-500 text-red-700 bg-red-50';
-          case 'booked': return 'border-purple-500 text-purple-700 bg-purple-50';
-          case 'maintenance': return 'border-orange-500 text-orange-700 bg-orange-50';
-          default: return 'border-slate-400 text-slate-700 bg-slate-50';
-        }
-      };
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Set Status
+                  </label>
+                  <span className="text-[10px] font-medium px-2 py-0.5 bg-slate-100 rounded-full text-slate-600">
+                    Tap to select
+                  </span>
+                </div>
 
-      return (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => setSelectedStatus(option.value as any)}
-          className={`
+                {/* Horizontal Scroll on very small screens, or tight grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {STATUS_OPTIONS.map((option) => {
+                    const Icon = option.icon;
+                    const isSelected = selectedStatus === option.value;
+
+                    const getColors = (val: string) => {
+                      switch (val) {
+                        case 'available': return 'border-emerald-500 text-emerald-700 bg-emerald-50';
+                        case 'unavailable': return 'border-red-500 text-red-700 bg-red-50';
+                        case 'booked': return 'border-purple-500 text-purple-700 bg-purple-50';
+                        case 'maintenance': return 'border-orange-500 text-orange-700 bg-orange-50';
+                        default: return 'border-slate-400 text-slate-700 bg-slate-50';
+                      }
+                    };
+
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setSelectedStatus(option.value as any)}
+                        className={`
             flex items-center gap-2 p-2 rounded-lg border transition-all active:scale-95
-            ${isSelected 
-              ? `${getColors(option.value)} shadow-sm ring-1 ring-inset ring-black/5` 
-              : 'bg-white border-slate-200 text-slate-600'
-            }
+            ${isSelected
+                            ? `${getColors(option.value)} shadow-sm ring-1 ring-inset ring-black/5`
+                            : 'bg-white border-slate-200 text-slate-600'
+                          }
           `}
-        >
-          {/* Smaller, simpler icon */}
-          <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'opacity-100' : 'opacity-60'}`} />
-          
-          <div className="flex flex-col items-start overflow-hidden">
-            <span className="text-[11px] font-bold leading-none truncate w-full">
-              {option.label}
-            </span>
-          </div>
-        </button>
-      );
-    })}
-  </div>
+                      >
+                        {/* Smaller, simpler icon */}
+                        <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'opacity-100' : 'opacity-60'}`} />
 
-  {/* Dynamic Description: Only shows for the SELECTED item to save space */}
-  <div className="mt-3 p-2 bg-slate-50 rounded-lg border border-dashed border-slate-200">
-    <p className="text-[10px] text-slate-500 italic">
-      <span className="font-bold uppercase mr-1">Note:</span>
-      {STATUS_OPTIONS.find(o => o.value === selectedStatus)?.description || "Select a status to see details."}
-    </p>
-  </div>
-</div>
+                        <div className="flex flex-col items-start overflow-hidden">
+                          <span className="text-[11px] font-bold leading-none truncate w-full">
+                            {option.label}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Dynamic Description: Only shows for the SELECTED item to save space */}
+                <div className="mt-3 p-2 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                  <p className="text-[10px] text-slate-500 italic">
+                    <span className="font-bold uppercase mr-1">Note:</span>
+                    {STATUS_OPTIONS.find(o => o.value === selectedStatus)?.description || "Select a status to see details."}
+                  </p>
+                </div>
+              </div>
 
               {/* Reason Input */}
               {(selectedStatus === 'unavailable' || selectedStatus === 'maintenance' || selectedStatus === 'on-hold') && (
@@ -745,7 +741,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                   <label className="block text-sm font-semibold text-slate-700">
                     Available Hours
                   </label>
-                  
+
                   <div className="flex items-center gap-3 mb-4">
                     <input
                       type="checkbox"
@@ -811,7 +807,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                           </button>
                         </div>
                       ))}
-                      
+
                       <button
                         type="button"
                         onClick={() => {
@@ -836,7 +832,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                   <p className="text-xs text-slate-500">
                     Set specific time ranges when the property is temporarily on hold. Leave empty to set entire day as on-hold.
                   </p>
-                  
+
                   <div className="space-y-3">
                     {onHoldHours.map((range, index) => (
                       <div key={index} className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
@@ -883,7 +879,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                         </button>
                       </div>
                     ))}
-                    
+
                     <button
                       type="button"
                       onClick={() => {
@@ -926,14 +922,14 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
 
               {/* Action Buttons */}
               <div className="hidden md:block space-y-3">
-                <Button 
-                  onClick={selectionType === 'range' ? addSelectionFromRange : addSelectionSingle} 
+                <Button
+                  onClick={selectionType === 'range' ? addSelectionFromRange : addSelectionSingle}
                   className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   {selectionType === 'range' ? 'Add Date Range' : 'Add Single Date'}
                 </Button>
-                
+
                 <div className="text-center py-3 bg-slate-50 rounded-xl">
                   <span className="text-2xl font-bold text-slate-800">{selectionCount}</span>
                   <p className="text-sm text-slate-600">dates selected</p>
@@ -947,7 +943,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                   {STATUS_OPTIONS.map((option) => {
                     const count = Object.values(dayMeta).filter(meta => meta.status === option.value).length;
                     const Icon = option.icon;
-                    
+
                     // Get proper color classes for each status
                     const getStatusColorClasses = (statusValue: string) => {
                       switch (statusValue) {
@@ -967,7 +963,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                           return 'text-slate-600';
                       }
                     };
-                    
+
                     const getIconColorClasses = (statusValue: string) => {
                       switch (statusValue) {
                         case 'available':
@@ -986,7 +982,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                           return 'text-slate-500';
                       }
                     };
-                    
+
                     return (
                       <div key={option.value} className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
@@ -1008,25 +1004,25 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
 
               {/* Management Actions */}
               <div className="hidden md:block space-y-3 pt-4 border-t border-slate-200">
-                <Button 
-                  variant="outline" 
-                  onClick={clearAll} 
-                  disabled={selectionCount === 0} 
+                <Button
+                  variant="outline"
+                  onClick={clearAll}
+                  disabled={selectionCount === 0}
                   className="w-full py-3 text-slate-600 border-slate-300 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Clear All
                 </Button>
-                <Button 
-                  onClick={saveAvailability} 
-                  disabled={selectionCount === 0 || saving} 
+                <Button
+                  onClick={saveAvailability}
+                  disabled={selectionCount === 0 || saving}
                   className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {saving ? 'Saving...' : 'Save Availability'}
                 </Button>
               </div>
-              
+
               {/* ========================================
                   NEW: Maintenance Time Configuration
                   This sets how long the property is blocked after checkout for cleaning/preparation
@@ -1086,7 +1082,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                 <h3 className="text-2xl font-bold text-slate-800 mb-2">Availability Calendar</h3>
                 <p className="text-slate-600">Select dates to manage your availability</p>
               </div>
-              
+
               {/* Enhanced Status Legend */}
               <div className="mb-6">
                 <div className="flex flex-wrap justify-center gap-3 mb-4">
@@ -1110,7 +1106,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                           return 'bg-slate-500';
                       }
                     };
-                    
+
                     return (
                       <div key={option.value} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-200 shadow-sm">
                         <div className={`w-4 h-4 rounded-full ${getStatusColorClasses(option.value)}`}></div>
@@ -1119,7 +1115,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                     );
                   })}
                 </div>
-                
+
                 {/* Additional Calendar Indicators */}
                 <div className="flex flex-wrap justify-center gap-4 text-xs text-slate-600">
                   <div className="flex items-center gap-2">
@@ -1136,7 +1132,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                   </div>
                 </div>
               </div>
-              
+
               <div className={availabilityCalendarStyles.availabilityCalendarWrapper}>
                 <DateRange
                   ranges={[{ startDate: range.startDate, endDate: range.endDate, key: 'selection' }]}
@@ -1148,74 +1144,74 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                   moveRangeOnFirstSelection={true}
                   editableDateInputs={false}
                   rangeColors={['#3b82f6']}
-                   dayContentRenderer={(date: Date) => {
-                     const ds = format(date, 'yyyy-MM-dd');
-                     const meta = dayMeta[ds];
-                     // FIXED: Default to 'available' to match room page behavior (was 'unavailable')
-                     const status = meta?.status || 'available';
-                     const isExpired = date < new Date(new Date().setHours(0, 0, 0, 0));
-                     
-                     // Check if this date is in the current selection range
-                     const isInRange = date >= range.startDate && date <= range.endDate;
-                     const isStartDate = format(date, 'yyyy-MM-dd') === format(range.startDate, 'yyyy-MM-dd');
-                     const isEndDate = format(date, 'yyyy-MM-dd') === format(range.endDate, 'yyyy-MM-dd');
-                     
-                     // Check if this date is in the hover preview range (when selecting)
-                     let isInHoverRange = false;
-                     let isHoverStart = false;
-                     let isHoverEnd = false;
-                     
-                     if (isSelecting && hoveredDate && range.startDate) {
-                       const startDate = range.startDate < hoveredDate ? range.startDate : hoveredDate;
-                       const endDate = range.startDate < hoveredDate ? hoveredDate : range.startDate;
-                       isInHoverRange = date >= startDate && date <= endDate;
-                       isHoverStart = format(date, 'yyyy-MM-dd') === format(startDate, 'yyyy-MM-dd');
-                       isHoverEnd = format(date, 'yyyy-MM-dd') === format(endDate, 'yyyy-MM-dd');
-                     }
-                     
-                     // Get status color classes - prioritize selection colors
-                     const getStatusColorClasses = () => {
-                       if (isExpired) {
-                         return 'bg-slate-100 text-slate-400';
-                       }
-                       
-                       // If date is in hover preview range (while selecting), use preview colors
-                       if (isInHoverRange) {
-                         if (isHoverStart || isHoverEnd) {
-                           return 'bg-blue-400 text-white border-2 border-blue-500 shadow-lg';
-                         } else {
-                           return 'bg-blue-50 text-blue-700 border border-blue-200';
-                         }
-                       }
-                       
-                       // If date is in final selection range, use selection colors
-                       if (isInRange) {
-                         if (isStartDate || isEndDate) {
-                           return 'bg-blue-500 text-white border-2 border-blue-600';
-                         } else {
-                           return 'bg-blue-100 text-blue-800 border border-blue-300';
-                         }
-                       }
-                       
-                       // Otherwise use status colors
-                       switch (status) {
-                         case 'available':
-                           return 'bg-emerald-500 text-white';
-                         case 'partially-available':
-                           return 'bg-blue-500 text-white';
-                         case 'unavailable':
-                           return 'bg-red-500 text-white';
-                         case 'booked':
-                           return 'bg-purple-500 text-white';
-                         case 'maintenance':
-                           return 'bg-orange-500 text-white';
-                         case 'on-hold':
-                           return 'bg-yellow-500 text-white';
-                         default:
-                           return 'bg-red-500 text-white';
-                       }
-                     };
-                     
+                  dayContentRenderer={(date: Date) => {
+                    const ds = format(date, 'yyyy-MM-dd');
+                    const meta = dayMeta[ds];
+                    // FIXED: Default to 'available' to match room page behavior (was 'unavailable')
+                    const status = meta?.status || 'available';
+                    const isExpired = date < new Date(new Date().setHours(0, 0, 0, 0));
+
+                    // Check if this date is in the current selection range
+                    const isInRange = date >= range.startDate && date <= range.endDate;
+                    const isStartDate = format(date, 'yyyy-MM-dd') === format(range.startDate, 'yyyy-MM-dd');
+                    const isEndDate = format(date, 'yyyy-MM-dd') === format(range.endDate, 'yyyy-MM-dd');
+
+                    // Check if this date is in the hover preview range (when selecting)
+                    let isInHoverRange = false;
+                    let isHoverStart = false;
+                    let isHoverEnd = false;
+
+                    if (isSelecting && hoveredDate && range.startDate) {
+                      const startDate = range.startDate < hoveredDate ? range.startDate : hoveredDate;
+                      const endDate = range.startDate < hoveredDate ? hoveredDate : range.startDate;
+                      isInHoverRange = date >= startDate && date <= endDate;
+                      isHoverStart = format(date, 'yyyy-MM-dd') === format(startDate, 'yyyy-MM-dd');
+                      isHoverEnd = format(date, 'yyyy-MM-dd') === format(endDate, 'yyyy-MM-dd');
+                    }
+
+                    // Get status color classes - prioritize selection colors
+                    const getStatusColorClasses = () => {
+                      if (isExpired) {
+                        return 'bg-slate-100 text-slate-400';
+                      }
+
+                      // If date is in hover preview range (while selecting), use preview colors
+                      if (isInHoverRange) {
+                        if (isHoverStart || isHoverEnd) {
+                          return 'bg-blue-400 text-white border-2 border-blue-500 shadow-lg';
+                        } else {
+                          return 'bg-blue-50 text-blue-700 border border-blue-200';
+                        }
+                      }
+
+                      // If date is in final selection range, use selection colors
+                      if (isInRange) {
+                        if (isStartDate || isEndDate) {
+                          return 'bg-blue-500 text-white border-2 border-blue-600';
+                        } else {
+                          return 'bg-blue-100 text-blue-800 border border-blue-300';
+                        }
+                      }
+
+                      // Otherwise use status colors
+                      switch (status) {
+                        case 'available':
+                          return 'bg-emerald-500 text-white';
+                        case 'partially-available':
+                          return 'bg-blue-500 text-white';
+                        case 'unavailable':
+                          return 'bg-red-500 text-white';
+                        case 'booked':
+                          return 'bg-purple-500 text-white';
+                        case 'maintenance':
+                          return 'bg-orange-500 text-white';
+                        case 'on-hold':
+                          return 'bg-yellow-500 text-white';
+                        default:
+                          return 'bg-red-500 text-white';
+                      }
+                    };
+
                     // Helper to format time
                     const formatTime12Hour = (timeStr: string) => {
                       if (!timeStr) return '';
@@ -1224,9 +1220,9 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                       const displayHours = hours % 12 || 12;
                       return `${displayHours}:${minutes?.toString().padStart(2, '0') || '00'} ${period}`;
                     };
-                    
+
                     return (
-                      <div 
+                      <div
                         className={`
                           w-full h-full flex items-center justify-center rounded-full relative
                           ${getStatusColorClasses()}
@@ -1250,7 +1246,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                         <span className="text-sm font-bold">
                           {date.getDate()}
                         </span>
-                        
+
                         {/* Tooltip for booked dates showing check-in/out dates and times */}
                         {tooltipDate === ds && status === 'booked' && !isExpired && (
                           <div className="absolute z-[9999] bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap">
@@ -1352,7 +1348,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                         )}
                       </div>
                     );
-                   }}
+                  }}
                 />
               </div>
             </div>
@@ -1368,7 +1364,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                 {selectionCount} date{selectionCount !== 1 ? 's' : ''} selected
               </div>
             </div>
-            
+
             {sortedSelections.length === 0 ? (
               <div className="text-center py-12">
                 <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
@@ -1381,7 +1377,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                   const d = format(s.date, 'yyyy-MM-dd');
                   const statusConfig = getStatusConfig(s.status);
                   const Icon = statusConfig.icon;
-                  
+
                   // Get proper color classes for each status
                   const getStatusColorClasses = (statusValue: string) => {
                     switch (statusValue) {
@@ -1401,7 +1397,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                         return 'bg-slate-500';
                     }
                   };
-                  
+
                   const getIconColorClasses = (statusValue: string) => {
                     switch (statusValue) {
                       case 'available':
@@ -1420,7 +1416,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                         return 'text-slate-500';
                     }
                   };
-                  
+
                   return (
                     <div key={d} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
                       <div className="flex items-center gap-3">
@@ -1438,8 +1434,8 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
                           )}
                         </div>
                       </div>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         onClick={() => removeSelection(d)}
                         className="p-2 text-slate-500 hover:text-red-500 hover:border-red-300 transition-all duration-200"
                       >
@@ -1452,7 +1448,7 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
             )}
           </Card>
         </div>
-{/* {isMobile && (
+        {/* {isMobile && (
   <div className="mt-4 mb-16 bg-white rounded-2xl p-3 shadow border">
     <h4 className="text-sm font-bold mb-2 text-slate-700">
       Availability Overview
@@ -1593,140 +1589,238 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
     </div>
   </div>
 )} */}
-{isMobile && (
-  <div className="mt-4 mb-12 bg-white rounded-2xl p-4 shadow border">
-    <h4 className="text-sm font-bold mb-3 text-slate-700">
-      Availability Overview
-    </h4>
-
-    <div className="calendar-wrapper-mobile">
-   
-
-      <DateRange
-        ranges={[]}              // read-only
-        onChange={() => {}}
-        showDateDisplay={false}
-        months={1}
-        direction="horizontal"
-        moveRangeOnFirstSelection={false}
-        editableDateInputs={false}
-        rangeColors={[]}
-        dayContentRenderer={(date: Date) => {
-          const ds = format(date, 'yyyy-MM-dd');
-          const meta = dayMeta[ds];
-          const status = meta?.status || 'available';
-
-          const getColor = () => {
-             switch (status) {
-
-              
-    case 'available':
-      return 'text-emerald-600 font-semibold';
-    case 'partially-available':
-      return 'text-blue-600 font-semibold';
-    case 'unavailable':
-      return 'text-red-600 line-through';
-    case 'booked':
-      return 'text-purple-600 font-semibold';
-    case 'maintenance':
-      return 'text-orange-600 font-semibold';
-    case 'on-hold':
-      return 'text-yellow-600 font-semibold';
-    default:
-      return 'text-slate-500';
-  }
-            // switch (status) {
-            //   case 'available':
-            //     return 'bg-emerald-500 text-white';
-            //   case 'unavailable':
-            //     return 'bg-red-500 text-white';
-            //   case 'booked':
-            //     return 'bg-purple-500 text-white';
-            //   case 'maintenance':
-            //     return 'bg-orange-500 text-white';
-            //   case 'on-hold':
-            //     return 'bg-yellow-500 text-white';
-            //   default:
-            //     return 'bg-slate-200 text-slate-600';
-            // }
-          };
-
-          return (
-            <div
-              className={`
-                w-full h-full flex items-center justify-center
-                rounded-full text-xs font-bold
-                ${getColor()}
-              `}
-            >
-              {date.getDate()}
+        {isMobile && (
+          <div className="mt-4 mb-12 bg-white rounded-2xl shadow border">
+            {/* Header */}
+            <div className="px-4 pt-4 pb-2 border-b">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-bold text-slate-700">
+                  Availability Overview
+                </h4>
+                {/* Selection mode toggle — compact pills */}
+                <div className="flex rounded-xl overflow-hidden border border-slate-200 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setSelectionType('single')}
+                    className={`px-3 py-1.5 font-semibold transition-all ${selectionType === 'single'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white text-slate-500'
+                      }`}
+                  >
+                    Single
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectionType('range')}
+                    className={`px-3 py-1.5 font-semibold transition-all ${selectionType === 'range'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white text-slate-500'
+                      }`}
+                  >
+                    Range
+                  </button>
+                </div>
+              </div>
+              {/* Status badge */}
+              <p className="text-xs text-slate-400 mt-1">
+                {selectionType === 'range'
+                  ? 'Tap start date, then end date to select a range'
+                  : 'Tap any date to select it'}
+              </p>
             </div>
-          );
-        }}
-      />
-    </div>
-  </div>
-)}
+
+            {/* Interactive Calendar */}
+            <div className="pb-2 overflow-hidden">
+              <style>{`
+        .mobile-avail-cal { width: 100%; overflow: hidden; }
+        .mobile-avail-cal .rdrCalendarWrapper { width: 100% !important; box-shadow: none !important; box-sizing: border-box; }
+        .mobile-avail-cal .rdrMonth { width: 100% !important; padding: 0 2px !important; box-sizing: border-box; }
+        .mobile-avail-cal .rdrMonthAndYearWrapper { padding: 6px 2px; box-sizing: border-box; }
+        .mobile-avail-cal .rdrWeekDays { display: grid !important; grid-template-columns: repeat(7,1fr) !important; width: 100% !important; box-sizing: border-box; }
+        .mobile-avail-cal .rdrWeekDay { width: 100% !important; text-align: center; font-size: 11px; font-weight: 600; color: #64748b; }
+        .mobile-avail-cal .rdrDays { display: grid !important; grid-template-columns: repeat(7,1fr) !important; gap: 1px; width: 100% !important; box-sizing: border-box; padding: 0 !important; }
+        .mobile-avail-cal .rdrDay { width: 100% !important; height: auto !important; aspect-ratio: 1 !important; min-height: 36px; padding: 0 !important; box-sizing: border-box; }
+        .mobile-avail-cal .rdrDayNumber { width: 100% !important; height: 100% !important; top: 0 !important; bottom: 0 !important; }
+        .mobile-avail-cal .rdrDayNumber span { width: 100% !important; height: 100% !important; display: flex !important; align-items: center !important; justify-content: center !important; }
+        .mobile-avail-cal .rdrDayStartPreview,.mobile-avail-cal .rdrDayEndPreview,.mobile-avail-cal .rdrDayInPreview,.mobile-avail-cal .rdrStartEdge,.mobile-avail-cal .rdrEndEdge,.mobile-avail-cal .rdrInRange { background: transparent !important; border: none !important; }
+        .mobile-avail-cal .rdrDayDisabled { background: transparent !important; }
+        .mobile-avail-cal .rdrMonthName { display: none !important; }
+        .mobile-avail-cal * { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; box-sizing: border-box; }
+      `}</style>
+              <div className="mobile-avail-cal w-full">
+                <DateRange
+                  ranges={[{ startDate: range.startDate, endDate: range.endDate, key: 'selection' }]}
+                  onChange={onDateRangeChange}
+                  minDate={new Date()}
+                  showDateDisplay={false}
+                  months={1}
+                  direction="horizontal"
+                  moveRangeOnFirstSelection={selectionType === 'range'}
+                  editableDateInputs={false}
+                  rangeColors={['transparent']}
+                  dayContentRenderer={(date: Date) => {
+                    const ds = format(date, 'yyyy-MM-dd');
+                    const meta = dayMeta[ds];
+                    const status = meta?.status || 'unavailable';
+                    const isExpired = date < new Date(new Date().setHours(0, 0, 0, 0));
+
+                    const isStartDate = format(date, 'yyyy-MM-dd') === format(range.startDate, 'yyyy-MM-dd');
+                    const isEndDate = format(date, 'yyyy-MM-dd') === format(range.endDate, 'yyyy-MM-dd');
+                    const isInRange = date >= range.startDate && date <= range.endDate;
+
+                    let isInHoverRange = false;
+                    let isHoverEndpoint = false;
+                    if (isSelecting && hoveredDate && range.startDate) {
+                      const s = range.startDate < hoveredDate ? range.startDate : hoveredDate;
+                      const e = range.startDate < hoveredDate ? hoveredDate : range.startDate;
+                      isInHoverRange = date >= s && date <= e;
+                      isHoverEndpoint =
+                        format(date, 'yyyy-MM-dd') === format(s, 'yyyy-MM-dd') ||
+                        format(date, 'yyyy-MM-dd') === format(e, 'yyyy-MM-dd');
+                    }
+
+                    const getCls = () => {
+                      if (isExpired) return 'bg-slate-100 text-slate-400';
+                      if (isInHoverRange) {
+                        return isHoverEndpoint
+                          ? 'bg-indigo-500 text-white scale-105 shadow'
+                          : 'bg-indigo-100 text-indigo-700';
+                      }
+                      if (isInRange) {
+                        return (isStartDate || isEndDate)
+                          ? 'bg-indigo-600 text-white scale-105 shadow'
+                          : 'bg-indigo-100 text-indigo-700';
+                      }
+                      switch (status) {
+                        case 'available': return 'bg-emerald-500 text-white';
+                        case 'partially-available': return 'bg-blue-400 text-white';
+                        case 'unavailable': return 'bg-red-400 text-white';
+                        case 'booked': return 'bg-purple-500 text-white';
+                        case 'maintenance': return 'bg-orange-400 text-white';
+                        case 'on-hold': return 'bg-yellow-400 text-white';
+                        default: return 'bg-red-400 text-white';
+                      }
+                    };
+
+                    return (
+                      <div
+                        className={`w-full h-full flex items-center justify-center rounded-full text-xs font-bold transition-all duration-100 cursor-pointer ${getCls()}`}
+                        onMouseEnter={() => isSelecting && range.startDate && setHoveredDate(date)}
+                        onMouseLeave={() => isSelecting && setHoveredDate(null)}
+                      >
+                        {date.getDate()}
+                      </div>
+                    );
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Legend */}
+            <div className="px-4 pb-3 flex flex-wrap gap-2">
+              {[
+                { label: 'Available', cls: 'bg-emerald-500' },
+                { label: 'Unavailable', cls: 'bg-red-400' },
+                { label: 'Booked', cls: 'bg-purple-500' },
+                { label: 'Maintenance', cls: 'bg-orange-400' },
+                { label: 'Selected', cls: 'bg-indigo-600' },
+              ].map(({ label, cls }) => (
+                <div key={label} className="flex items-center gap-1 text-xs text-slate-600">
+                  <div className={`w-2.5 h-2.5 rounded-full ${cls}`} />
+                  {label}
+                </div>
+              ))}
+            </div>
+
+            {/* Add to Selection button */}
+            <div className="px-4 pb-4 flex gap-2">
+              <Button
+                onClick={() => {
+                  if (selectionType === 'range') {
+                    addSelectionFromRange();
+                  } else {
+                    addSelectionSingle();
+                  }
+                }}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl py-2.5 text-sm"
+              >
+                <Plus className="w-4 h-4 inline mr-1" />
+                {selectionType === 'range'
+                  ? `Add Range to Selection`
+                  : `Add ${format(singleDate, 'MMM d')} to Selection`}
+              </Button>
+              {selections.length > 0 && (
+                <button
+                  onClick={clearAll}
+                  className="px-3 py-2.5 rounded-xl border border-slate-200 text-slate-500 text-sm font-medium hover:bg-slate-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
 
 
 
       </div>
 
-      
+
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40">
-  <div className="bg-white border-t shadow-xl px-4 py-3 flex items-center justify-between">
-    
-    {/* LEFT: Summary */}
-    <div>
-      <div className="text-sm font-bold">
-        {selectionCount} selected
-      </div>
-      <div className="text-xs text-slate-500">
-        Status: {selectedStatus}
-      </div>
-    </div>
+        <div className="bg-white border-t shadow-xl px-4 py-3 flex items-center justify-between">
 
-    {/* RIGHT: Dynamic action */}
-    <Button
-      onClick={saveAvailability}
-      disabled={selectionCount === 0}
-      className="h-10 px-6"
-    >
-      {selectedStatus === 'on-hold'
-        ? 'Hold'
-        : selectedStatus === 'unavailable'
-        ? 'Block'
-        : 'Save'}
-    </Button>
-  </div>
-</div>
+          {/* LEFT: Summary */}
+          <div>
+            <div className="text-sm font-bold">
+              {selectionCount} selected
+            </div>
+            <div className="text-xs text-slate-500">
+              Status: {selectedStatus}
+            </div>
+          </div>
 
-
-{isCalendarOpen && (
-  <div className="fixed inset-0 z-50 bg-black/40">
-    <div className="absolute bottom-0 w-full bg-white rounded-t-3xl max-h-[90vh] flex flex-col">
-
-      {/* ===== Header (Sticky) ===== */}
-      <div className="sticky top-0 bg-white z-10 border-b px-4 pt-3 pb-2 rounded-t-3xl">
-        {/* Drag Handle */}
-        <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto mb-3" />
-
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-800">
-            Select Dates
-          </h3>
-          <button
-            onClick={() => setIsCalendarOpen(false)}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          {/* RIGHT: Dynamic action */}
+          <Button
+            onClick={saveAvailability}
+            disabled={selectionCount === 0}
+            className="h-10 px-6"
           >
-            <X className="w-5 h-5" />
-          </button>
+            {selectedStatus === 'on-hold'
+              ? 'Hold'
+              : selectedStatus === 'unavailable'
+                ? 'Block'
+                : 'Save'}
+          </Button>
         </div>
       </div>
 
-      {/* ===== Scroll Area ===== */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 pb-4 [-webkit-overflow-scrolling:touch]">
-        <style jsx>{`
+
+      {isCalendarOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40">
+          <div className="absolute bottom-0 w-full bg-white rounded-t-3xl max-h-[90vh] flex flex-col">
+
+            {/* ===== Header (Sticky) ===== */}
+            <div className="sticky top-0 bg-white z-10 border-b px-4 pt-3 pb-2 rounded-t-3xl">
+              {/* Drag Handle */}
+              <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto mb-3" />
+
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-800">
+                  Select Dates
+                </h3>
+                <button
+                  onClick={() => setIsCalendarOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* ===== Scroll Area ===== */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 pb-4 [-webkit-overflow-scrolling:touch]">
+              <style jsx>{`
           .calendar-wrapper :global(.rdrCalendarWrapper) {
             width: 100% !important;
             max-width: 100% !important;
@@ -1878,164 +1972,164 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
             padding-top: 0.5rem;
           }
         `}</style>
-        
-        <div className="calendar-wrapper w-full">
-          <DateRange
-            ranges={[
-              { 
-                startDate: range.startDate, 
-                endDate: range.endDate, 
-                key: 'selection' 
-              }
-            ]}
-            onChange={(item) => {
-              const selection = item.selection;
-              if (selection && selection.startDate && selection.endDate) {
-                onDateRangeChange(item);
-              }
-            }}
-            minDate={new Date()}
-            showDateDisplay={false}
-            months={12} // Show 12 months so users can scroll to any month
-            direction="vertical"
-            moveRangeOnFirstSelection={false}
-            editableDateInputs={false}
-            rangeColors={['#3b82f6']}
-            scroll={{ enabled: true }}
-            dayContentRenderer={(date: Date) => {
-              const ds = format(date, 'yyyy-MM-dd');
-              const meta = dayMeta[ds];
-              const status = meta?.status || 'available';
-              const isExpired = date < new Date(new Date().setHours(0, 0, 0, 0));
-              
-              // Check if this date is in the current selection range
-              const isInRange = range.startDate && range.endDate && date >= range.startDate && date <= range.endDate;
-              const isStartDate = range.startDate && format(date, 'yyyy-MM-dd') === format(range.startDate, 'yyyy-MM-dd');
-              const isEndDate = range.endDate && format(date, 'yyyy-MM-dd') === format(range.endDate, 'yyyy-MM-dd');
-              
-              // Check if this date is in the hover preview range (when selecting)
-              let isInHoverRange = false;
-              let isHoverStart = false;
-              let isHoverEnd = false;
-              
-              if (isSelecting && hoveredDate && range.startDate) {
-                const startDate = range.startDate < hoveredDate ? range.startDate : hoveredDate;
-                const endDate = range.startDate < hoveredDate ? hoveredDate : range.startDate;
-                isInHoverRange = date >= startDate && date <= endDate;
-                isHoverStart = format(date, 'yyyy-MM-dd') === format(startDate, 'yyyy-MM-dd');
-                isHoverEnd = format(date, 'yyyy-MM-dd') === format(endDate, 'yyyy-MM-dd');
-              }
-              
-              // Get status color classes - NO TOOLTIPS, JUST COLORS
-              const getStatusColorClasses = () => {
-                if (isExpired) {
-                  return 'bg-slate-100 text-slate-400';
-                }
-                
-                // Hover preview colors (while selecting)
-                if (isInHoverRange) {
-                  if (isHoverStart || isHoverEnd) {
-                    return 'bg-blue-400 text-white border-2 border-blue-500 shadow-lg';
-                  } else {
-                    return 'bg-blue-50 text-blue-700 border border-blue-200';
-                  }
-                }
-                
-                // Final selection colors
-                if (isInRange) {
-                  if (isStartDate || isEndDate) {
-                    return 'bg-blue-500 text-white border-2 border-blue-600';
-                  } else {
-                    return 'bg-blue-100 text-blue-800 border border-blue-300';
-                  }
-                }
-                
-                // Status colors only
-                switch (status) {
-                  case 'available':
-                    return 'bg-emerald-500 text-white';
-                  case 'partially-available':
-                    return 'bg-blue-500 text-white';
-                  case 'unavailable':
-                    return 'bg-red-500 text-white';
-                  case 'booked':
-                    return 'bg-purple-500 text-white';
-                  case 'maintenance':
-                    return 'bg-orange-500 text-white';
-                  case 'on-hold':
-                    return 'bg-yellow-500 text-white';
-                  default:
-                    return 'bg-red-500 text-white';
-                }
-              };
-              
-              return (
-                <div 
-                  className={`
+
+              <div className="calendar-wrapper w-full">
+                <DateRange
+                  ranges={[
+                    {
+                      startDate: range.startDate,
+                      endDate: range.endDate,
+                      key: 'selection'
+                    }
+                  ]}
+                  onChange={(item) => {
+                    const selection = item.selection;
+                    if (selection && selection.startDate && selection.endDate) {
+                      onDateRangeChange(item);
+                    }
+                  }}
+                  minDate={new Date()}
+                  showDateDisplay={false}
+                  months={12} // Show 12 months so users can scroll to any month
+                  direction="vertical"
+                  moveRangeOnFirstSelection={false}
+                  editableDateInputs={false}
+                  rangeColors={['#3b82f6']}
+                  scroll={{ enabled: true }}
+                  dayContentRenderer={(date: Date) => {
+                    const ds = format(date, 'yyyy-MM-dd');
+                    const meta = dayMeta[ds];
+                    const status = meta?.status || 'available';
+                    const isExpired = date < new Date(new Date().setHours(0, 0, 0, 0));
+
+                    // Check if this date is in the current selection range
+                    const isInRange = range.startDate && range.endDate && date >= range.startDate && date <= range.endDate;
+                    const isStartDate = range.startDate && format(date, 'yyyy-MM-dd') === format(range.startDate, 'yyyy-MM-dd');
+                    const isEndDate = range.endDate && format(date, 'yyyy-MM-dd') === format(range.endDate, 'yyyy-MM-dd');
+
+                    // Check if this date is in the hover preview range (when selecting)
+                    let isInHoverRange = false;
+                    let isHoverStart = false;
+                    let isHoverEnd = false;
+
+                    if (isSelecting && hoveredDate && range.startDate) {
+                      const startDate = range.startDate < hoveredDate ? range.startDate : hoveredDate;
+                      const endDate = range.startDate < hoveredDate ? hoveredDate : range.startDate;
+                      isInHoverRange = date >= startDate && date <= endDate;
+                      isHoverStart = format(date, 'yyyy-MM-dd') === format(startDate, 'yyyy-MM-dd');
+                      isHoverEnd = format(date, 'yyyy-MM-dd') === format(endDate, 'yyyy-MM-dd');
+                    }
+
+                    // Get status color classes - NO TOOLTIPS, JUST COLORS
+                    const getStatusColorClasses = () => {
+                      if (isExpired) {
+                        return 'bg-slate-100 text-slate-400';
+                      }
+
+                      // Hover preview colors (while selecting)
+                      if (isInHoverRange) {
+                        if (isHoverStart || isHoverEnd) {
+                          return 'bg-blue-400 text-white border-2 border-blue-500 shadow-lg';
+                        } else {
+                          return 'bg-blue-50 text-blue-700 border border-blue-200';
+                        }
+                      }
+
+                      // Final selection colors
+                      if (isInRange) {
+                        if (isStartDate || isEndDate) {
+                          return 'bg-blue-500 text-white border-2 border-blue-600';
+                        } else {
+                          return 'bg-blue-100 text-blue-800 border border-blue-300';
+                        }
+                      }
+
+                      // Status colors only
+                      switch (status) {
+                        case 'available':
+                          return 'bg-emerald-500 text-white';
+                        case 'partially-available':
+                          return 'bg-blue-500 text-white';
+                        case 'unavailable':
+                          return 'bg-red-500 text-white';
+                        case 'booked':
+                          return 'bg-purple-500 text-white';
+                        case 'maintenance':
+                          return 'bg-orange-500 text-white';
+                        case 'on-hold':
+                          return 'bg-yellow-500 text-white';
+                        default:
+                          return 'bg-red-500 text-white';
+                      }
+                    };
+
+                    return (
+                      <div
+                        className={`
                     w-full h-full flex items-center justify-center rounded-full
                     touch-manipulation cursor-pointer
                     transition-all duration-150
                     ${getStatusColorClasses()}
                   `}
-                  onMouseEnter={() => {
-                    // Only handle hover for selection preview, no tooltips
-                    if (isSelecting && range.startDate) {
-                      setHoveredDate(date);
-                    }
+                        onMouseEnter={() => {
+                          // Only handle hover for selection preview, no tooltips
+                          if (isSelecting && range.startDate) {
+                            setHoveredDate(date);
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          if (isSelecting) {
+                            setHoveredDate(null);
+                          }
+                        }}
+                      >
+                        <span className="text-xs sm:text-sm font-bold select-none">
+                          {date.getDate()}
+                        </span>
+                      </div>
+                    );
                   }}
-                  onMouseLeave={() => {
-                    if (isSelecting) {
-                      setHoveredDate(null);
-                    }
-                  }}
-                >
-                  <span className="text-xs sm:text-sm font-bold select-none">
-                    {date.getDate()}
-                  </span>
+                />
+              </div>
+            </div>
+
+            {/* ===== Bottom Action Bar ===== */}
+            <div className="sticky bottom-0 bg-white border-t px-4 py-3 flex items-center justify-between shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+              <div className="flex-1">
+                <div className="text-sm font-bold text-slate-900">
+                  {selectionCount} selected
                 </div>
-              );
-            }}
-          />
-        </div>
-      </div>
+                <div className="text-xs text-slate-500">
+                  {format(range.startDate, 'MMM d')} → {format(range.endDate, 'MMM d')}
+                </div>
+              </div>
+              <Button
+                onClick={() => {
+                  if (selectionType === 'range') {
+                    addSelectionFromRange();
+                  } else {
+                    addSelectionSingle();
+                  }
+                  setIsCalendarOpen(false);
+                }}
+                disabled={!range.startDate || !range.endDate}
+                className="h-10 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm disabled:opacity-50"
+              >
+                {selectionType === 'range' ? 'Add Date Range' : 'Add Single Date'}
+              </Button>
 
-      {/* ===== Bottom Action Bar ===== */}
-      <div className="sticky bottom-0 bg-white border-t px-4 py-3 flex items-center justify-between shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-        <div className="flex-1">
-          <div className="text-sm font-bold text-slate-900">
-            {selectionCount} selected
-          </div>
-          <div className="text-xs text-slate-500">
-            {format(range.startDate, 'MMM d')} → {format(range.endDate, 'MMM d')}
-          </div>
-        </div>
-        <Button
-  onClick={() => {
-    if (selectionType === 'range') {
-      addSelectionFromRange();
-    } else {
-      addSelectionSingle();
-    }
-    setIsCalendarOpen(false);
-  }}
-  disabled={!range.startDate || !range.endDate}
-  className="h-10 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm disabled:opacity-50"
->
-  {selectionType === 'range' ? 'Add Date Range' : 'Add Single Date'}
-</Button>
-
-        {/* <Button
+              {/* <Button
           onClick={() => setIsCalendarOpen(false)}
           className="h-10 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm"
         >
           Done
         </Button> */}
-      </div>
-    </div>
-  </div>
-)}
+            </div>
+          </div>
+        </div>
+      )}
 
- {/* {isCalendarOpen && (
+      {/* {isCalendarOpen && (
   <div className="fixed inset-0 z-50 bg-black/40">
       <div className="absolute bottom-0 w-full bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto p-5">
         

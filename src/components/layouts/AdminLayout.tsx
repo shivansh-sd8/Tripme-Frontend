@@ -6,15 +6,15 @@ import { useAuth } from '@/core/store/auth-context';
 import { authService } from '@/core/services/auth.service';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/infrastructure/api/clients/api-client';
-import { 
-  LayoutDashboard, 
-  Users, 
-  UserCheck, 
-  Home, 
-  BookOpen, 
-  Shield, 
-  CreditCard, 
-  Star, 
+import {
+  LayoutDashboard,
+  Users,
+  UserCheck,
+  Home,
+  BookOpen,
+  Shield,
+  CreditCard,
+  Star,
   Settings,
   Menu,
   X,
@@ -23,7 +23,10 @@ import {
   Bell,
   Search,
   ChevronDown,
-  Tag
+  Tag,
+  MapPinHouse,
+  BookmarkCheckIcon,
+
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -54,10 +57,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   useEffect(() => {
     console.log('🔐 AdminLayout - User:', user);
     console.log('🔐 AdminLayout - User role:', user?.role);
-    
+
     // Check if user is admin or super-admin
     const isAdminUser = user && (user.role === 'admin' || user.role === 'super-admin');
-    
+
     if (!isAdminUser) {
       console.log('🔐 AdminLayout - User is not admin, redirecting to admin login');
       router.push('/admin/login');
@@ -86,6 +89,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { name: 'Users', href: '/admin/users', icon: Users, badge: null },
     { name: 'Hosts', href: '/admin/hosts', icon: UserCheck, badge: null },
     { name: 'Listings', href: '/admin/listings', icon: Home, badge: null },
+    { name: 'Featured', href: '/admin/featured', icon: BookmarkCheckIcon, badge: null },
+    { name: 'Popular Destination', href: '/admin/populardestination', icon: MapPinHouse, badge: null },
     { name: 'Bookings', href: '/admin/bookings', icon: BookOpen, badge: null },
     { name: 'KYC', href: '/admin/kyc', icon: Shield, badge: kycPendingCount > 0 ? kycPendingCount.toString() : null },
     { name: 'Payments', href: '/admin/payments', icon: CreditCard, badge: null },
@@ -93,6 +98,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { name: 'Analytics', href: '/admin/analytics', icon: BarChart3, badge: null },
     { name: 'Settings', href: '/admin/settings', icon: Settings, badge: null },
     { name: 'Coupons', href: '/admin/coupons', icon: Tag, badge: null },
+
   ];
 
   const handleLogout = async () => {
@@ -139,18 +145,16 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`group flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
-                    isActive
-                      ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-white border border-purple-500/30'
-                      : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
-                  }`}
+                  className={`group flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${isActive
+                    ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-white border border-purple-500/30'
+                    : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                    }`}
                   onClick={() => setSidebarOpen(false)}
                 >
                   <div className="flex items-center">
                     <item.icon
-                      className={`mr-3 h-5 w-5 ${
-                        isActive ? 'text-purple-400' : 'text-slate-400 group-hover:text-purple-400'
-                      }`}
+                      className={`mr-3 h-5 w-5 ${isActive ? 'text-purple-400' : 'text-slate-400 group-hover:text-purple-400'
+                        }`}
                     />
                     {item.name}
                   </div>
@@ -208,17 +212,15 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`group flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
-                    isActive
-                      ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-white border border-purple-500/30'
-                      : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
-                  }`}
+                  className={`group flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${isActive
+                    ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-white border border-purple-500/30'
+                    : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                    }`}
                 >
                   <div className="flex items-center">
                     <item.icon
-                      className={`mr-3 h-5 w-5 ${
-                        isActive ? 'text-purple-400' : 'text-slate-400 group-hover:text-purple-400'
-                      }`}
+                      className={`mr-3 h-5 w-5 ${isActive ? 'text-purple-400' : 'text-slate-400 group-hover:text-purple-400'
+                        }`}
                     />
                     {item.name}
                   </div>
@@ -267,7 +269,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           >
             <Menu size={24} />
           </button>
-          
+
           {/* Logo and Title */}
           <div className="flex items-center space-x-3 lg:hidden">
             <div className="h-10 w-28 bg-white rounded-lg flex items-center justify-center p-2 shadow-lg hover:shadow-2xl transform hover:scale-110 hover:-rotate-1 transition-all duration-500 ease-out animate-bounce hover:animate-none group">
@@ -277,7 +279,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               </div>
             </div>
           </div>
-          
+
           {/* Search bar */}
           <div className="flex flex-1 items-center gap-x-4">
             <div className="relative flex-1 max-w-lg">

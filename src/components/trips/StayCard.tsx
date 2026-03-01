@@ -13,8 +13,8 @@ interface StayCardProps {
   onMouseLeave?: () => void;
   checkIn?: string;
   checkOut?: string;
-  guest?: number;
-
+  guests?: number;
+  onCardClick?: (stay: Stay) => void;
 }
 
 const StayCard: React.FC<StayCardProps> = ({
@@ -26,7 +26,8 @@ const StayCard: React.FC<StayCardProps> = ({
   onMouseLeave,
   checkIn,
   checkOut,
-  guest
+  guests,
+  onCardClick
 }) => {
   const [currentImage, setCurrentImage] = React.useState(0);
   const [isHovered, setIsHovered] = React.useState(false);
@@ -72,12 +73,36 @@ const StayCard: React.FC<StayCardProps> = ({
 
 
   const handleCardClick = () => {
+  const stayId = stay.id || (stay as any)._id;
+  if (!stayId) {
+    onCardClick?.(stay);
+    return;
+  }
+
+  try {
+    const RECENT_PROPERTIES_KEY = 'tripme_recent_properties';
+    const MAX_RECENT_PROPERTIES = 8;
+    const stored = localStorage.getItem(RECENT_PROPERTIES_KEY);
+    const recent = stored ? JSON.parse(stored) : [];
+    const filtered = recent.filter((item: any) => (item.id || item._id) !== stayId);
+    const recentProperty = {
+      ...stay,
+      id: stayId,
+      viewedAt: new Date().toISOString()
+    };
+    const updated = [recentProperty, ...filtered].slice(0, MAX_RECENT_PROPERTIES);
+    localStorage.setItem(RECENT_PROPERTIES_KEY, JSON.stringify(updated));
+  } catch (error) {
+    console.error('Error saving recent property:', error);
+  }
+
+  onCardClick?.(stay);
   const params = new URLSearchParams();
   params.append('checkIn', checkIn || '');
   params.append('checkOut', checkOut || '');
-  params.append('guest', guest?.toString() || '');
+  params.append('guests', guests?.toString() || '');
 
-  window.open(`/rooms/${stay.id}?${params.toString()}`, '_blank');
+  window.open(`/rooms/${stayId}?${params.toString()}`, '_blank');
     // Open property page in new tab
     
   };

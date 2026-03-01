@@ -33,6 +33,7 @@ interface Booking {
   guests: number;
   totalAmount: number;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'refunded';
+  paymentStatus?: string;
   createdAt: string;
   refundAmount?: number;
   refundDate?: string;
@@ -332,7 +333,7 @@ ${booking.refundAmount ? `- Refunded: ₹${booking.refundAmount.toLocaleString()
           <Eye className="w-4 h-4" />
           <span>View</span>
         </button>
-        {booking.status === 'confirmed' && (
+        {(booking.status === 'confirmed' || booking.status === 'cancelled') && booking.paymentStatus !== 'refunded' && (
           <button
             onClick={() => handleRefund(booking._id || booking.id)}
             className="flex-1 bg-orange-50 text-orange-700 py-2.5 rounded-xl text-sm font-bold hover:bg-orange-100 transition-all border border-orange-100 flex items-center justify-center gap-2 active:scale-95"

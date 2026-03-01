@@ -47,6 +47,7 @@ import {
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import ReviewForm from '@/components/rooms/reviews/ReviewForm';
 
 interface BookingDetails {
   _id: string;
@@ -1236,8 +1237,51 @@ export default function BookingDetailsPage() {
               </div>
                   </div>
 
-                  
-                  </div>
+        </div>
+
+        {/* booking.status === 'completed' && new Date(booking.checkOut) < new Date() */}
+                  {true && (
+  <div className="bg-white rounded-xl shadow-sm mt-5 border-gray-200 p-6">
+    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+      <Star className="w-5 h-5 mr-2 text-yellow-500" />
+      Rate Your Stay
+    </h3>
+    <p className="text-gray-600 mb-6">
+      How was your stay at {booking.listing?.title}? Share your experience to help other guests.
+    </p>
+    
+    {/* Import and use your ReviewForm component */}
+    {/* <ReviewForm 
+      propertyId={booking.listing?._id}
+      bookingId={booking._id}
+      onSuccess={() => {
+        // Refresh booking details or show success message
+        fetchBookingDetails();
+      }}
+    /> */}
+
+    <ReviewForm 
+  bookingId={booking._id}
+  propertyTitle={booking.listing?.title || 'Property'}
+  onSubmit={async (reviewData) => {
+    try {
+      const response = await apiClient.createReview(booking._id, reviewData);
+      if (response.success) {
+        fetchBookingDetails(); // Refresh booking details
+      } else {
+        console.error('Review submission failed:', response.message);
+      }
+    } catch (error) {
+      console.error('Failed to submit review:', error);
+    }
+  }}
+  onCancel={() => {
+    // Handle cancel - you can add logic here if needed
+    console.log('Review form cancelled');
+  }}
+/>
+  </div>
+)}
 
       {/* Cancel Booking Modal */}
       {showCancelModal && (
