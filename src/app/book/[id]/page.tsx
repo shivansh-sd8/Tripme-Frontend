@@ -13,11 +13,11 @@ import Footer from "@/components/shared/Footer";
 import Button from "@/components/ui/Button";
 
 
-import { 
-  Calendar, 
-  MapPin, 
-  Users, 
-  Star, 
+import {
+  Calendar,
+  MapPin,
+  Users,
+  Star,
   Wifi,
   Tv,
   ChefHat,
@@ -126,7 +126,7 @@ const PaymentModal: React.FC<{
 
     try {
       console.log('🔄 Creating Razorpay order...', { bookingId, amount, propertyId });
-      
+
       if (!bookingId && !securePricingContext?.pricingToken) {
         throw new Error('Secure pricing token missing. Please refresh pricing and try again.');
       }
@@ -148,9 +148,9 @@ const PaymentModal: React.FC<{
           currency: securePricingContext.currency || 'INR'
         } : undefined
       );
-      
+
       console.log('📦 Order response:', orderResponse);
-      
+
       if (!orderResponse.success || !orderResponse.data) {
         const errorMsg = orderResponse.error || orderResponse.message || 'Failed to create payment order';
         console.error('❌ Order creation failed:', errorMsg);
@@ -169,7 +169,7 @@ const PaymentModal: React.FC<{
         order_id: orderId,
         handler: async function (response: any) {
           console.log('✅ Razorpay payment success:', response);
-          
+
           // Payment successful - call onSuccess with payment data
           onSuccess({
             razorpayOrderId: response.razorpay_order_id,
@@ -177,7 +177,7 @@ const PaymentModal: React.FC<{
             razorpaySignature: response.razorpay_signature,
             razorpayPaymentDetails: response
           });
-          
+
           setPaymentStep('success');
           setTimeout(() => {
             onClose();
@@ -192,7 +192,7 @@ const PaymentModal: React.FC<{
           color: '#1f2937'
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: function () {
             setPaymentStep('init');
             console.log('Payment modal closed');
           }
@@ -207,7 +207,7 @@ const PaymentModal: React.FC<{
       // Open Razorpay checkout
       console.log('🚀 Opening Razorpay checkout with options:', { ...options, key: '***' });
       const razorpay = new (window as any).Razorpay(options);
-      
+
       razorpay.on('payment.failed', function (response: any) {
         console.error('❌ Razorpay payment failed:', response);
         setError(response.error?.description || response.error?.reason || 'Payment failed. Please try again.');
@@ -217,7 +217,7 @@ const PaymentModal: React.FC<{
       razorpay.on('payment.authorized', function (response: any) {
         console.log('✅ Payment authorized:', response);
       });
-      
+
       // Open the Razorpay checkout popup
       razorpay.open();
       console.log('✅ Razorpay checkout opened');
@@ -364,42 +364,42 @@ export default function BookingPage() {
   const [blockingTimer, setBlockingTimer] = useState<NodeJS.Timeout | null>(null);
   const [blockingExpiry, setBlockingExpiry] = useState<Date | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false); // Flag to prevent conflicting redirects
- 
-   const { hideHeader, setHideBottomNav ,setHideHeader} = useUI();
+
+  const { hideHeader, setHideBottomNav, setHideHeader } = useUI();
   // Platform fee rate is now handled by backend API
 
-  
+
   // Helper function to parse date string to LOCAL midnight (not UTC)
   // new Date('YYYY-MM-DD') creates UTC midnight which shifts by 1 day in IST
   const parseDateToLocal = (dateInput: string | Date | undefined): Date => {
-     if (!dateInput) return new Date();
-  return new Date(dateInput); // preserve time
+    if (!dateInput) return new Date();
+    return new Date(dateInput); // preserve time
     // if (!dateInput) return new Date();
     // if (dateInput instanceof Date) return dateInput;
-    
+
     // // If it's an ISO string like '2025-12-29T18:30:00.000Z', parse it properly
     // if (dateInput.includes('T')) {
     //   const date = new Date(dateInput);
     //   // Return a new date at local midnight for the local date
     //   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
     // }
-    
+
     // // If it's a date-only string like '2025-12-29', parse to local midnight
     // const [year, month, day] = dateInput.split('-').map(Number);
     // return new Date(year, month - 1, day);
   };
 
-//  HIDE BOTTOM NAV SCROLLING 
-   useEffect(() => {
+  //  HIDE BOTTOM NAV SCROLLING 
+  useEffect(() => {
     setHideBottomNav(true);
     setHideHeader(true);
-  
+
     return () => {
       setHideBottomNav(false);
       setHideHeader(false);
     };
   }, []);
-  
+
   // Booking state - initialize from context or defaults
   const [bookingData, setBookingData] = useState(() => {
     if (contextBookingData && contextBookingData.propertyId === id) {
@@ -423,7 +423,7 @@ export default function BookingPage() {
         agreeToTerms: false
       };
     }
-    
+
     // Fallback to defaults if no context data
     return {
       checkIn: new Date(),
@@ -450,8 +450,8 @@ export default function BookingPage() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<{[key: string]: boolean}>({});
-  
+  const [validationErrors, setValidationErrors] = useState<{ [key: string]: boolean }>({});
+
   // Coupon state
   const [couponCode, setCouponCode] = useState('');
   const [couponData, setCouponData] = useState<any>(null);
@@ -519,15 +519,15 @@ export default function BookingPage() {
     nights: 0,
     subtotal: 0
   });
-  
-  
+
+
   // Redirect unauthenticated users to login
   useEffect(() => {
     // Don't redirect while still loading authentication
     if (isLoading) {
       return;
     }
-    
+
     // If not authenticated and not loading, redirect to login
     if (!isAuthenticated) {
       router.push(`/auth/login?redirect=/book/${id}`);
@@ -578,14 +578,14 @@ export default function BookingPage() {
         const payload = {
           dates: blockedDates
         };
-        
+
         const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'}/availability/${id}/release-dates`;
         navigator.sendBeacon(url, JSON.stringify(payload));
       }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-    
+
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
@@ -597,27 +597,27 @@ export default function BookingPage() {
   // Initial load: Fetch availability and set check-in to next available date if today is booked
   useEffect(() => {
     if (!id || isLoading || dateInitializedRef.current) return;
-    
+
     console.log('🚀 Initializing available date check...');
-    
+
     const initializeAvailableDate = async () => {
       try {
         const response = await apiClient.getAvailability(id as string);
         console.log('📊 Initial availability response:', response);
-        
+
         if (response.success && response.data) {
           const availabilityData = response.data.availability || [];
           setAvailability(availabilityData);
-          
+
           console.log('📅 Availability data loaded:', availabilityData.length, 'dates');
-          
+
           // Check if current check-in date (today) is available
           setBookingData(prev => {
             const currentCheckIn = prev.checkIn || new Date();
             const currentCheckInStr = currentCheckIn.toLocaleDateString('en-CA');
-            
+
             console.log('🔍 Checking if initial check-in date is available:', currentCheckInStr);
-            
+
             // Find the availability record for current check-in date
             const currentDateAvailability = availabilityData.find((a: any) => {
               let availabilityDateStr: string;
@@ -632,27 +632,27 @@ export default function BookingPage() {
               }
               return availabilityDateStr === currentCheckInStr;
             });
-            
+
             console.log('📋 Current date availability record:', currentDateAvailability);
-            
+
             if (currentDateAvailability) {
               console.log('📊 Current date status:', currentDateAvailability.status);
-              
+
               // If date is booked, maintenance, or unavailable, find next available
-              if (currentDateAvailability.status === 'booked' || 
-                  currentDateAvailability.status === 'maintenance' || 
-                  currentDateAvailability.status === 'unavailable') {
+              if (currentDateAvailability.status === 'booked' ||
+                currentDateAvailability.status === 'maintenance' ||
+                currentDateAvailability.status === 'unavailable') {
                 console.log('⚠️ Initial check-in date is not available (status:', currentDateAvailability.status, '), finding next available date...');
                 const nextAvailableDate = findNextAvailableDate(availabilityData, currentCheckIn);
-                
+
                 if (nextAvailableDate) {
                   const newCheckOutDate = new Date(nextAvailableDate);
                   newCheckOutDate.setDate(nextAvailableDate.getDate() + 1);
-                  
+
                   console.log(`✅ Initializing check-in date to ${nextAvailableDate.toLocaleDateString('en-CA')}`);
-                  
+
                   dateInitializedRef.current = true;
-                  
+
                   return {
                     ...prev,
                     checkIn: nextAvailableDate,
@@ -668,15 +668,15 @@ export default function BookingPage() {
               // Date not found in availability - might not be available
               console.log('⚠️ Initial check-in date not found in availability data, finding next available date...');
               const nextAvailableDate = findNextAvailableDate(availabilityData, currentCheckIn);
-              
+
               if (nextAvailableDate) {
                 const newCheckOutDate = new Date(nextAvailableDate);
                 newCheckOutDate.setDate(nextAvailableDate.getDate() + 1);
-                
+
                 console.log(`✅ Initializing check-in date to ${nextAvailableDate.toLocaleDateString('en-CA')}`);
-                
+
                 dateInitializedRef.current = true;
-                
+
                 return {
                   ...prev,
                   checkIn: nextAvailableDate,
@@ -684,7 +684,7 @@ export default function BookingPage() {
                 };
               }
             }
-            
+
             dateInitializedRef.current = true;
             return prev; // No change needed
           });
@@ -694,7 +694,7 @@ export default function BookingPage() {
         dateInitializedRef.current = true; // Mark as initialized even on error to prevent retries
       }
     };
-    
+
     initializeAvailableDate();
   }, [id, isLoading]); // Only run once when component mounts and id is available
 
@@ -705,7 +705,7 @@ export default function BookingPage() {
       console.log('⏳ Waiting for date initialization to complete...');
       return;
     }
-    
+
     console.log('🔍 Availability check useEffect triggered');
     console.log('🔍 Current state:', {
       id,
@@ -716,31 +716,31 @@ export default function BookingPage() {
       isLoading,
       userObject: user
     });
-    
+
     if (!id || !bookingData.checkIn || !bookingData.checkOut) {
       console.log('❌ Missing required data for availability check:', { id, checkIn: bookingData.checkIn, checkOut: bookingData.checkOut });
       return;
     }
-    
+
     // Don't proceed if still loading authentication
     if (isLoading) {
       console.log('⏳ Still loading authentication, waiting...');
       return;
     }
-    
+
     // Check if user is authenticated AND user object exists
     if (!isAuthenticated || !user || !getUserId(user)) {
       setBookingError('Please log in to continue with your booking.');
       return;
     }
-    
+
     // Clear any auth errors since user is authenticated
     if (bookingError === 'Please log in to continue with your booking.') {
       setBookingError('');
     }
 
-   
-    
+
+
     // Just check availability, don't block dates yet
     checkAvailability();
   }, [id, bookingData.checkIn, bookingData.checkOut, bookingData.hourlyExtension, isAuthenticated, user?._id, isLoading]);
@@ -748,14 +748,14 @@ export default function BookingPage() {
   // Update timer display every minute
   useEffect(() => {
     if (!blockingExpiry) return;
-    
+
     const timerInterval = setInterval(() => {
       // Don't revert if booking is in progress (payment succeeded, booking being created)
       if (bookingLoading) {
         console.log('⏸️ Skipping expiry check - booking in progress');
         return;
       }
-      
+
       const timeLeft = blockingExpiry.getTime() - Date.now();
       if (timeLeft <= 0) {
         // Timer expired, revert dates
@@ -763,43 +763,43 @@ export default function BookingPage() {
         revertBlockedDates();
       }
     }, 10000); // Check every 10 seconds for more responsive expiry
-    
+
     return () => clearInterval(timerInterval);
   }, [blockingExpiry, bookingLoading]);
 
   // Real-time timer update for better UX
   const [currentTime, setCurrentTime] = useState(Date.now());
-  
+
   useEffect(() => {
     if (!blockingExpiry) return;
-    
+
     const timeInterval = setInterval(() => {
       setCurrentTime(Date.now());
     }, 1000); // Update every second
-    
+
     return () => clearInterval(timeInterval);
   }, [blockingExpiry]);
 
-  
+
 
   // Revert blocked dates back to available
   const revertBlockedDates = async () => {
     if (!id || blockedDates.length === 0) return;
-    
+
     // Don't revert if booking is in progress (payment succeeded, booking being created)
     if (bookingLoading) {
       console.log('⏸️ Skipping date revert - booking in progress');
       return;
     }
-    
+
     console.log('Starting to revert blocked dates...');
     console.log('Dates to revert:', blockedDates);
-    
+
     try {
       // Release all dates at once using the new endpoint
       const response = await apiClient.releaseDates(id as string, blockedDates);
       console.log('Successfully released all dates:', response);
-      
+
       console.log('All dates reverted successfully');
       setBlockedDates([]);
       setBlockingExpiry(null);
@@ -807,7 +807,7 @@ export default function BookingPage() {
         clearTimeout(blockingTimer);
         setBlockingTimer(null);
       }
-      
+
       // Only show error if booking is not in progress
       if (!bookingLoading) {
         setBookingError('Your date reservation has expired. Please select new dates.');
@@ -820,9 +820,9 @@ export default function BookingPage() {
   // Synchronous function to release dates when component unmounts
   const releaseDatesOnUnmount = (datesToRelease: string[]) => {
     if (!id || datesToRelease.length === 0 || !user?._id) return;
-    
+
     console.log('🔄 Releasing dates on unmount:', datesToRelease);
-    
+
     // Use a synchronous approach to avoid async issues in cleanup
     // We'll use the browser's beforeunload event as a backup
     try {
@@ -831,13 +831,13 @@ export default function BookingPage() {
       xhr.open('PUT', `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'}/availability/${id}/release-dates`, false); // false = synchronous
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('token')}`);
-      
+
       const payload = {
         dates: datesToRelease
       };
-      
+
       xhr.send(JSON.stringify(payload));
-      
+
       if (xhr.status === 200) {
         console.log('✅ Dates released successfully on unmount');
       } else {
@@ -849,42 +849,42 @@ export default function BookingPage() {
   };
 
   const normalizeDate = (d: Date) =>
-  d.toISOString().split('T')[0];
+    d.toISOString().split('T')[0];
 
   // Refresh availability data from backend
   // Pass currentBlockedDates parameter to avoid relying on stale blockedDates state
   // const refreshAvailabilityData = async (currentBlockedDates?: string[]) => {
   //   if (!id) return;
-    
+
   //   // Use passed dates or fall back to state (which may be stale due to async updates)
   //   const effectiveBlockedDates = currentBlockedDates || blockedDates;
-    
+
   //   try {
   //     console.log('Calling getAvailability for property:', id);
   //     const response = await apiClient.getAvailability(id as string);
   //     console.log('getAvailability response:', response);
-      
+
   //     if (response.success && response.data) {
   //       const availabilityData = response.data.availability || [];
   //       setAvailability(availabilityData);
   //       console.log('Availability data refreshed:', availabilityData);
   //       console.log('Current blocked dates (effective):', effectiveBlockedDates);
-        
+
   //       // Check if current check-in date is available, if not find next available
   //       // Use a local check that considers the effective blocked dates
   //       const checkInDateStr = bookingData.checkIn?.toLocaleDateString('en-CA');
   //       const isCheckInBlocked = effectiveBlockedDates.includes(checkInDateStr || '');
-        
+
   //       if (bookingData.checkIn && !isCheckInBlocked && !isDateAvailable(bookingData.checkIn, availabilityData)) {
   //         console.log('⚠️ Current check-in date is not available after refresh, finding next available date...');
   //         const nextAvailableDate = findNextAvailableDate(availabilityData, bookingData.checkIn);
-          
+
   //         if (nextAvailableDate) {
   //           const newCheckOutDate = new Date(nextAvailableDate);
   //           newCheckOutDate.setDate(nextAvailableDate.getDate() + 1);
-            
+
   //           console.log(`🔄 Auto-updating check-in date to ${nextAvailableDate.toLocaleDateString('en-CA')}`);
-            
+
   //           setBookingData(prev => ({
   //             ...prev,
   //             checkIn: nextAvailableDate,
@@ -901,51 +901,51 @@ export default function BookingPage() {
   // };
 
   const refreshAvailabilityData = async (currentBlockedDates?: string[]) => {
-  if (!id) return;
+    if (!id) return;
 
-  const effectiveBlockedDates = currentBlockedDates || blockedDates;
+    const effectiveBlockedDates = currentBlockedDates || blockedDates;
 
-  try {
-    console.log('Calling getAvailability for property:', id);
-    const response = await apiClient.getAvailability(id as string);
-    console.log('getAvailability response:', response);
+    try {
+      console.log('Calling getAvailability for property:', id);
+      const response = await apiClient.getAvailability(id as string);
+      console.log('getAvailability response:', response);
 
-    if (!response.success || !response.data) return;
+      if (!response.success || !response.data) return;
 
-    const availabilityData = response.data.availability || [];
-    setAvailability(availabilityData);
+      const availabilityData = response.data.availability || [];
+      setAvailability(availabilityData);
 
-    console.log('Availability data refreshed:', availabilityData);
-    console.log('Current blocked dates (effective):', effectiveBlockedDates);
+      console.log('Availability data refreshed:', availabilityData);
+      console.log('Current blocked dates (effective):', effectiveBlockedDates);
 
-    if (!bookingData.checkIn) return;
+      if (!bookingData.checkIn) return;
 
-    const checkInDateKey = normalizeDate(bookingData.checkIn);
-    const isCheckInBlocked = effectiveBlockedDates.includes(checkInDateKey);
+      const checkInDateKey = normalizeDate(bookingData.checkIn);
+      const isCheckInBlocked = effectiveBlockedDates.includes(checkInDateKey);
 
-    // 🔒 DO NOT auto-shift if user already blocked this date
-    if (isCheckInBlocked) {
-      console.log('✅ Check-in date is blocked by current user, keeping selected dates');
-      return;
+      // 🔒 DO NOT auto-shift if user already blocked this date
+      if (isCheckInBlocked) {
+        console.log('✅ Check-in date is blocked by current user, keeping selected dates');
+        return;
+      }
+
+      // ✅ Date-only availability check (NO time comparison)
+      const isAvailable = availabilityData.some((a: any) => {
+        const availabilityDateKey = normalizeDate(new Date(a.date));
+        return (
+          availabilityDateKey === checkInDateKey &&
+          (a.status === 'available' || a.status === "partially-available")
+        );
+      });
+
+      if (!isAvailable) {
+        console.log('⚠️ Check-in date not available after refresh; keeping user selection and showing error instead of auto-shifting.');
+        setBookingError('Selected check-in date is no longer available. Please pick new dates.');
+      }
+    } catch (error) {
+      console.error('Failed to refresh availability:', error);
     }
-
-    // ✅ Date-only availability check (NO time comparison)
-    const isAvailable = availabilityData.some((a: any) => {
-      const availabilityDateKey = normalizeDate(new Date(a.date));
-      return (
-        availabilityDateKey === checkInDateKey &&
-        (a.status === 'available' || a.status === "partially-available")
-      );
-    });
-
-    if (!isAvailable) {
-      console.log('⚠️ Check-in date not available after refresh; keeping user selection and showing error instead of auto-shifting.');
-      setBookingError('Selected check-in date is no longer available. Please pick new dates.');
-    }
-  } catch (error) {
-    console.error('Failed to refresh availability:', error);
-  }
-};
+  };
 
 
   // Helper function to get user ID consistently
@@ -956,17 +956,17 @@ export default function BookingPage() {
   // Helper function to find the next available date from availability data
   const findNextAvailableDate = (availabilityData: any[], startFromDate?: Date): Date | null => {
     if (!availabilityData || availabilityData.length === 0) return null;
-    
+
     const startDate = startFromDate || new Date();
     const today = new Date(startDate);
     today.setHours(0, 0, 0, 0); // Reset time to start of day
-    
+
     // Look ahead up to 90 days for an available date
     for (let i = 0; i < 90; i++) {
       const checkDate = new Date(today);
       checkDate.setDate(today.getDate() + i);
       const dateStr = checkDate.toLocaleDateString('en-CA');
-      
+
       // Find availability record for this date
       const dateAvailability = availabilityData.find((a: any) => {
         let availabilityDateStr: string;
@@ -981,34 +981,34 @@ export default function BookingPage() {
         }
         return availabilityDateStr === dateStr;
       });
-      
+
       // Skip booked, maintenance, and unavailable dates
       if (dateAvailability && (
-        dateAvailability.status === 'booked' || 
-        dateAvailability.status === 'maintenance' || 
+        dateAvailability.status === 'booked' ||
+        dateAvailability.status === 'maintenance' ||
         dateAvailability.status === 'unavailable'
       )) {
         continue; // Skip this date, check next
       }
-      
+
       // Check if date is available
       if (dateAvailability && dateAvailability.status === 'available') {
         console.log(`✅ Found next available date: ${dateStr}`);
         return checkDate;
       }
-      
+
       // Also allow dates that are blocked by current user
       if (dateAvailability && dateAvailability.status === 'blocked' && blockedDates.includes(dateStr)) {
         console.log(`✅ Found next available date (blocked by current user): ${dateStr}`);
         return checkDate;
       }
-      
+
       // If date doesn't exist in availability data, skip it (not available)
       if (!dateAvailability) {
         continue; // Skip dates not in availability model
       }
     }
-    
+
     console.log('⚠️ No available date found in next 90 days');
     return null;
   };
@@ -1016,9 +1016,9 @@ export default function BookingPage() {
   // Helper function to check if a date is available
   const isDateAvailable = (date: Date, availabilityData: any[]): boolean => {
     if (!availabilityData || availabilityData.length === 0) return false;
-    
+
     const dateStr = date.toLocaleDateString('en-CA');
-    
+
     const dateAvailability = availabilityData.find((a: any) => {
       let availabilityDateStr: string;
       if (typeof a.date === 'string') {
@@ -1032,19 +1032,19 @@ export default function BookingPage() {
       }
       return availabilityDateStr === dateStr;
     });
-    
+
     if (!dateAvailability) return false;
-    
+
     // Explicitly exclude booked, maintenance, and unavailable dates
-    if (dateAvailability.status === 'booked' || 
-        dateAvailability.status === 'maintenance' || 
-        dateAvailability.status === 'unavailable') {
+    if (dateAvailability.status === 'booked' ||
+      dateAvailability.status === 'maintenance' ||
+      dateAvailability.status === 'unavailable') {
       return false;
     }
-    
+
     // Date is available if status is 'available' or blocked by current user
-    return dateAvailability.status === 'available' || 
-           (dateAvailability.status === 'blocked' && blockedDates.includes(dateStr));
+    return dateAvailability.status === 'available' ||
+      (dateAvailability.status === 'blocked' && blockedDates.includes(dateStr));
   };
 
   // Manual trigger for date blocking (for debugging)
@@ -1059,12 +1059,12 @@ export default function BookingPage() {
       isLoading,
       userObject: user
     });
-    
+
     if (!id || !bookingData.checkIn || !bookingData.checkOut) {
       console.log('❌ Cannot manually trigger - missing required data');
       return;
     }
-    
+
     if (!isAuthenticated || !user || !getUserId(user)) {
       console.log('❌ Cannot manually trigger - user not authenticated or user object missing');
       console.log('❌ isAuthenticated:', isAuthenticated);
@@ -1072,7 +1072,7 @@ export default function BookingPage() {
       console.log('❌ user ID:', getUserId(user));
       return;
     }
-    
+
     console.log('✅ Manual trigger conditions met, proceeding with date blocking...');
     // Force the useEffect to run by updating a dependency
     setAvailabilityLoading(prev => !prev);
@@ -1081,7 +1081,7 @@ export default function BookingPage() {
   // Check availability for selected dates
   const checkAvailability = async () => {
     if (!id || !bookingData.checkIn || !bookingData.checkOut) return false;
-    
+
     setAvailabilityLoading(true);
     try {
       const response = await apiClient.checkTimeSlotAvailability(id as string,
@@ -1103,30 +1103,30 @@ export default function BookingPage() {
         const availabilityData = response.data.availability || [];
         console.log('Availability response received:', response);
         setAvailability(availabilityData);
-        
+
         console.log('Availability data received:', availabilityData);
         const checkInDate = bookingData.checkIn instanceof Date ? bookingData.checkIn : new Date(bookingData.checkIn);
         const checkOutDate = bookingData.checkOut instanceof Date ? bookingData.checkOut : new Date(bookingData.checkOut);
         console.log('Checking availability for dates:', checkInDate.toLocaleDateString('en-CA'), 'to', checkOutDate.toLocaleDateString('en-CA'));
-        
+
         // Check if current check-in date is available
         if (!isDateAvailable(checkInDate, availabilityData)) {
           console.log('⚠️ Current check-in date is not available, finding next available date...');
           const nextAvailableDate = findNextAvailableDate(availabilityData, checkInDate);
-          
+
           if (nextAvailableDate) {
             // Calculate check-out date (1 day after check-in by default)
             const newCheckOutDate = new Date(nextAvailableDate);
             newCheckOutDate.setDate(nextAvailableDate.getDate() + 1);
-            
+
             console.log(`🔄 Auto-updating check-in date from ${checkInDate.toLocaleDateString('en-CA')} to ${nextAvailableDate.toLocaleDateString('en-CA')}`);
-            
+
             setBookingData(prev => ({
               ...prev,
               checkIn: nextAvailableDate,
               checkOut: newCheckOutDate
             }));
-            
+
             // Return early - we'll check again with the new dates
             setAvailabilityLoading(false);
             return false; // Will trigger another check with new dates
@@ -1136,15 +1136,15 @@ export default function BookingPage() {
             return false;
           }
         }
-        
+
         // Check if all selected dates are available
         const startDate = new Date(bookingData.checkIn);
         const endDate = new Date(bookingData.checkOut);
         const currentDate = new Date(startDate);
-        
+
         while (currentDate < endDate) {
           const dateStr = currentDate.toLocaleDateString('en-CA');
-          
+
           // Find availability record for this date
           const dateAvailability = response.data.availability.find((a: any) => {
             // Handle both string dates and Date objects
@@ -1159,15 +1159,15 @@ export default function BookingPage() {
               const parsedDate = new Date(a.date);
               availabilityDateStr = parsedDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
             }
-            
+
             return availabilityDateStr === dateStr;
           });
-          
+
           // Check availability status
           if (dateAvailability) {
             // Date exists in Availability model - check its status
             console.log(`Date ${dateStr} found in availability model, status: ${dateAvailability.status}`);
-            
+
             if (dateAvailability.status === 'booked') {
               console.log(`Date ${dateStr} is booked and not available`);
               setBookingError(`Date ${dateStr} is already booked`);
@@ -1200,7 +1200,7 @@ export default function BookingPage() {
           }
           currentDate.setDate(currentDate.getDate() + 1);
         }
-        
+
         console.log('All dates are available for booking!');
         setBookingError('');
         setAvailabilityLoading(false);
@@ -1212,7 +1212,7 @@ export default function BookingPage() {
       setAvailabilityLoading(false);
       return false;
     }
-    
+
     setAvailabilityLoading(false);
     return false;
   };
@@ -1275,10 +1275,10 @@ export default function BookingPage() {
       console.log('⏳ Waiting for required data to load...');
       return;
     }
-    
+
     try {
       console.log('🔒 Calculating secure pricing via backend API...');
-      
+
       // Use secure pricing API - all calculations happen on backend
       const pricingRequest = {
         propertyId: property._id,
@@ -1298,14 +1298,14 @@ export default function BookingPage() {
         console.error('❌ Invalid pricing request:', validation.errors);
         return;
       }
-      
+
       const response = await securePricingAPI.calculatePricing(pricingRequest);
-      
+
       if (!response.success) {
         console.error('❌ Secure pricing calculation failed:', response);
         return;
       }
-      
+
       const pricing = response.data.pricing;
       const couponFromPricing = response.data.coupon;
       console.log('✅ Secure pricing calculated successfully:', {
@@ -1313,7 +1313,7 @@ export default function BookingPage() {
         totalAmount: pricing.totalAmount,
         token: response.data.security.pricingToken.substring(0, 8) + '...'
       });
-      
+
       const newPriceBreakdown = {
         basePrice: bookingData.is24Hour
           ? property.pricing?.basePrice24Hour || property.pricing?.basePrice || 0
@@ -1338,7 +1338,7 @@ export default function BookingPage() {
         // Security token for validation - ensures backend uses this exact price for the current dates
         pricingToken: response.data.security.pricingToken
       };
-      
+
       console.log('💰 New price breakdown with token:', {
         total: newPriceBreakdown.total,
         token: newPriceBreakdown.pricingToken?.substring(0, 8) + '...',
@@ -1347,7 +1347,7 @@ export default function BookingPage() {
           checkOut: bookingData.checkOut instanceof Date ? bookingData.checkOut.toLocaleDateString('en-CA') : bookingData.checkOut
         }
       });
-      
+
       console.log('✅ Secure price breakdown calculated:', newPriceBreakdown);
       setPriceBreakdown(newPriceBreakdown);
     } catch (error) {
@@ -1380,7 +1380,7 @@ export default function BookingPage() {
 
   // Validate form and scroll to first error
   const validateForm = () => {
-    const errors: {[key: string]: boolean} = {};
+    const errors: { [key: string]: boolean } = {};
     let firstErrorElement: HTMLElement | null = null;
 
     // Check contact information
@@ -1407,9 +1407,9 @@ export default function BookingPage() {
 
     // Scroll to first error
     if (firstErrorElement) {
-      firstErrorElement.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
+      firstErrorElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
       });
       firstErrorElement.focus();
     }
@@ -1421,7 +1421,7 @@ export default function BookingPage() {
   const blockDatesForPayment = async () => {
     try {
       setAvailabilityLoading(true);
-      
+
       // Block all dates in the selected range
       const startDate = new Date(bookingData.checkIn);
       const endDate = new Date(bookingData.checkOut);
@@ -1435,9 +1435,9 @@ export default function BookingPage() {
         datesToBlock.push(dateStr);
         currentDate.setDate(currentDate.getDate() + 1);
       }
-      
+
       console.log('🔒 Blocking dates for payment:', datesToBlock);
-      
+
       try {
         // Block all dates at once using the new endpoint
         const response = await apiClient.blockDatesForBooking(id as string, datesToBlock);
@@ -1446,27 +1446,27 @@ export default function BookingPage() {
         console.error('❌ Error blocking dates:', error);
         throw error;
       }
-      
+
       setBlockedDates(datesToBlock);
-      
+
       // Refresh availability data to show blocked status
       // Pass datesToBlock directly to avoid relying on stale state
       await refreshAvailabilityData(datesToBlock);
-      
+
       // Start 15-minute timer
       const expiryTime = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
       setBlockingExpiry(expiryTime);
-      
+
       const timer = setTimeout(() => {
         // Timer expired, revert dates to available
         console.log('⏰ Payment timer expired, reverting blocked dates');
         revertBlockedDates();
       }, 15 * 60 * 1000);
-      
+
       setBlockingTimer(timer);
-      
+
       console.log('✅ Dates blocked successfully for payment');
-      
+
     } catch (error) {
       console.error('❌ Error blocking dates for payment:', error);
       setBookingError('Failed to reserve dates. Please try again.');
@@ -1492,7 +1492,7 @@ export default function BookingPage() {
     console.log('🚀 validationErrors:', validationErrors);
     console.log('🚀 bookingError:', bookingError);
     console.log('🚀 ===========================================');
-    
+
     if (!isAuthenticated) {
       console.log('❌ Not authenticated, redirecting to login');
       router.push('/auth/login');
@@ -1507,7 +1507,7 @@ export default function BookingPage() {
     console.log('🔍 Starting form validation...');
     const validationResult = validateForm();
     console.log('🔍 Form validation result:', validationResult);
-    
+
     if (!validationResult) {
       console.log('❌ Form validation failed');
       console.log('❌ Current validation errors:', validationErrors);
@@ -1528,7 +1528,7 @@ export default function BookingPage() {
     const isAvailable = await checkAvailability();
     setAvailabilityLoading(false);
     console.log('📅 Availability check result:', isAvailable);
-    
+
     if (!isAvailable) {
       console.log('❌ Dates not available, cannot proceed with booking');
       // Error message is already set by checkAvailability() function
@@ -1539,7 +1539,7 @@ export default function BookingPage() {
     }
 
     console.log('✅ All checks passed, blocking dates and showing payment modal');
-    
+
     try {
       // Block dates now that user is initiating payment
       await blockDatesForPayment();
@@ -1576,11 +1576,11 @@ export default function BookingPage() {
       }
       // Clear expiry immediately to prevent "reservation expired" error
       setBlockingExpiry(null);
-      
+
       // Ensure dates are Date objects before converting to ISO string
       const checkInDate = bookingData.checkIn instanceof Date ? bookingData.checkIn : parseDateToLocal(bookingData.checkIn);
       const checkOutDate = bookingData.checkOut instanceof Date ? bookingData.checkOut : parseDateToLocal(bookingData.checkOut);
-      
+
       // Format date for backend - send LOCAL date as UTC midnight so backend interprets correctly
       // This ensures Dec 29 local is sent as '2025-12-29T00:00:00.000Z'
       const formatDateForBackend = (date: Date): string => {
@@ -1589,10 +1589,10 @@ export default function BookingPage() {
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}T00:00:00.000Z`;
       };
-      
+
       const checkInISO = formatDateForBackend(checkInDate);
       const checkOutISO = formatDateForBackend(checkOutDate);
-      
+
       console.log('📅 Date validation:', {
         checkIn: checkInDate,
         checkOut: checkOutDate,
@@ -1630,7 +1630,7 @@ export default function BookingPage() {
         ...(bookingData.extensionHours !== undefined && bookingData.extensionHours !== null && { extensionHours: bookingData.extensionHours }),
         ...(bookingData.is24Hour && { bookingDuration: '24hour' }),
         ...(bookingData.couponCode && bookingData.couponCode.trim() && { couponCode: bookingData.couponCode.trim() }),
-        ...(bookingData.hourlyExtension && bookingData.hourlyExtension > 0 && property?.hourlyBooking?.enabled && { 
+        ...(bookingData.hourlyExtension && bookingData.hourlyExtension > 0 && property?.hourlyBooking?.enabled && {
           hourlyExtension: {
             hours: bookingData.hourlyExtension,
             rate: property?.hourlyBooking?.hourlyRates?.[`${bookingData.hourlyExtension === 6 ? 'six' : bookingData.hourlyExtension === 12 ? 'twelve' : 'eighteen'}Hours`] || 0,
@@ -1650,36 +1650,36 @@ export default function BookingPage() {
       console.log('📅 Blocked dates to confirm:', blockedDates);
       console.log('🏠 Property ID:', id);
       console.log('🔐 Authentication status:', { isAuthenticated, userId: user?._id, userEmail: user?.email });
-      
+
       const response = await apiClient.processPaymentAndCreateBooking(bookingPayload);
-      
+
       console.log('📋 Backend response:', JSON.stringify(response, null, 2));
-      
+
       if (response.success) {
         console.log('✅ Payment processed and booking created successfully:', response.data);
         console.log('📋 Booking ID from response:', response.data.bookingDoc._id);
-        
+
         // NOTE: confirmBooking is no longer needed here
         // The backend's processPaymentAndCreateBooking already updates dates from 'blocked' to 'booked'
         console.log('✅ Availability already confirmed by backend during payment processing');
 
         // Extract booking ID for redirect
         const bookingId = response.data.bookingDoc._id;
-        
+
         // Set redirecting flag to prevent conflicting useEffect
         setIsRedirecting(true);
-        
+
         // Clear blocked dates state since they're now booked
         setBlockedDates([]);
         setBlockingExpiry(null);
-        
+
         // Clear any errors before redirecting
         setBookingError('');
         setValidationErrors({});
-        
+
         // Redirect to specific booking details page with success parameter
         router.push(`/bookings/${bookingId}?success=true`);
-        
+
         // Clear booking context data after redirect is initiated
         clearBookingData();
       } else {
@@ -1697,11 +1697,11 @@ export default function BookingPage() {
         response: error.response,
         fullError: JSON.stringify(error, null, 2)
       });
-      
+
       // Extract error message properly
       let errorMessage = 'Failed to process payment and create booking';
       let errorDetails: string[] = [];
-      
+
       if (error.message) {
         errorMessage = error.message;
       } else if (error.response?.message) {
@@ -1709,7 +1709,7 @@ export default function BookingPage() {
       } else if (typeof error === 'string') {
         errorMessage = error;
       }
-      
+
       // Extract error details
       if (Array.isArray(error.errors)) {
         errorDetails = error.errors;
@@ -1720,15 +1720,15 @@ export default function BookingPage() {
       } else if (error.response?.errors && typeof error.response.errors === 'object') {
         errorDetails = Object.values(error.response.errors).map(e => String(e));
       }
-      
+
       // Format final error message
-      const finalErrorMessage = errorDetails.length > 0 
+      const finalErrorMessage = errorDetails.length > 0
         ? `${errorMessage}: ${errorDetails.join(', ')}`
         : errorMessage;
-      
+
       console.error('❌ Final error message:', finalErrorMessage);
       setBookingError(finalErrorMessage);
-      
+
       // IMPORTANT: Payment succeeded, so don't revert dates immediately
       // The payment was successful, so dates should remain blocked
       // If booking creation failed, admin will need to process refund manually
@@ -1751,13 +1751,13 @@ export default function BookingPage() {
       await getSecurePricing();
     };
     updatePricing();
-  }, [bookingData.checkIn, bookingData.checkOut, bookingData.hourlyExtension,bookingData.guests , property, couponData]);
+  }, [bookingData.checkIn, bookingData.checkOut, bookingData.hourlyExtension, bookingData.guests, property, couponData]);
 
   // Clear availability state and invalidate old pricing token when dates or extension change
   useEffect(() => {
     setBookingError('');
     setAvailability([]);
-    
+
     // Clear pricing token when dates/extension change to force fresh price calculation
     // This ensures we don't use stale pricing tokens from previous date selections
     setPriceBreakdown(prev => ({
@@ -1765,7 +1765,7 @@ export default function BookingPage() {
       pricingToken: undefined, // Invalidate old token
       total: 0 // Reset total to show loading state
     }));
-    
+
     // Note: Price updates immediately when dates/guests change (via getSecurePricing useEffect)
     // Availability is checked ONLY when user clicks "Book" button (in handleBooking function)
     // This allows users to see prices even if dates might not be available,
@@ -1818,14 +1818,14 @@ export default function BookingPage() {
     return iconMap[amenity] || <CheckCircle className="w-5 h-5" />;
   };
 
-// helper function for pending details add bottom sheet
+  // helper function for pending details add bottom sheet
   const isContactInfoValid = () => {
-  return (
-    bookingData.contactInfo.name.trim() &&
-    bookingData.contactInfo.email.trim() &&
-    bookingData.contactInfo.phone.trim()
-  );
-};
+    return (
+      bookingData.contactInfo.name.trim() &&
+      bookingData.contactInfo.email.trim() &&
+      bookingData.contactInfo.phone.trim()
+    );
+  };
 
 
   // Show loading while checking authentication or loading property
@@ -1872,9 +1872,9 @@ export default function BookingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
       {/* <Header hideSearchBar={true} /> */}
-       {/* <Header /> */}
-       <UserHeader/>
-      
+      {/* <Header /> */}
+      <UserHeader />
+
       {/* Main Content */}
       <main className={`${hideHeader ? "pt-8 sm:pt-24" : "pt-40"} pb-12 overflow-x-hidden`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1906,23 +1906,23 @@ export default function BookingPage() {
                       <p className="text-gray-600">Secure your perfect stay</p>
                     </div>
                   </div> */}
-                 <div className="flex items-center justify-between w-full mb-6 gap-4">
-  {/* Icon Container - Fixed at the start */}
-  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-gray-700 to-gray-800 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
-    <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-  </div>
+                  <div className="flex items-center justify-between w-full mb-6 gap-4">
+                    {/* Icon Container - Fixed at the start */}
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-gray-700 to-gray-800 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
+                      <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                    </div>
 
-  {/* Text Container - Aligned to the end */}
-  <div className="text-right">
-    <h1 className="text-lg sm:text-3xl font-bold bg-gradient-to-r from-gray-700 to-gray-800 bg-clip-text text-transparent leading-tight whitespace-nowrap">
-      Complete your booking
-    </h1>
-    <p className="text-xs sm:text-base text-gray-600 whitespace-nowrap">
-      Secure your perfect stay
-    </p>
-  </div>
-</div>
-                  
+                    {/* Text Container - Aligned to the end */}
+                    <div className="text-right">
+                      <h1 className="text-lg sm:text-3xl font-bold bg-gradient-to-r from-gray-700 to-gray-800 bg-clip-text text-transparent leading-tight whitespace-nowrap">
+                        Complete your booking
+                      </h1>
+                      <p className="text-xs sm:text-base text-gray-600 whitespace-nowrap">
+                        Secure your perfect stay
+                      </p>
+                    </div>
+                  </div>
+
                   <div className="flex items-center gap-4 text-gray-600 mb-6">
                     <div className="flex items-center gap-1">
                       <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -1935,7 +1935,7 @@ export default function BookingPage() {
                       <span>{property.location?.city}, {property.location?.state}</span>
                     </div>
                   </div>
-                  
+
                   {/* Property Image */}
                   <div className="aspect-video rounded-2xl overflow-hidden mb-6 shadow-lg">
                     <img
@@ -1944,7 +1944,7 @@ export default function BookingPage() {
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  
+
                   <h2 className="text-2xl font-bold text-gray-900 mb-3">{property.title}</h2>
                   <p className="text-gray-600 leading-relaxed">{property.description?.substring(0, 200)}...</p>
                 </div>
@@ -1960,7 +1960,7 @@ export default function BookingPage() {
                       <p className="text-gray-600 text-sm sm:text-base">Just a few more details to secure your stay</p>
                     </div>
                   </div>
-                  
+
                   {/* Selected Details */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-6 border border-indigo-100">
@@ -1972,10 +1972,10 @@ export default function BookingPage() {
                         <div className="flex justify-between">
                           <span className="text-gray-600 text-sm whitespace-nowrap sm:text-base">Check-in : </span>
                           <span className="font-semibold text-gray-900 text-sm whitespace-nowrap sm:text-base">
-                            {bookingData.checkIn.toLocaleDateString('en-US', { 
-                              weekday: 'short', 
-                              month: 'short', 
-                              day: 'numeric' 
+                            {bookingData.checkIn.toLocaleDateString('en-US', {
+                              weekday: 'short',
+                              month: 'short',
+                              day: 'numeric'
                             })}
                             {(() => {
                               const checkInTime = bookingData.checkInTime || property?.checkInTime || '15:00';
@@ -1989,13 +1989,13 @@ export default function BookingPage() {
                         <div className="flex justify-between">
                           <span className="text-gray-600 text-sm whitespace-nowrap sm:text-base">Check-out :</span>
                           <span className="font-semibold text-gray-900 text-sm  sm:text-base whitespace-nowrap">
-                            {bookingData.checkOut.toLocaleDateString('en-US', { 
-                              weekday: 'short', 
-                              month: 'short', 
-                              day: 'numeric' 
+                            {bookingData.checkOut.toLocaleDateString('en-US', {
+                              weekday: 'short',
+                              month: 'short',
+                              day: 'numeric'
                             })}
 
-                          {(() => {
+                            {(() => {
                               const checkInTime = bookingData.checkInTime || property?.checkInTime || '15:00';
                               const [checkInHours, checkInMinutes] = checkInTime.split(':').map(Number);
                               // Checkout = check-in time - 1 hour + extension
@@ -2009,12 +2009,12 @@ export default function BookingPage() {
                               return `,  ${time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
                             })()}
 
-                           
+
 
 
                           </span>
                         </div>
-                        
+
                         <div className="flex justify-between border-t border-gray-100 pt-2">
                           <span className="text-gray-600">Duration:</span>
                           <span className="font-semibold text-indigo-600">
@@ -2023,7 +2023,7 @@ export default function BookingPage() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="bg-white rounded-xl sm:rounded-2xl  p-2 sm:p6 border border-indigo-100">
                       <div className="flex items-center gap-3 mb-4">
                         <Users className="w-5 h-5 text-indigo-600" />
@@ -2101,12 +2101,12 @@ export default function BookingPage() {
 
                 {/* Booking Form */}
                 <div className="space-y-8">
-                 
+
 
                   {/* Hourly Booking Extension */}
-                 {property?.hourlyBooking?.enabled && (
-  <div className="bg-white border border-gray-200 rounded-lg p-4 md:p-6">
-    {/* <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4 flex flex-wrap items-center gap-2">
+                  {property?.hourlyBooking?.enabled && (
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 md:p-6">
+                      {/* <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4 flex flex-wrap items-center gap-2">
       <Clock className="w-5 h-5 text-gray-500" />
       <span className="whitespace-nowrap">Hourly Booking Extension</span>
       <span className="text-gray-500 text-xs font-normal">(Optional)</span>
@@ -2116,114 +2116,113 @@ export default function BookingPage() {
         </span>
       )}
     </h3> */}
-<h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex flex-wrap items-center gap-x-2 gap-y-1">
-  {/* Icon and Title Group */}
-  <div className="flex items-center gap-2">
-    <Clock className="w-5 h-5 text-gray-500 shrink-0" />
-    <span className="whitespace-nowrap">Hourly Extension</span>
-  </div>
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        {/* Icon and Title Group */}
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-5 h-5 text-gray-500 shrink-0" />
+                          <span className="whitespace-nowrap">Hourly Extension</span>
+                        </div>
 
-  {/* Badges Group - Will wrap together if space is tight */}
-  <div className="flex items-center gap-2">
-    <span className="text-gray-500 text-xs font-normal whitespace-nowrap">
-      (Optional)
-    </span>
-    {bookingData.hourlyExtension && (
-      <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-medium rounded-full whitespace-nowrap">
-        Selected
-      </span>
-    )}
-  </div>
-</h3>
-    <div className="space-y-4">
-      <p className="text-xs md:text-sm text-gray-600">
-        Extend your checkout time for additional hours at a discounted rate.
-      </p>
+                        {/* Badges Group - Will wrap together if space is tight */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-500 text-xs font-normal whitespace-nowrap">
+                            (Optional)
+                          </span>
+                          {bookingData.hourlyExtension && (
+                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-medium rounded-full whitespace-nowrap">
+                              Selected
+                            </span>
+                          )}
+                        </div>
+                      </h3>
+                      <div className="space-y-4">
+                        <p className="text-xs md:text-sm text-gray-600">
+                          Extend your checkout time for additional hours at a discounted rate.
+                        </p>
 
-      {/* Grid: Always 3 columns on mobile and desktop */}
-      <div className="grid grid-cols-3 gap-2 md:gap-4">
-        {[
-          { hours: 6, rate: property.hourlyBooking?.hourlyRates?.sixHours || 0.3, label: '6 Hours', shortLabel: '6H' },
-          { hours: 12, rate: property.hourlyBooking?.hourlyRates?.twelveHours || 0.6, label: '12 Hours', shortLabel: '12H' },
-          { hours: 18, rate: property.hourlyBooking?.hourlyRates?.eighteenHours || 0.75, label: '18 Hours', shortLabel: '18H' }
-        ].map((option) => (
-          <div
-            key={option.hours}
-            className={`p-2 md:p-4 border-2 rounded-xl cursor-pointer transition-all text-center flex flex-col justify-center ${
-              bookingData.hourlyExtension === option.hours
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-100 md:border-gray-200 hover:border-gray-300'
-            }`}
-            onClick={() => {
-              const newExtension = bookingData.hourlyExtension === option.hours ? null : option.hours;
-              updateLocalBookingData({ hourlyExtension: newExtension });
-            }}
-          >
-            {/* Label: Short on mobile, Full on desktop */}
-            <div className="font-bold text-gray-900 text-sm md:text-base">
-              <span className="md:hidden">{option.shortLabel}</span>
-              <span className="hidden md:inline">{option.label}</span>
-            </div>
+                        {/* Grid: Always 3 columns on mobile and desktop */}
+                        <div className="grid grid-cols-3 gap-2 md:gap-4">
+                          {[
+                            { hours: 6, rate: property.hourlyBooking?.hourlyRates?.sixHours || 0.3, label: '6 Hours', shortLabel: '6H' },
+                            { hours: 12, rate: property.hourlyBooking?.hourlyRates?.twelveHours || 0.6, label: '12 Hours', shortLabel: '12H' },
+                            { hours: 18, rate: property.hourlyBooking?.hourlyRates?.eighteenHours || 0.75, label: '18 Hours', shortLabel: '18H' }
+                          ].map((option) => (
+                            <div
+                              key={option.hours}
+                              className={`p-2 md:p-4 border-2 rounded-xl cursor-pointer transition-all text-center flex flex-col justify-center ${bookingData.hourlyExtension === option.hours
+                                  ? 'border-blue-500 bg-blue-50'
+                                  : 'border-gray-100 md:border-gray-200 hover:border-gray-300'
+                                }`}
+                              onClick={() => {
+                                const newExtension = bookingData.hourlyExtension === option.hours ? null : option.hours;
+                                updateLocalBookingData({ hourlyExtension: newExtension });
+                              }}
+                            >
+                              {/* Label: Short on mobile, Full on desktop */}
+                              <div className="font-bold text-gray-900 text-sm md:text-base">
+                                <span className="md:hidden">{option.shortLabel}</span>
+                                <span className="hidden md:inline">{option.label}</span>
+                              </div>
 
-            {/* Discount Rate: Always visible */}
-            <div className="text-[10px] md:text-sm text-gray-600 font-medium">
-              {Math.round(option.rate * 100)}% <span className="hidden md:inline">of daily rate</span>
-            </div>
+                              {/* Discount Rate: Always visible */}
+                              <div className="text-[10px] md:text-sm text-gray-600 font-medium">
+                                {Math.round(option.rate * 100)}% <span className="hidden md:inline">of daily rate</span>
+                              </div>
 
-            {/* Time: Hidden on mobile buttons, visible on desktop */}
-            <div className="hidden md:block text-xs text-gray-500 mt-1">
-              {(() => {
-                if (!bookingData.checkOut) return '...';
-                const [hours, minutes] = (property?.checkOutTime || '11:00').split(':').map(Number);
-                const baseCheckout = new Date(bookingData.checkOut);
-                baseCheckout.setHours(hours, minutes, 0, 0);
-                const newCheckout = new Date(baseCheckout);
-                newCheckout.setHours(newCheckout.getHours() + option.hours);
-                return newCheckout.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-              })()}
-            </div>
-          </div>
-        ))}
-      </div>
+                              {/* Time: Hidden on mobile buttons, visible on desktop */}
+                              <div className="hidden md:block text-xs text-gray-500 mt-1">
+                                {(() => {
+                                  if (!bookingData.checkOut) return '...';
+                                  const [hours, minutes] = (property?.checkOutTime || '11:00').split(':').map(Number);
+                                  const baseCheckout = new Date(bookingData.checkOut);
+                                  baseCheckout.setHours(hours, minutes, 0, 0);
+                                  const newCheckout = new Date(baseCheckout);
+                                  newCheckout.setHours(newCheckout.getHours() + option.hours);
+                                  return newCheckout.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                                })()}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
 
-      {/* Selection Details: Shows the discount and new time clearly on mobile when selected */}
-      {bookingData.hourlyExtension && (
-        <div className="mt-4 p-2 sm:p-4 bg-blue-50 border border-blue-200 rounded-xl">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="w-4 h-4 text-blue-600" />
-            <h4 className="font-semibold text-blue-900 text-sm md:text-base">Extension Selected</h4>
-          </div>
-          <div className="text-xs md:text-sm text-blue-700 space-y-1">
-            <div className="flex justify-between">
-              <span>Extension:</span>
-              <span className="font-medium">{bookingData.hourlyExtension} hours</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Discounted Rate:</span>
-              <span className="font-medium">
-                {Math.round((property.hourlyBooking?.hourlyRates?.[`${bookingData.hourlyExtension === 6 ? 'six' : bookingData.hourlyExtension === 12 ? 'twelve' : 'eighteen'}Hours`] || 0) * 100)}% of daily
-              </span>
-            </div>
-            <div className="flex justify-between border-t border-blue-200 pt-1 mt-1">
-              <span>New checkout time:</span>
-              <span className="font-bold">
-                {(() => {
-                  if (!bookingData.checkOut) return '...';
-                  const [hours, minutes] = (property?.checkOutTime || '11:00').split(':').map(Number);
-                  const baseCheckout = new Date(bookingData.checkOut);
-                  baseCheckout.setHours(hours, minutes, 0, 0);
-                  const newCheckout = new Date(baseCheckout);
-                  newCheckout.setHours(newCheckout.getHours() + bookingData.hourlyExtension);
-                  return newCheckout.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                })()}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  </div>
-)}
+                        {/* Selection Details: Shows the discount and new time clearly on mobile when selected */}
+                        {bookingData.hourlyExtension && (
+                          <div className="mt-4 p-2 sm:p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Clock className="w-4 h-4 text-blue-600" />
+                              <h4 className="font-semibold text-blue-900 text-sm md:text-base">Extension Selected</h4>
+                            </div>
+                            <div className="text-xs md:text-sm text-blue-700 space-y-1">
+                              <div className="flex justify-between">
+                                <span>Extension:</span>
+                                <span className="font-medium">{bookingData.hourlyExtension} hours</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Discounted Rate:</span>
+                                <span className="font-medium">
+                                  {Math.round((property.hourlyBooking?.hourlyRates?.[`${bookingData.hourlyExtension === 6 ? 'six' : bookingData.hourlyExtension === 12 ? 'twelve' : 'eighteen'}Hours`] || 0) * 100)}% of daily
+                                </span>
+                              </div>
+                              <div className="flex justify-between border-t border-blue-200 pt-1 mt-1">
+                                <span>New checkout time:</span>
+                                <span className="font-bold">
+                                  {(() => {
+                                    if (!bookingData.checkOut) return '...';
+                                    const [hours, minutes] = (property?.checkOutTime || '11:00').split(':').map(Number);
+                                    const baseCheckout = new Date(bookingData.checkOut);
+                                    baseCheckout.setHours(hours, minutes, 0, 0);
+                                    const newCheckout = new Date(baseCheckout);
+                                    newCheckout.setHours(newCheckout.getHours() + bookingData.hourlyExtension);
+                                    return newCheckout.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                                  })()}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Contact Information */}
                   <div className="hidden md:block bg-white border border-gray-200 rounded-lg p-6">
@@ -2234,7 +2233,7 @@ export default function BookingPage() {
                         <p className="text-sm text-gray-600">Required for booking confirmation</p>
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label className="block text-sm font-bold text-gray-700">
@@ -2246,7 +2245,7 @@ export default function BookingPage() {
                           value={bookingData.contactInfo.name}
                           onChange={(e) => {
                             updateLocalBookingData({
-                            contactInfo: { ...bookingData.contactInfo, name: e.target.value }
+                              contactInfo: { ...bookingData.contactInfo, name: e.target.value }
                             });
                             // Clear validation error when user starts typing
                             if (validationErrors.contactName) {
@@ -2254,15 +2253,14 @@ export default function BookingPage() {
                             }
                           }}
                           placeholder="Enter your full name"
-                          className={`w-full px-4 py-4 border-2 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-gray-900 font-medium placeholder-gray-400 shadow-sm transition-all duration-200 ${
-                            validationErrors.contactName 
-                              ? 'border-red-500 ring-2 ring-red-200' 
+                          className={`w-full px-4 py-4 border-2 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-gray-900 font-medium placeholder-gray-400 shadow-sm transition-all duration-200 ${validationErrors.contactName
+                              ? 'border-red-500 ring-2 ring-red-200'
                               : 'border-emerald-200'
-                          }`}
+                            }`}
                           style={{ color: '#111827' }}
                         />
                       </div>
-                      
+
                       <div className="space-y-2">
                         <label className="block text-sm font-bold text-gray-700">
                           Email Address <span className="text-red-500">*</span>
@@ -2273,7 +2271,7 @@ export default function BookingPage() {
                           value={bookingData.contactInfo.email}
                           onChange={(e) => {
                             updateLocalBookingData({
-                            contactInfo: { ...bookingData.contactInfo, email: e.target.value }
+                              contactInfo: { ...bookingData.contactInfo, email: e.target.value }
                             });
                             // Clear validation error when user starts typing
                             if (validationErrors.contactEmail) {
@@ -2281,44 +2279,42 @@ export default function BookingPage() {
                             }
                           }}
                           placeholder="Enter your email address"
-                          className={`w-full px-4 py-4 border-2 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-gray-900 font-medium placeholder-gray-400 shadow-sm transition-all duration-200 ${
-                            validationErrors.contactEmail 
-                              ? 'border-red-500 ring-2 ring-red-200' 
+                          className={`w-full px-4 py-4 border-2 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-gray-900 font-medium placeholder-gray-400 shadow-sm transition-all duration-200 ${validationErrors.contactEmail
+                              ? 'border-red-500 ring-2 ring-red-200'
                               : 'border-emerald-200'
-                          }`}
+                            }`}
                           style={{ color: '#111827' }}
                         />
                       </div>
                     </div>
-                    
+
                     <div className="mt-6">
                       <div className="space-y-2">
                         <label className="block text-sm font-bold text-gray-700">
                           Phone Number <span className="text-red-500">*</span>
                         </label>
-                      <input
-                        id="contact-phone"
-                        type="tel"
-                        value={bookingData.contactInfo.phone}
-                        onChange={(e) => {
-                          updateLocalBookingData({
-                          contactInfo: { ...bookingData.contactInfo, phone: e.target.value }
-                          });
-                          // Clear validation error when user starts typing
-                          if (validationErrors.contactPhone) {
-                            setValidationErrors(prev => ({ ...prev, contactPhone: false }));
-                          }
-                        }}
+                        <input
+                          id="contact-phone"
+                          type="tel"
+                          value={bookingData.contactInfo.phone}
+                          onChange={(e) => {
+                            updateLocalBookingData({
+                              contactInfo: { ...bookingData.contactInfo, phone: e.target.value }
+                            });
+                            // Clear validation error when user starts typing
+                            if (validationErrors.contactPhone) {
+                              setValidationErrors(prev => ({ ...prev, contactPhone: false }));
+                            }
+                          }}
                           placeholder="Enter your phone number"
-                          className={`w-full px-4 py-4 border-2 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-gray-900 font-medium placeholder-gray-400 shadow-sm transition-all duration-200 ${
-                            validationErrors.contactPhone 
-                              ? 'border-red-500 ring-2 ring-red-200' 
+                          className={`w-full px-4 py-4 border-2 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-gray-900 font-medium placeholder-gray-400 shadow-sm transition-all duration-200 ${validationErrors.contactPhone
+                              ? 'border-red-500 ring-2 ring-red-200'
                               : 'border-emerald-200'
-                          }`}
-                        style={{ color: '#111827' }}
-                      />
+                            }`}
+                          style={{ color: '#111827' }}
+                        />
+                      </div>
                     </div>
-                  </div>
 
                     <div className="mt-6 p-4 bg-emerald-100 rounded-2xl border border-emerald-200">
                       <div className="flex items-start gap-3">
@@ -2446,22 +2442,21 @@ export default function BookingPage() {
                   <div className="hidden md:block bg-white border border-gray-200 rounded-lg p-6">
                     <div className="flex items-start gap-4">
                       <div className="flex-shrink-0 mt-1">
-                      <input
-                        id="agree-terms"
-                        type="checkbox"
-                        checked={bookingData.agreeToTerms}
-                        onChange={(e) => {
-                          updateLocalBookingData({ agreeToTerms: e.target.checked });
-                          // Clear validation error when user checks the box
-                          if (validationErrors.agreeToTerms) {
-                            setValidationErrors(prev => ({ ...prev, agreeToTerms: false }));
-                          }
-                        }}
-                          className={`w-5 h-5 rounded border text-gray-600 focus:ring-1 focus:ring-gray-400 ${
-                            validationErrors.agreeToTerms 
-                              ? 'border-red-500 ring-2 ring-red-200' 
+                        <input
+                          id="agree-terms"
+                          type="checkbox"
+                          checked={bookingData.agreeToTerms}
+                          onChange={(e) => {
+                            updateLocalBookingData({ agreeToTerms: e.target.checked });
+                            // Clear validation error when user checks the box
+                            if (validationErrors.agreeToTerms) {
+                              setValidationErrors(prev => ({ ...prev, agreeToTerms: false }));
+                            }
+                          }}
+                          className={`w-5 h-5 rounded border text-gray-600 focus:ring-1 focus:ring-gray-400 ${validationErrors.agreeToTerms
+                              ? 'border-red-500 ring-2 ring-red-200'
                               : 'border-gray-300'
-                          }`}
+                            }`}
                         />
                       </div>
                       <div className="text-gray-700">
@@ -2471,14 +2466,14 @@ export default function BookingPage() {
                         <div className="text-sm leading-relaxed">
                           By proceeding with this booking, I agree to the{' '}
                           <a href="#" className="text-gray-600 hover:text-gray-800 underline">
-                          Terms and Conditions
-                        </a>{' '}
-                        and{' '}
+                            Terms and Conditions
+                          </a>{' '}
+                          and{' '}
                           <a href="#" className="text-gray-600 hover:text-gray-800 underline">
-                          Privacy Policy
-                        </a>
+                            Privacy Policy
+                          </a>
                           . I understand that this booking is subject to the property's cancellation policy and house rules.
-                      </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2496,7 +2491,7 @@ export default function BookingPage() {
                     <p className="text-sm text-gray-600">Review your selection</p>
                   </div>
                 </div>
-                
+
                 {/* Property Info */}
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-3 mb-3">
@@ -2510,11 +2505,11 @@ export default function BookingPage() {
                       <div className="flex items-center gap-2 text-xs text-gray-600">
                         <MapPin className="w-3 h-3" />
                         <span>{property.location?.city}, {property.location?.state}</span>
-                  </div>
-                  </div>
-                  </div>
+                      </div>
                     </div>
-                
+                  </div>
+                </div>
+
                 {/* Coupon Code Section */}
                 {/* <div className="mb-6">
                   <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-200">
@@ -2603,121 +2598,121 @@ export default function BookingPage() {
                 </div> */}
 
                 <div className="mb-6">
-  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-4 sm:p-6 border border-purple-200">
-    
-    {/* Header */}
-    <div className="flex items-start sm:items-center gap-3 mb-4">
-      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shrink-0">
-        <Gift className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-      </div>
-      <div>
-        <h3 className="text-base sm:text-lg font-bold text-gray-900">
-          Coupon Code
-        </h3>
-        <p className="text-xs sm:text-sm text-gray-600">
-          Enter a valid coupon code to get discounts
-        </p>
-      </div>
-    </div>
+                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-4 sm:p-6 border border-purple-200">
 
-    {/* Input + Button */}
-    <div className="flex flex-col sm:flex-row gap-3">
-      <div className="flex-1">
-        <input
-          type="text"
-          value={couponCode}
-          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-          onBlur={() => validateCoupon(couponCode)}
-          placeholder="Enter coupon code"
-          className="w-full px-4 py-3 text-sm sm:text-base border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white"
-          disabled={couponLoading}
-        />
+                    {/* Header */}
+                    <div className="flex items-start sm:items-center gap-3 mb-4">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shrink-0">
+                        <Gift className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-lg font-bold text-gray-900">
+                          Coupon Code
+                        </h3>
+                        <p className="text-xs sm:text-sm text-gray-600">
+                          Enter a valid coupon code to get discounts
+                        </p>
+                      </div>
+                    </div>
 
-        {couponError && (
-          <p className="text-red-600 text-xs sm:text-sm mt-2 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" />
-            {couponError}
-          </p>
-        )}
+                    {/* Input + Button */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          onBlur={() => validateCoupon(couponCode)}
+                          placeholder="Enter coupon code"
+                          className="w-full px-4 py-3 text-sm sm:text-base border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white"
+                          disabled={couponLoading}
+                        />
 
-        {couponData && (
-          <p className="text-green-600 text-xs sm:text-sm mt-2 flex items-center gap-2">
-            <CheckCircle className="w-4 h-4" />
-            Coupon applied! You saved{" "}
-            {formatPrice(
-              priceBreakdown.discountAmount ||
-              couponData.discountAmount ||
-              0
-            )}
-          </p>
-        )}
-      </div>
+                        {couponError && (
+                          <p className="text-red-600 text-xs sm:text-sm mt-2 flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4" />
+                            {couponError}
+                          </p>
+                        )}
 
-      <button
-        onClick={() => validateCoupon(couponCode)}
-        disabled={!couponCode.trim() || couponLoading}
-        className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
-      >
-        {couponLoading ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Validating...
-          </>
-        ) : (
-          <>
-            <Gift className="w-4 h-4" />
-            Apply
-          </>
-        )}
-      </button>
-    </div>
+                        {couponData && (
+                          <p className="text-green-600 text-xs sm:text-sm mt-2 flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4" />
+                            Coupon applied! You saved{" "}
+                            {formatPrice(
+                              priceBreakdown.discountAmount ||
+                              couponData.discountAmount ||
+                              0
+                            )}
+                          </p>
+                        )}
+                      </div>
 
-    {/* Applied Coupon Card */}
-    {couponData && (
-      <div className="mt-4 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-green-800 font-semibold text-sm sm:text-base">
-              {couponData.coupon.code} —{" "}
-              {couponData.coupon.discountType === "percentage"
-                ? `${couponData.coupon.amount}% off`
-                : `${formatPrice(couponData.coupon.amount)} off`}
-            </p>
-            <p className="text-green-600 text-xs sm:text-sm">
-              You saved{" "}
-              {formatPrice(
-                priceBreakdown.discountAmount ||
-                couponData.discountAmount ||
-                0
-              )}
-            </p>
-          </div>
+                      <button
+                        onClick={() => validateCoupon(couponCode)}
+                        disabled={!couponCode.trim() || couponLoading}
+                        className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
+                      >
+                        {couponLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Validating...
+                          </>
+                        ) : (
+                          <>
+                            <Gift className="w-4 h-4" />
+                            Apply
+                          </>
+                        )}
+                      </button>
+                    </div>
 
-          <button
-            onClick={() => {
-              setCouponCode("");
-              setCouponData(null);
-              setCouponError("");
-              setPriceBreakdown((prev) => ({
-                ...prev,
-                discountAmount: 0,
-                discountType: undefined,
-                couponCode: undefined,
-                couponValue: undefined,
-                couponMaxDiscount: undefined,
-              }));
-            }}
-            className="text-green-600 hover:text-green-800 p-1 shrink-0"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    )}
+                    {/* Applied Coupon Card */}
+                    {couponData && (
+                      <div className="mt-4 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-green-800 font-semibold text-sm sm:text-base">
+                              {couponData.coupon.code} —{" "}
+                              {couponData.coupon.discountType === "percentage"
+                                ? `${couponData.coupon.amount}% off`
+                                : `${formatPrice(couponData.coupon.amount)} off`}
+                            </p>
+                            <p className="text-green-600 text-xs sm:text-sm">
+                              You saved{" "}
+                              {formatPrice(
+                                priceBreakdown.discountAmount ||
+                                couponData.discountAmount ||
+                                0
+                              )}
+                            </p>
+                          </div>
 
-  </div>
-  
-</div>
+                          <button
+                            onClick={() => {
+                              setCouponCode("");
+                              setCouponData(null);
+                              setCouponError("");
+                              setPriceBreakdown((prev) => ({
+                                ...prev,
+                                discountAmount: 0,
+                                discountType: undefined,
+                                couponCode: undefined,
+                                couponValue: undefined,
+                                couponMaxDiscount: undefined,
+                              }));
+                            }}
+                            className="text-green-600 hover:text-green-800 p-1 shrink-0"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+
+                </div>
 
 
                 {/* Price Breakdown */}
@@ -2753,11 +2748,10 @@ export default function BookingPage() {
                             setValidationErrors(prev => ({ ...prev, agreeToTerms: false }));
                           }
                         }}
-                        className={`w-5 h-5 mt-1 rounded border ${
-                          validationErrors.agreeToTerms 
-                            ? 'border-red-500 ring-2 ring-red-200' 
+                        className={`w-5 h-5 mt-1 rounded border ${validationErrors.agreeToTerms
+                            ? 'border-red-500 ring-2 ring-red-200'
                             : 'border-gray-300'
-                        }`}
+                          }`}
                       />
                       <div className="text-xs text-gray-700 leading-relaxed">
                         <span className="font-semibold text-gray-900">
@@ -2787,21 +2781,20 @@ export default function BookingPage() {
                     console.log('🖱️ ===========================================');
                     console.log('🖱️ COMPLETE BOOKING BUTTON CLICKED!');
                     console.log('🖱️ ===========================================');
-                   
+
                     console.log('🖱️ user:', user);
                     console.log('🖱️ bookingData:', bookingData);
-                   
+
                     console.log('🖱️ validationErrors:', validationErrors);
-                    
+
                     console.log('🖱️ ===========================================');
                     handleBooking();
                   }}
                   disabled={!bookingData.agreeToTerms || bookingLoading || availabilityLoading}
-                  className={`w-full py-3 rounded-lg font-semibold text-base transition-colors ${
-                    !bookingData.agreeToTerms || bookingLoading || availabilityLoading
+                  className={`w-full py-3 rounded-lg font-semibold text-base transition-colors ${!bookingData.agreeToTerms || bookingLoading || availabilityLoading
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-gray-800 hover:bg-gray-700 text-white'
-                  }`}
+                    }`}
                 >
                   {bookingLoading ? (
                     <div className="flex items-center justify-center gap-3">
@@ -2832,71 +2825,71 @@ export default function BookingPage() {
           </div>
         </div>
       </main>
-      
+
       <Footer />
 
       {showContactSheet && (
-        
-  <div className="fixed inset-0 z-50 bg-black/40 flex items-end md:hidden">
-    <div className="bg-white w-full rounded-t-3xl p-6 animate-slide-up">
-      
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold">Contact Information</h3>
-        <button onClick={() => setShowContactSheet(false)}>
-          <X className="w-6 h-6" />
-        </button>
-      </div>
 
-      {/* Reuse same fields */}
-      <div className="space-y-4">
-        <input
-          placeholder="Full Name"
-          value={bookingData.contactInfo.name}
-          onChange={(e) =>
-            updateLocalBookingData({
-              contactInfo: { ...bookingData.contactInfo, name: e.target.value }
-            })
-          }
-          className="w-full px-4 py-3 border rounded-xl"
-        />
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end md:hidden">
+          <div className="bg-white w-full rounded-t-3xl p-6 animate-slide-up">
 
-        <input
-          placeholder="Email"
-          value={bookingData.contactInfo.email}
-          onChange={(e) =>
-            updateLocalBookingData({
-              contactInfo: { ...bookingData.contactInfo, email: e.target.value }
-            })
-          }
-          className="w-full px-4 py-3 border rounded-xl"
-        />
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">Contact Information</h3>
+              <button onClick={() => setShowContactSheet(false)}>
+                <X className="w-6 h-6" />
+              </button>
+            </div>
 
-        <input
-          placeholder="Phone"
-          value={bookingData.contactInfo.phone}
-          onChange={(e) =>
-            updateLocalBookingData({
-              contactInfo: { ...bookingData.contactInfo, phone: e.target.value }
-            })
-          }
-          className="w-full px-4 py-3 border rounded-xl"
-        />
-      </div>
+            {/* Reuse same fields */}
+            <div className="space-y-4">
+              <input
+                placeholder="Full Name"
+                value={bookingData.contactInfo.name}
+                onChange={(e) =>
+                  updateLocalBookingData({
+                    contactInfo: { ...bookingData.contactInfo, name: e.target.value }
+                  })
+                }
+                className="w-full px-4 py-3 border rounded-xl"
+              />
 
-      <Button
-        className="w-full mt-6 bg-gray-800 text-white"
-        onClick={() => {
-          if (isContactInfoValid()) {
-            setShowContactSheet(false);
-            handleBooking();
-          }
-        }}
-      >
-        Continue Booking
-      </Button>
-    </div>
-  </div>
-)}
+              <input
+                placeholder="Email"
+                value={bookingData.contactInfo.email}
+                onChange={(e) =>
+                  updateLocalBookingData({
+                    contactInfo: { ...bookingData.contactInfo, email: e.target.value }
+                  })
+                }
+                className="w-full px-4 py-3 border rounded-xl"
+              />
+
+              <input
+                placeholder="Phone"
+                value={bookingData.contactInfo.phone}
+                onChange={(e) =>
+                  updateLocalBookingData({
+                    contactInfo: { ...bookingData.contactInfo, phone: e.target.value }
+                  })
+                }
+                className="w-full px-4 py-3 border rounded-xl"
+              />
+            </div>
+
+            <Button
+              className="w-full mt-6 bg-gray-800 text-white"
+              onClick={() => {
+                if (isContactInfoValid()) {
+                  setShowContactSheet(false);
+                  handleBooking();
+                }
+              }}
+            >
+              Continue Booking
+            </Button>
+          </div>
+        </div>
+      )}
 
 
       {/* Payment Modal */}

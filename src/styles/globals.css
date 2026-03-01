@@ -26,6 +26,23 @@ body {
   font-family: var(--font-inter), Inter, system-ui, sans-serif;
 }
 
+
+/* Add inside global.css */
+
+/* global.css */
+
+.wave-bottom {
+  background-color: white;
+
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 60'%3E%3Cpath d='M0,30 Q40,10 80,30 T160,30 T240,30 T320,30 T400,30 V60 H0 Z' fill='black'/%3E%3C/svg%3E");
+  -webkit-mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 60'%3E%3Cpath d='M0,30 Q40,10 80,30 T160,30 T240,30 T320,30 T400,30 V60 H0 Z' fill='black'/%3E%3C/svg%3E");
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+}
+
 /* Animation for background blobs */
 @keyframes blob {
   0% {
