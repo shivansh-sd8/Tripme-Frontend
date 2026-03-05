@@ -71,11 +71,13 @@ export default function MobileBookingBar({
   };
 
   /* 💰 Price logic */
-  const displayPrice = availabilityChecked && pricing?.total
-    ? formatPrice(pricing.total)
+  const pricingTotal = pricing?.total ?? pricing?.totalAmount;
+  const hasPricingTotal = typeof pricingTotal === "number" && pricingTotal > 0;
+  const displayPrice = hasPricingTotal
+    ? formatPrice(pricingTotal)
     : formatPrice(property?.pricing?.basePrice || 0);
 
-  const priceLabel = availabilityChecked ? " total" : " / night";
+  const priceLabel = hasPricingTotal ? " total" : " / night";
 
   /* 🕐 Parse next available time from error */
   const maintenanceMatch = availabilityError?.match(/after\s+([\d:]+\s*[AP]M)/i);
