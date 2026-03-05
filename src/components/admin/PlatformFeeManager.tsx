@@ -21,6 +21,11 @@ import {
 interface PlatformFeeData {
   platformFeeRate: number;
   platformFeePercentage: string;
+  gstRate?: number;
+  gstPercentage?: string;
+  processingFeeRate?: number;
+  processingFeePercentage?: string;
+  processingFeeFixed?: number;
   lastUpdated: string;
 }
 
@@ -48,6 +53,9 @@ export default function PlatformFeeManager() {
   
   // Form state
   const [newRate, setNewRate] = useState<string>('');
+  const [gstRate, setGstRate] = useState<string>('');
+  const [processingRate, setProcessingRate] = useState<string>('');
+  const [processingFixed, setProcessingFixed] = useState<string>('');
   const [changeReason, setChangeReason] = useState<string>('');
   const [showHistory, setShowHistory] = useState(false);
 
@@ -67,6 +75,9 @@ export default function PlatformFeeManager() {
       const data = await response.json();
       setCurrentFee(data.data);
       setNewRate(data.data.platformFeePercentage);
+      setGstRate(data.data.gstPercentage || '');
+      setProcessingRate(data.data.processingFeePercentage || '');
+      setProcessingFixed((data.data.processingFeeFixed ?? '').toString());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch platform fee rate');
     }
@@ -101,9 +112,21 @@ export default function PlatformFeeManager() {
 
     try {
       const rateValue = parseFloat(newRate);
+      const gstValue = gstRate ? parseFloat(gstRate) : undefined;
+      const procRateValue = processingRate ? parseFloat(processingRate) : undefined;
+      const procFixedValue = processingFixed ? parseFloat(processingFixed) : undefined;
       
       if (isNaN(rateValue) || rateValue < 0 || rateValue > 100) {
         throw new Error('Platform fee rate must be between 0 and 100');
+      }
+      if (gstValue !== undefined && (isNaN(gstValue) || gstValue < 0 || gstValue > 100)) {
+        throw new Error('GST rate must be between 0 and 100');
+      }
+      if (procRateValue !== undefined && (isNaN(procRateValue) || procRateValue < 0 || procRateValue > 100)) {
+        throw new Error('Processing fee rate must be between 0 and 100');
+      }
+      if (procFixedValue !== undefined && (isNaN(procFixedValue) || procFixedValue < 0)) {
+        throw new Error('Processing fee fixed must be >= 0');
       }
 
       const response = await fetch('/api/admin/pricing/platform-fee', {
@@ -114,6 +137,9 @@ export default function PlatformFeeManager() {
         },
         body: JSON.stringify({
           platformFeeRate: rateValue / 100, // Convert percentage to decimal
+          gstRate: gstValue !== undefined ? gstValue / 100 : undefined,
+          processingFeeRate: procRateValue !== undefined ? procRateValue / 100 : undefined,
+          processingFeeFixed: procFixedValue,
           changeReason: changeReason.trim() || 'Platform fee rate updated via admin panel'
         })
       });
@@ -132,6 +158,9 @@ export default function PlatformFeeManager() {
       
       // Reset form
       setChangeReason('');
+      setGstRate('');
+      setProcessingRate('');
+      setProcessingFixed('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update platform fee rate');
     } finally {
@@ -181,15 +210,17 @@ export default function PlatformFeeManager() {
               {currentFee.platformFeePercentage}%
             </Badge>
           </div>
-          <p className="text-sm text-gray-600">
-            Last updated: {new Date(currentFee.lastUpdated).toLocaleString()}
-          </p>
+          <div className="text-sm text-gray-700 space-y-1">
+            <div>GST: {currentFee.gstPercentage ?? '18.0'}%</div>
+            <div>Processing: {currentFee.processingFeePercentage ?? '2.90'}% + ₹{currentFee.processingFeeFixed ?? 30}</div>
+            <div className="text-gray-500">Last updated: {new Date(currentFee.lastUpdated).toLocaleString()}</div>
+          </div>
         </Card>
       )}
 
       {/* Update Form */}
       <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Update Platform Fee Rate</h3>
+        <h3 className="text-lg font-semibold mb-4">Update Fees</h3>
         
         <form onSubmit={handleUpdateFee} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -219,6 +250,44 @@ export default function PlatformFeeManager() {
                 onChange={(e) => setChangeReason(e.target.value)}
                 placeholder="e.g., Reduced for holiday promotion"
                 rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="gstRate">GST Rate (%)</Label>
+              <Input
+                id="gstRate"
+                type="number"
+                step="0.1"
+                min="0"
+                max="100"
+                value={gstRate}
+                onChange={(e) => setGstRate(e.target.value)}
+                placeholder="e.g., 18"
+              />
+            </div>
+            <div>
+              <Label htmlFor="processingRate">Processing Fee Rate (%)</Label>
+              <Input
+                id="processingRate"
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                value={processingRate}
+                onChange={(e) => setProcessingRate(e.target.value)}
+                placeholder="e.g., 2.9"
+              />
+            </div>
+            <div>
+              <Label htmlFor="processingFixed">Processing Fee Fixed (₹)</Label>
+              <Input
+                id="processingFixed"
+                type="number"
+                step="1"
+                min="0"
+                value={processingFixed}
+                onChange={(e) => setProcessingFixed(e.target.value)}
+                placeholder="e.g., 30"
               />
             </div>
           </div>

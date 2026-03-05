@@ -61,6 +61,7 @@ import {
 import { start } from "repl";
 import { useUI } from "@/core/store/uiContext";
 import UserHeader from "@/components/shared/UserHeader";
+import { TimeSpinner } from "@/components/rooms/timeSelection/TimeSpinner";
 
 // Payment Modal Component with Razorpay Integration
 const PaymentModal: React.FC<{
@@ -1084,12 +1085,62 @@ export default function BookingPage() {
 
     setAvailabilityLoading(true);
     try {
-      const response = await apiClient.checkTimeSlotAvailability(id as string,
-        String(bookingData.checkIn),
-        String(bookingData.checkOut),
-        bookingData.hourlyExtension || 0
+      // ── Build exact check-in datetime ──────────────────────────────────────
+      // bookingData.checkIn is the CALENDAR DATE at midnight (e.g. 2026-03-09T00:00:00Z).
+      // bookingData.checkInDateTime is the EXACT datetime with the user's selected
+      // check-in time (e.g. 2026-03-09T13:30:00Z = 7 PM IST). We must use this
+      // so the maintenance-buffer check on the server works correctly.
+      // If checkInDateTime is missing (e.g. daily booking without time), fall back to
+      // midnight of the checkIn date with the property's default check-in hour (15:00 IST).
+      let exactCheckInISO: string;
+      if (bookingData.checkInDateTime) {
+        exactCheckInISO = bookingData.checkInDateTime instanceof Date
+          ? bookingData.checkInDateTime.toISOString()
+          : String(bookingData.checkInDateTime);
+      } else {
+        // Parse checkInTime (e.g. "19:00") and apply it to the checkIn date in local browser time
+        const checkInDate = bookingData.checkIn instanceof Date
+          ? bookingData.checkIn
+          : new Date(bookingData.checkIn);
+        const [ciH, ciM] = (bookingData.checkInTime || '15:00').split(':').map(Number);
+        const dt = new Date(checkInDate);
+        dt.setHours(isNaN(ciH) ? 15 : ciH, isNaN(ciM) ? 0 : ciM, 0, 0);
+        exactCheckInISO = dt.toISOString();
+      }
 
+      // ── Build exact check-out datetime ────────────────────────────────────
+      // For daily bookings: checkout = endDate at (checkIn time - 1h) in local time.
+      // For 24-hour bookings: checkout = checkIn + 24h (already captured in checkInDateTime span).
+      const checkInDt = new Date(exactCheckInISO);
+      const checkOutDate = bookingData.checkOut instanceof Date
+        ? bookingData.checkOut
+        : new Date(bookingData.checkOut);
+      const exactCheckOut = new Date(checkOutDate);
+      // Set checkout time to same hour as check-in minus 1h (daily) or same hour (24h)
+      const coHour = bookingData.is24Hour ? checkInDt.getHours() : checkInDt.getHours() - 1;
+      exactCheckOut.setHours(coHour, checkInDt.getMinutes(), 0, 0);
+      // Add hourly extension if any
+      if (bookingData.hourlyExtension && bookingData.hourlyExtension > 0) {
+        exactCheckOut.setHours(exactCheckOut.getHours() + bookingData.hourlyExtension);
+      }
+      const exactCheckOutISO = exactCheckOut.toISOString();
+
+      console.log('📅 checkAvailability on book page:', {
+        exactCheckIn: exactCheckInISO,
+        exactCheckOut: exactCheckOutISO,
+        checkInDateTime: bookingData.checkInDateTime,
+        checkInTime: bookingData.checkInTime,
+        is24Hour: bookingData.is24Hour,
+        hourlyExtension: bookingData.hourlyExtension
+      });
+
+      const response = await apiClient.checkTimeSlotAvailability(
+        id as string,
+        exactCheckInISO,
+        exactCheckOutISO,
+        bookingData.hourlyExtension || 0
       );
+
       if (response.success && response.data) {
         // If backend explicitly says the slot is available, short-circuit to success
         if (response.data.available === true) {
@@ -1100,9 +1151,21 @@ export default function BookingPage() {
           return true;
         }
 
+        // If backend explicitly says NOT available, show clear message and stop
+        if (response.data.available === false) {
+          const errMsg = response.data.message
+            || response.data.conflicts?.dailyConflicts?.[0]?.reason
+            || 'Selected time slot is not available.';
+          console.log('❌ Slot-level availability returned false:', errMsg);
+          setBookingError(errMsg);
+          setAvailabilityLoading(false);
+          return false;
+        }
+
         const availabilityData = response.data.availability || [];
         console.log('Availability response received:', response);
         setAvailability(availabilityData);
+
 
         console.log('Availability data received:', availabilityData);
         const checkInDate = bookingData.checkIn instanceof Date ? bookingData.checkIn : new Date(bookingData.checkIn);
@@ -1287,7 +1350,7 @@ export default function BookingPage() {
         guests: bookingData.guests,
         hourlyExtension: bookingData.hourlyExtension || 0,
         couponCode: couponData?.code ?? (couponCode?.trim() || undefined),
-        bookingType: bookingData.is24Hour ? '24hour' : 'daily',
+        bookingType: (bookingData.is24Hour ? '24hour' : 'daily') as '24hour' | 'daily' | undefined,
         checkInDateTime: bookingData.checkInDateTime ? (bookingData.checkInDateTime instanceof Date ? bookingData.checkInDateTime.toISOString() : bookingData.checkInDateTime) : undefined,
         extensionHours: bookingData.extensionHours
       };
@@ -1538,7 +1601,61 @@ export default function BookingPage() {
       return;
     }
 
-    console.log('✅ All checks passed, blocking dates and showing payment modal');
+    console.log('✅ All checks passed, running backend pre-validation before payment...');
+
+    // ── BACKEND PRE-VALIDATION ────────────────────────────────────────────────
+    // Run ALL booking rules on the server BEFORE showing Razorpay.
+    // This guarantees that if payment succeeds, the booking creation will too.
+    // Without this, payment could be charged and then booking creation fails.
+    try {
+      setAvailabilityLoading(true);
+      const checkInDate = bookingData.checkIn instanceof Date ? bookingData.checkIn : new Date(bookingData.checkIn);
+      const checkOutDate = bookingData.checkOut instanceof Date ? bookingData.checkOut : new Date(bookingData.checkOut);
+
+      const preValidatePayload = {
+        propertyId: id as string,
+        checkIn: `${checkInDate.getFullYear()}-${String(checkInDate.getMonth() + 1).padStart(2, '0')}-${String(checkInDate.getDate()).padStart(2, '0')}T00:00:00.000Z`,
+        checkOut: `${checkOutDate.getFullYear()}-${String(checkOutDate.getMonth() + 1).padStart(2, '0')}-${String(checkOutDate.getDate()).padStart(2, '0')}T00:00:00.000Z`,
+        guests: bookingData.guests,
+        bookingDuration: bookingData.is24Hour ? '24hour' as const : 'daily' as const,
+        ...(bookingData.checkInDateTime && {
+          checkInDateTime: bookingData.checkInDateTime instanceof Date
+            ? bookingData.checkInDateTime.toISOString()
+            : bookingData.checkInDateTime,
+        }),
+        ...(bookingData.extensionHours !== undefined && bookingData.extensionHours !== null && {
+          extensionHours: bookingData.extensionHours,
+        }),
+        ...(bookingData.hourlyExtension && bookingData.hourlyExtension > 0 && {
+          hourlyExtension: { hours: bookingData.hourlyExtension },
+        }),
+      };
+
+      console.log('🔍 Running backend pre-validation...', preValidatePayload);
+      const preValidateResult = await apiClient.preValidateBooking(preValidatePayload);
+      setAvailabilityLoading(false);
+
+      if (!preValidateResult.success) {
+        const errMsg = (preValidateResult as any).errors?.join(', ')
+          || (preValidateResult as any).message
+          || 'Booking validation failed. Please check your dates and try again.';
+        console.error('❌ Backend pre-validation failed:', preValidateResult);
+        setBookingError(errMsg);
+        return;
+      }
+
+      console.log('✅ Backend pre-validation passed — safe to proceed with payment');
+    } catch (preValidateError: any) {
+      setAvailabilityLoading(false);
+      const errMsg = preValidateError?.response?.errors?.join(', ')
+        || preValidateError?.response?.message
+        || preValidateError?.message
+        || 'Booking validation failed. Please try again.';
+      console.error('❌ Pre-validation error:', preValidateError);
+      setBookingError(errMsg);
+      return;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     try {
       // Block dates now that user is initiating payment
@@ -1949,280 +2066,195 @@ export default function BookingPage() {
                   <p className="text-gray-600 leading-relaxed">{property.description?.substring(0, 200)}...</p>
                 </div>
 
-                {/* Booking Summary - Modern Design */}
+                {/* ── EDITABLE BOOKING DETAILS ─────────────────────────────── */}
                 <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl sm:rounded-3xl p-3 md:p-8 border border-indigo-200 mb-8">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-24 sm:w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center">
-                      <Sparkles className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-sm  sm:text-2xl font-bold text-gray-900">Complete Your Booking</h2>
-                      <p className="text-gray-600 text-sm sm:text-base">Just a few more details to secure your stay</p>
-                    </div>
-                  </div>
-
-                  {/* Selected Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-6 border border-indigo-100">
-                      <div className="flex items-center gap-3 mb-4">
-                        <Calendar className="w-5 h-5 text-indigo-600" />
-                        <h3 className="font-bold text-gray-900">Selected Dates</h3>
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
+                        <Calendar className="w-5 h-5 text-white" />
                       </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 text-sm whitespace-nowrap sm:text-base">Check-in : </span>
-                          <span className="font-semibold text-gray-900 text-sm whitespace-nowrap sm:text-base">
-                            {bookingData.checkIn.toLocaleDateString('en-US', {
-                              weekday: 'short',
-                              month: 'short',
-                              day: 'numeric'
-                            })}
-                            {(() => {
-                              const checkInTime = bookingData.checkInTime || property?.checkInTime || '15:00';
-                              const [hours, minutes] = checkInTime.split(':').map(Number);
-                              const time = new Date();
-                              time.setHours(hours, minutes, 0);
-                              return `, ${time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
-                            })()}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 text-sm whitespace-nowrap sm:text-base">Check-out :</span>
-                          <span className="font-semibold text-gray-900 text-sm  sm:text-base whitespace-nowrap">
-                            {bookingData.checkOut.toLocaleDateString('en-US', {
-                              weekday: 'short',
-                              month: 'short',
-                              day: 'numeric'
-                            })}
-
-                            {(() => {
-                              const checkInTime = bookingData.checkInTime || property?.checkInTime || '15:00';
-                              const [checkInHours, checkInMinutes] = checkInTime.split(':').map(Number);
-                              // Checkout = check-in time - 1 hour + extension
-                              let checkoutHours = checkInHours - 1;
-                              if (checkoutHours < 0) checkoutHours = 23;
-                              if (bookingData.hourlyExtension) {
-                                checkoutHours = (checkoutHours + bookingData.hourlyExtension) % 24;
-                              }
-                              const time = new Date();
-                              time.setHours(checkoutHours, checkInMinutes, 0);
-                              return `,  ${time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
-                            })()}
-
-
-
-
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between border-t border-gray-100 pt-2">
-                          <span className="text-gray-600">Duration:</span>
-                          <span className="font-semibold text-indigo-600">
-                            {Math.ceil((bookingData.checkOut.getTime() - bookingData.checkIn.getTime()) / (1000 * 60 * 60 * 24))} nights
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-white rounded-xl sm:rounded-2xl  p-2 sm:p6 border border-indigo-100">
-                      <div className="flex items-center gap-3 mb-4">
-                        <Users className="w-5 h-5 text-indigo-600" />
-                        <h3 className="font-bold text-gray-900 text-sm whitespace-nowrap sm:text-base">Guests</h3>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 text-sm whitespace-nowrap sm:text-base">Adults:</span>
-                          <span className="font-semibold text-gray-900 text-sm whitespace-nowrap sm:text-base">{bookingData.guests.adults}</span>
-                        </div>
-                        {bookingData.guests.children > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Children:</span>
-                            <span className="font-semibold text-gray-900">{bookingData.guests.children}</span>
-                          </div>
-                        )}
-                        {bookingData.guests.infants > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Infants:</span>
-                            <span className="font-semibold text-gray-900">{bookingData.guests.infants}</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between border-t border-gray-100 pt-2">
-                          <span className="text-gray-600">Total:</span>
-                          <span className="font-semibold text-indigo-600">
-                            {bookingData.guests.adults + bookingData.guests.children + bookingData.guests.infants} guests
-                          </span>
-                        </div>
+                      <div>
+                        <h2 className="text-base sm:text-lg font-bold text-gray-900">Booking Details</h2>
+                        <p className="text-xs text-gray-500">Edit dates, time &amp; extension</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Pre-selected Extras */}
-                  {(bookingData.specialRequests || bookingData.hourlyExtension) && (
-                    <div className="mt-6">
-                      <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <Gift className="w-5 h-5 text-indigo-600" />
-                        Selected Extras
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* {bookingData.specialRequests && (
-                          <div className="bg-white rounded-xl p-4 border border-indigo-100">
-                            <div className="flex items-start gap-3">
-                              <MessageCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-                              <div>
-                                <div className="font-semibold text-gray-900 text-sm">Special Requests</div>
-                                <div className="text-gray-600 text-sm mt-1">{bookingData.specialRequests}</div>
-                              </div>
-                            </div>
-                          </div>
-                        )} */}
-                        {bookingData.hourlyExtension && (
-                          <div className="bg-white rounded-xl p-4 border border-indigo-100">
-                            <div className="flex items-start gap-3">
-                              <Clock className="w-5 h-5 text-purple-600 mt-0.5" />
-                              <div>
-                                <div className="font-semibold text-gray-900 text-sm">Hourly Extension</div>
-                                <div className="text-gray-600 text-sm mt-1">
-                                  {bookingData.hourlyExtension} hours
-                                  {property?.hourlyBooking && (
-                                    <span className="text-purple-600 ml-2">
-                                      ({Math.round((property.hourlyBooking?.hourlyRates?.[`${bookingData.hourlyExtension === 6 ? 'six' : bookingData.hourlyExtension === 12 ? 'twelve' : 'eighteen'}Hours`] || 0) * 100)}% of daily rate)
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
+                  {/* ── Date Row ─── */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                    {/* Check-in date */}
+                    <div className="bg-white rounded-xl p-3 border border-indigo-100">
+                      <label className="block text-xs font-semibold text-indigo-600 mb-1 uppercase tracking-wide">
+                        Check-in Date
+                      </label>
+                      <input
+                        type="date"
+                        value={bookingData.checkIn instanceof Date
+                          ? bookingData.checkIn.toLocaleDateString('en-CA')
+                          : new Date(bookingData.checkIn).toLocaleDateString('en-CA')}
+                        min={new Date().toLocaleDateString('en-CA')}
+                        onChange={(e) => {
+                          if (!e.target.value) return;
+                          const [y, m, d] = e.target.value.split('-').map(Number);
+                          const newCheckIn = new Date(y, m - 1, d);
+                          // Keep check-out at least 1 day after new check-in
+                          const currentCheckOut = bookingData.checkOut instanceof Date
+                            ? bookingData.checkOut : new Date(bookingData.checkOut);
+                          const minCheckOut = new Date(newCheckIn);
+                          minCheckOut.setDate(minCheckOut.getDate() + 1);
+                          const newCheckOut = currentCheckOut > minCheckOut ? currentCheckOut : minCheckOut;
+                          // Rebuild checkInDateTime with the new date + same time
+                          const [ciH, ciM] = (bookingData.checkInTime || '15:00').split(':').map(Number);
+                          const newCIDT = new Date(newCheckIn);
+                          newCIDT.setHours(ciH, ciM, 0, 0);
+                          setBookingData(prev => ({
+                            ...prev,
+                            checkIn: newCheckIn,
+                            checkOut: newCheckOut,
+                            checkInDateTime: newCIDT,
+                          }));
+                        }}
+                        className="w-full text-sm font-semibold text-gray-900 border-0 bg-transparent focus:outline-none focus:ring-0 cursor-pointer"
+                      />
+                    </div>
+
+                    {/* Check-out date */}
+                    <div className="bg-white rounded-xl p-3 border border-indigo-100">
+                      <label className="block text-xs font-semibold text-purple-600 mb-1 uppercase tracking-wide">
+                        Check-out Date
+                      </label>
+                      <input
+                        type="date"
+                        value={bookingData.checkOut instanceof Date
+                          ? bookingData.checkOut.toLocaleDateString('en-CA')
+                          : new Date(bookingData.checkOut).toLocaleDateString('en-CA')}
+                        min={(() => {
+                          const ciDate = bookingData.checkIn instanceof Date
+                            ? bookingData.checkIn : new Date(bookingData.checkIn);
+                          const minCO = new Date(ciDate);
+                          minCO.setDate(minCO.getDate() + 1);
+                          return minCO.toLocaleDateString('en-CA');
+                        })()}
+                        onChange={(e) => {
+                          if (!e.target.value) return;
+                          const [y, m, d] = e.target.value.split('-').map(Number);
+                          const newCheckOut = new Date(y, m - 1, d);
+                          setBookingData(prev => ({ ...prev, checkOut: newCheckOut }));
+                        }}
+                        className="w-full text-sm font-semibold text-gray-900 border-0 bg-transparent focus:outline-none focus:ring-0 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* ── Check-in Time ─── */}
+                  <div className="bg-white rounded-xl p-3 border border-indigo-100 mb-4">
+                    <label className="block text-xs font-semibold text-indigo-600 mb-2 uppercase tracking-wide">
+                      <Clock className="w-3 h-3 inline mr-1" />
+                      Check-in Time
+                    </label>
+                    <TimeSpinner
+                      value={bookingData.checkInTime || "15:00"}
+                      minHour={6}
+                      maxHour={22}
+                      onChange={(newTime) => {
+                        const [h, m] = newTime.split(":").map(Number);
+                        const ciDate =
+                          bookingData.checkIn instanceof Date
+                            ? bookingData.checkIn
+                            : new Date(bookingData.checkIn);
+                        const newCIDT = new Date(ciDate);
+                        newCIDT.setHours(h, m || 0, 0, 0);
+                        setBookingData((prev) => ({
+                          ...prev,
+                          checkInTime: newTime,
+                          checkInDateTime: newCIDT,
+                        }));
+                      }}
+                    />
+                  </div>
+
+                  {/* ── Duration + Summary ─── */}
+                  <div className="flex items-center justify-between bg-white rounded-xl px-4 py-2.5 border border-indigo-100 mb-4">
+                    <div className="text-sm text-gray-600">
+                      <span className="font-semibold text-indigo-700">
+                        {Math.ceil((
+                          (bookingData.checkOut instanceof Date ? bookingData.checkOut : new Date(bookingData.checkOut)).getTime() -
+                          (bookingData.checkIn instanceof Date ? bookingData.checkIn : new Date(bookingData.checkIn)).getTime()
+                        ) / (1000 * 60 * 60 * 24))} nights
+                      </span>
+                      {' '}· Check-in{' '}
+                      <span className="font-medium">
+                        {(() => {
+                          const [h, m] = (bookingData.checkInTime || '15:00').split(':').map(Number);
+                          return `${h === 0 ? 12 : h > 12 ? h - 12 : h}:${String(m).padStart(2,'0')} ${h < 12 ? 'AM' : 'PM'}`;
+                        })()}
+                      </span>
+                      {' '}, Checkout{' '}
+                      <span className="font-medium">
+                        {(() => {
+                          const [h, m] = (bookingData.checkInTime || '15:00').split(':').map(Number);
+                          const coH = Math.max(0, h - 1) + (bookingData.hourlyExtension || 0);
+                          const finalH = coH % 24;
+                          return `${finalH === 0 ? 12 : finalH > 12 ? finalH - 12 : finalH}:${String(m).padStart(2,'0')} ${finalH < 12 ? 'AM' : 'PM'}`;
+                        })()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ── Hourly Extension ─── */}
+                  {property?.hourlyBooking?.enabled && (
+                    <div className="bg-white rounded-xl p-3 border border-indigo-100">
+                      <label className="block text-xs font-semibold text-purple-600 mb-2 uppercase tracking-wide">
+                        <Clock3 className="w-3 h-3 inline mr-1" />
+                        Hourly Extension <span className="text-gray-400 font-normal normal-case">(optional)</span>
+                      </label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {/* None */}
+                        <button
+                          type="button"
+                          onClick={() => setBookingData(prev => ({ ...prev, hourlyExtension: 0 }))}
+                          className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
+                            !bookingData.hourlyExtension
+                              ? 'bg-gray-800 text-white border-gray-800'
+                              : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-400'
+                          }`}
+                        >
+                          None
+                        </button>
+                        {[
+                          { hours: 6,  rate: property.hourlyBooking?.hourlyRates?.sixHours || 0.3,    label: '+6h' },
+                          { hours: 12, rate: property.hourlyBooking?.hourlyRates?.twelveHours || 0.6,  label: '+12h' },
+                          { hours: 18, rate: property.hourlyBooking?.hourlyRates?.eighteenHours || 0.75, label: '+18h' },
+                        ].map((opt) => (
+                          <button
+                            key={opt.hours}
+                            type="button"
+                            onClick={() => setBookingData(prev => ({
+                              ...prev,
+                              hourlyExtension: prev.hourlyExtension === opt.hours ? 0 : opt.hours
+                            }))}
+                            className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
+                              bookingData.hourlyExtension === opt.hours
+                                ? 'bg-purple-600 text-white border-purple-600'
+                                : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-purple-300'
+                            }`}
+                          >
+                            <div>{opt.label}</div>
+                            <div className="text-[10px] opacity-75">{Math.round(opt.rate * 100)}%</div>
+                          </button>
+                        ))}
                       </div>
                     </div>
                   )}
                 </div>
 
 
+
                 {/* Booking Form */}
                 <div className="space-y-8">
 
 
-                  {/* Hourly Booking Extension */}
-                  {property?.hourlyBooking?.enabled && (
-                    <div className="bg-white border border-gray-200 rounded-lg p-4 md:p-6">
-                      {/* <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4 flex flex-wrap items-center gap-2">
-      <Clock className="w-5 h-5 text-gray-500" />
-      <span className="whitespace-nowrap">Hourly Booking Extension</span>
-      <span className="text-gray-500 text-xs font-normal">(Optional)</span>
-      {bookingData.hourlyExtension && (
-        <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-[10px] md:text-xs font-medium rounded-full">
-          Pre-selected
-        </span>
-      )}
-    </h3> */}
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex flex-wrap items-center gap-x-2 gap-y-1">
-                        {/* Icon and Title Group */}
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-5 h-5 text-gray-500 shrink-0" />
-                          <span className="whitespace-nowrap">Hourly Extension</span>
-                        </div>
-
-                        {/* Badges Group - Will wrap together if space is tight */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-gray-500 text-xs font-normal whitespace-nowrap">
-                            (Optional)
-                          </span>
-                          {bookingData.hourlyExtension && (
-                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-medium rounded-full whitespace-nowrap">
-                              Selected
-                            </span>
-                          )}
-                        </div>
-                      </h3>
-                      <div className="space-y-4">
-                        <p className="text-xs md:text-sm text-gray-600">
-                          Extend your checkout time for additional hours at a discounted rate.
-                        </p>
-
-                        {/* Grid: Always 3 columns on mobile and desktop */}
-                        <div className="grid grid-cols-3 gap-2 md:gap-4">
-                          {[
-                            { hours: 6, rate: property.hourlyBooking?.hourlyRates?.sixHours || 0.3, label: '6 Hours', shortLabel: '6H' },
-                            { hours: 12, rate: property.hourlyBooking?.hourlyRates?.twelveHours || 0.6, label: '12 Hours', shortLabel: '12H' },
-                            { hours: 18, rate: property.hourlyBooking?.hourlyRates?.eighteenHours || 0.75, label: '18 Hours', shortLabel: '18H' }
-                          ].map((option) => (
-                            <div
-                              key={option.hours}
-                              className={`p-2 md:p-4 border-2 rounded-xl cursor-pointer transition-all text-center flex flex-col justify-center ${bookingData.hourlyExtension === option.hours
-                                  ? 'border-blue-500 bg-blue-50'
-                                  : 'border-gray-100 md:border-gray-200 hover:border-gray-300'
-                                }`}
-                              onClick={() => {
-                                const newExtension = bookingData.hourlyExtension === option.hours ? null : option.hours;
-                                updateLocalBookingData({ hourlyExtension: newExtension });
-                              }}
-                            >
-                              {/* Label: Short on mobile, Full on desktop */}
-                              <div className="font-bold text-gray-900 text-sm md:text-base">
-                                <span className="md:hidden">{option.shortLabel}</span>
-                                <span className="hidden md:inline">{option.label}</span>
-                              </div>
-
-                              {/* Discount Rate: Always visible */}
-                              <div className="text-[10px] md:text-sm text-gray-600 font-medium">
-                                {Math.round(option.rate * 100)}% <span className="hidden md:inline">of daily rate</span>
-                              </div>
-
-                              {/* Time: Hidden on mobile buttons, visible on desktop */}
-                              <div className="hidden md:block text-xs text-gray-500 mt-1">
-                                {(() => {
-                                  if (!bookingData.checkOut) return '...';
-                                  const [hours, minutes] = (property?.checkOutTime || '11:00').split(':').map(Number);
-                                  const baseCheckout = new Date(bookingData.checkOut);
-                                  baseCheckout.setHours(hours, minutes, 0, 0);
-                                  const newCheckout = new Date(baseCheckout);
-                                  newCheckout.setHours(newCheckout.getHours() + option.hours);
-                                  return newCheckout.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                                })()}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Selection Details: Shows the discount and new time clearly on mobile when selected */}
-                        {bookingData.hourlyExtension && (
-                          <div className="mt-4 p-2 sm:p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Clock className="w-4 h-4 text-blue-600" />
-                              <h4 className="font-semibold text-blue-900 text-sm md:text-base">Extension Selected</h4>
-                            </div>
-                            <div className="text-xs md:text-sm text-blue-700 space-y-1">
-                              <div className="flex justify-between">
-                                <span>Extension:</span>
-                                <span className="font-medium">{bookingData.hourlyExtension} hours</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Discounted Rate:</span>
-                                <span className="font-medium">
-                                  {Math.round((property.hourlyBooking?.hourlyRates?.[`${bookingData.hourlyExtension === 6 ? 'six' : bookingData.hourlyExtension === 12 ? 'twelve' : 'eighteen'}Hours`] || 0) * 100)}% of daily
-                                </span>
-                              </div>
-                              <div className="flex justify-between border-t border-blue-200 pt-1 mt-1">
-                                <span>New checkout time:</span>
-                                <span className="font-bold">
-                                  {(() => {
-                                    if (!bookingData.checkOut) return '...';
-                                    const [hours, minutes] = (property?.checkOutTime || '11:00').split(':').map(Number);
-                                    const baseCheckout = new Date(bookingData.checkOut);
-                                    baseCheckout.setHours(hours, minutes, 0, 0);
-                                    const newCheckout = new Date(baseCheckout);
-                                    newCheckout.setHours(newCheckout.getHours() + bookingData.hourlyExtension);
-                                    return newCheckout.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                                  })()}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
 
                   {/* Contact Information */}
                   <div className="hidden md:block bg-white border border-gray-200 rounded-lg p-6">

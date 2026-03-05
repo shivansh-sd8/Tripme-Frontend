@@ -134,6 +134,18 @@ export class AuthService {
   }
 
   public getToken(): string | null {
+    if (!this.token && typeof window !== 'undefined') {
+      // Fallback: if memory token is null but we are on client, try to read from storage
+      // This happens if the service was instantiated during SSR.
+      try {
+        const storedToken = localStorage.getItem('tripme_token') || localStorage.getItem('adminToken');
+        if (storedToken) {
+          this.token = storedToken;
+        }
+      } catch (error) {
+        console.error('Error reading token from localStorage:', error);
+      }
+    }
     return this.token;
   }
 
@@ -142,7 +154,7 @@ export class AuthService {
   }
 
   public isAdmin(): boolean {
-    return this.currentUser?.role === 'admin' || this.currentUser?.role === 'super-admin';
+    return this.currentUser?.role === 'admin' || (this.currentUser as any)?.role === 'super-admin';
   }
 
   public async adminLogout(): Promise<void> {

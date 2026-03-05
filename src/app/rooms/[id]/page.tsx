@@ -827,10 +827,12 @@ export default function PropertyDetailsPage() {
               console.log(`⏰ Hour restrictions for ${dateStr}:`, slot.availableHours);
             }
 
-            // Mark dates that are booked, blocked, maintenance, or unavailable
-            if (['booked', 'blocked', 'maintenance', 'unavailable'].includes(slot.status)) {
+            // Mark dates that are booked, blocked, maintenance, unavailable, or partially-available
+            // 'partially-available' = checkout day with time restriction — must appear blocked in calendar
+            // so users know they cannot freely check in at any time.
+            if (['booked', 'blocked', 'maintenance', 'unavailable', 'partially-available'].includes(slot.status)) {
               bookedSet.add(dateStr);
-              console.log(`📅 Marking ${dateStr} as booked/blocked (status: ${slot.status})`);
+              console.log(`📅 Marking ${dateStr} as blocked in calendar (status: ${slot.status})`);
             }
           });
 
@@ -1183,19 +1185,17 @@ export default function PropertyDetailsPage() {
             setAvailabilityLoading(false);
             return true;
           } else {
-            // Has conflicts
+            // Has conflicts — use the backend message directly if present.
+            // IMPORTANT: MobileBookingBar uses regex /after\s+([\d:]+\s*[AP]M)/i to extract
+            // the next-available time. The backend message is formatted as:
+            //   "Check-in not available. Available after 7:00 PM (previous guest + 2h buffer)"
+            // which matches that regex, so the nice 'Next Available' card is shown.
             const conflicts = slotResponse.data.conflicts;
-            let errorMsg = 'Selected time slot is not available.';
-            if (conflicts?.dailyConflicts?.length > 0) {
-              const conflictDates = conflicts.dailyConflicts.map((c: any) =>
-                new Date(c.date).toLocaleDateString()
-              ).join(', ');
-              errorMsg = `Dates not available: ${conflictDates}`;
-            }
-            if (slotResponse.data.nextAvailableSlot?.start) {
-              const nextDate = new Date(slotResponse.data.nextAvailableSlot.start);
-              if (!isNaN(nextDate.getTime())) {
-                errorMsg += ` Next available: ${nextDate.toLocaleString()}`;
+            let errorMsg = slotResponse.data.message || 'Selected time slot is not available.';
+            if (!slotResponse.data.message) {
+              if (conflicts?.dailyConflicts?.length > 0) {
+                const firstConflictReason = conflicts.dailyConflicts[0]?.reason;
+                errorMsg = firstConflictReason || `Dates not available: ${conflicts.dailyConflicts.map((c: any) => new Date(c.date).toLocaleDateString()).join(', ')}`;
               }
             }
             setAvailabilityError(errorMsg);
@@ -3180,19 +3180,23 @@ export default function PropertyDetailsPage() {
                         </div>
                       )}
 
-                      <div className="text-center">
+                      {/* Charge Information */}
+                      {/* <div className="text-center">
                         <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
                           <Lock className="w-4 h-4" />
                           You won't be charged yet
                         </p>
-                      </div>
+                      </div> */}
                     </div>
                   )}
 
                   {/* Additional Info */}
                   {!isOwnProperty && (
                     <div className="mt-4 text-center">
-                      <p className="text-sm text-gray-600">You won't be charged yet</p>
+                     <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
+                          <Lock className="w-4 h-4" />
+                          You won't be charged yet
+                        </p>
                     </div>
                   )}
 
@@ -3211,11 +3215,11 @@ export default function PropertyDetailsPage() {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <div className="font-medium text-gray-900 mb-1">Check-in</div>
-                        <div className="text-gray-600">{property.checkInTime || '15:00'}</div>
+                        <div className="text-gray-600">{property.checkInTime }</div>
                       </div>
                       <div>
                         <div className="font-medium text-gray-900 mb-1">Check-out</div>
-                        <div className="text-gray-600">{property.checkOutTime || '11:00'}</div>
+                        <div className="text-gray-600">{property.checkOutTime }</div>
                       </div>
                     </div>
                   </div>
