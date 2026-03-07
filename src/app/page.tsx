@@ -809,94 +809,89 @@ export default function Home() {
         {/* Latest Viewed Properties */}
 
 
-        <div className="block md:hidden  pt-[169px] pb-[120px]">
-          {/* Dynamic Cities Section */}
+        {(recentLoading || recentSearches.length > 0) && (
+          <div className="block md:hidden  pt-[169px] pb-[100px] ">
+            {/* Dynamic Cities Section */}
 
-          <section className="px-4 pb-2">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Recently Viewed</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Pick up where you left off</p>
-              </div>
-              {recentSearches.length > 0 && (
-                <button
-                  onClick={() => { clearRecentSearches(); setRecentSearches([]); }}
-                  className="text-xs font-semibold text-gray-400 underline"
-                >
-                  Clear all
-                </button>
-              )}
-            </div>
-
-            {recentLoading ? (
-              <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="min-w-[220px] rounded-2xl overflow-hidden animate-pulse">
-                    <div className="h-[150px] bg-gray-200 rounded-2xl mb-3" />
-                    <div className="h-3 bg-gray-200 rounded w-3/4 mb-2" />
-                    <div className="h-3 bg-gray-100 rounded w-1/2" />
-                  </div>
-                ))}
-              </div>
-            ) : recentSearches.length > 0 ? (
-              <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
-                {recentSearches.slice(0, MAX_RECENT_SEARCHES).map((stay: any, index: number) => (
-                  <div
-                    key={`${stay.id || stay._id || 'recent'}-${index}`}
-                    className="min-w-[220px] max-w-[220px] flex-shrink-0 cursor-pointer group"
-                    onClick={() => handlePropertyNavigation(stay)}
-                  >
-                    {/* Image */}
-                    <div className="relative rounded-2xl overflow-hidden aspect-[4/3] mb-2.5 bg-gray-100">
-                      <img
-                        src={stay.images?.[0] || '/placeholder-hotel.jpg'}
-                        alt={stay.title || 'Property'}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      {/* Rating badge */}
-                      {stay.rating > 0 && (
-                        <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                          {stay.rating?.toFixed ? stay.rating.toFixed(1) : stay.rating}
-                        </div>
-                      )}
-                      {/* Heart */}
-                      <button
-                        className="absolute top-2 right-2 w-7 h-7 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm"
-                        onClick={e => { e.stopPropagation(); }}
-                      >
-                        <Heart className="w-3.5 h-3.5 text-gray-700" />
-                      </button>
-                    </div>
-
-                    {/* Info */}
-                    <div className="space-y-0.5 px-0.5">
-                      <h3 className="font-semibold text-sm text-gray-900 line-clamp-1 leading-tight">
-                        {stay.title || 'Untitled Property'}
-                      </h3>
-                      <p className="text-xs text-gray-400 line-clamp-1">
-                        {[stay.location?.city, stay.location?.state].filter(Boolean).join(', ')}
-                      </p>
-                      <p className="text-sm font-bold text-gray-900 pt-0.5">
-                        {formatPrice(stay.price?.amount || 0, stay.price?.currency || 'INR')}
-                        <span className="font-normal text-gray-500 text-xs"> / night</span>
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Clock className="w-6 h-6 text-gray-400" />
+            <section className="px-4 pb-2">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Recently Viewed</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">Pick up where you left off</p>
                 </div>
-                <p className="text-sm text-gray-500">No recently viewed properties yet.</p>
-                <p className="text-xs text-gray-400 mt-1">Browse properties and they'll appear here.</p>
+                {recentSearches.length > 0 && (
+                  <button
+                    onClick={() => { clearRecentSearches(); setRecentSearches([]); }}
+                    className="text-xs font-semibold text-gray-400 underline"
+                  >
+                    Clear all
+                  </button>
+                )}
               </div>
-            )}
-          </section>
 
-          <section className="py-20 bg-white">
+              {recentLoading ? (
+                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="min-w-[220px] rounded-2xl overflow-hidden animate-pulse">
+                      <div className="h-[150px] bg-gray-200 rounded-2xl mb-3" />
+                      <div className="h-3 bg-gray-200 rounded w-3/4 mb-2" />
+                      <div className="h-3 bg-gray-100 rounded w-1/2" />
+                    </div>
+                  ))}
+                </div>
+              ) : recentSearches.length > 0 ? (
+                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
+                  {recentSearches.slice(0, MAX_RECENT_SEARCHES).map((stay: any, index: number) => (
+                    <div
+                      key={`${stay.id || stay._id || 'recent'}-${index}`}
+                      className="min-w-[220px] max-w-[220px] flex-shrink-0 cursor-pointer group"
+                      onClick={() => handlePropertyNavigation(stay)}
+                    >
+                      {/* Image */}
+                      <div className="relative rounded-2xl overflow-hidden aspect-[4/3] mb-2.5 bg-gray-100">
+                        <img
+                          src={stay.images?.[0] || '/placeholder-hotel.jpg'}
+                          alt={stay.title || 'Property'}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        {/* Rating badge */}
+                        {stay.rating > 0 && (
+                          <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                            {stay.rating?.toFixed ? stay.rating.toFixed(1) : stay.rating}
+                          </div>
+                        )}
+                        {/* Heart */}
+                        <button
+                          className="absolute top-2 right-2 w-7 h-7 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm"
+                          onClick={e => { e.stopPropagation(); }}
+                        >
+                          <Heart className="w-3.5 h-3.5 text-gray-700" />
+                        </button>
+                      </div>
+
+                      {/* Info */}
+                      <div className="space-y-0.5 px-0.5">
+                        <h3 className="font-semibold text-sm text-gray-900 line-clamp-1 leading-tight">
+                          {stay.title || 'Untitled Property'}
+                        </h3>
+                        <p className="text-xs text-gray-400 line-clamp-1">
+                          {[stay.location?.city, stay.location?.state].filter(Boolean).join(', ')}
+                        </p>
+                        <p className="text-sm font-bold text-gray-900 pt-0.5">
+                          {formatPrice(stay.price?.amount || 0, stay.price?.currency || 'INR')}
+                          <span className="font-normal text-gray-500 text-xs"> / night</span>
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          </div>
+        )}
+
+          <section className="md:hidden py-10 bg-white ">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-8">Popular Destinations</h2>
 
@@ -962,7 +957,7 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="px-4 pt-8">
+          <section className="md:hidden px-4 pt-8 ">
             <h2 className="text-xl font-semibold mb-3">
               Active coupons
             </h2>
@@ -1037,7 +1032,7 @@ export default function Home() {
             </section>
           )} */}
 
-            <section className="py-20 bg-gray-50">
+            <section className="md:hidden py-20 bg-gray-50">
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
     {/* Heading */}
@@ -1246,13 +1241,6 @@ export default function Home() {
               </div>
             </div>
           </div>
-
-
-
-
-        </div>
-
-
         <div className="hidden md:block">
           {/* Hero Section - Two Column Layout Inspired by Image */}
           <section className="relative min-h-screen flex items-center pt-32 pb-8">
@@ -1329,21 +1317,21 @@ export default function Home() {
                 </div>
 
                 {recentLoading ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
+                  <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
                     {[1, 2, 3, 4, 5].map(i => (
-                      <div key={i} className="rounded-2xl overflow-hidden animate-pulse">
-                        <div className="aspect-[4/3] bg-gray-200 rounded-2xl mb-3" />
+                      <div key={i} className="min-w-[220px] max-w-[220px] rounded-2xl overflow-hidden animate-pulse">
+                        <div className="h-[170px] bg-gray-200 rounded-2xl mb-3" />
                         <div className="h-3 bg-gray-200 rounded w-3/4 mb-2" />
                         <div className="h-3 bg-gray-100 rounded w-1/2" />
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
+                  <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
                     {recentSearches.slice(0, MAX_RECENT_SEARCHES).map((stay: any, index: number) => (
                       <div
                         key={`${stay.id || stay._id || 'recent'}-${index}`}
-                        className="cursor-pointer group"
+                        className="min-w-[240px] max-w-[240px] flex-shrink-0 cursor-pointer group"
                         onClick={() => handlePropertyNavigation(stay)}
                       >
                         {/* Image */}
@@ -1362,7 +1350,7 @@ export default function Home() {
                           )}
                           {/* Heart */}
                           <button
-                            className="absolute top-2.5 right-2.5 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow hover:bg-white transition-colors"
+                            className="absolute top-2.5 right-2.5 w-8 h-8 bg-white/85 backdrop-blur-sm rounded-full flex items-center justify-center shadow hover:bg-white transition-colors"
                             onClick={e => { e.stopPropagation(); }}
                           >
                             <Heart className="w-4 h-4 text-gray-700" />
