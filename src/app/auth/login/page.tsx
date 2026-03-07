@@ -119,35 +119,41 @@ export default function LoginPage() {
     } catch (error: unknown) {
       console.error('Login error:', error);
       
-      const errorObj = error as { status?: number; message?: string; details?: { errors?: Array<{ field?: string; message: string }> } };
+      const errorObj = error as { 
+        status?: number; 
+        message?: string; 
+        errors?: Array<{ field?: string; message: string }>;
+        details?: { errors?: Array<{ field?: string; message: string }> };
+        response?: { errors?: Array<{ field?: string; message: string }> };
+      };
       
+      const backendErrors = errorObj.errors 
+        || errorObj.details?.errors 
+        || errorObj.response?.errors 
+        || [];
+
       if (errorObj.status === 401) {
         setErrors({ general: 'Invalid email or password.' });
-      } else if (errorObj.status === 400) {
-        // Handle validation errors
-        if (errorObj.message === 'Validation error' && errorObj.details) {
-          const fieldErrors: Record<string, string> = {};
-          
-          if (errorObj.details.errors) {
-            errorObj.details.errors.forEach((err: { field?: string; message: string }) => {
-              if (err.field) {
-                fieldErrors[err.field] = err.message;
-              }
-            });
+      } else if (backendErrors.length > 0) {
+        const fieldErrors: Record<string, string> = {};
+
+        backendErrors.forEach((err) => {
+          if (err.field) {
+            fieldErrors[err.field] = err.message;
           }
-          
-          if (Object.keys(fieldErrors).length === 0) {
-            setErrors({ general: 'Please check your input and try again.' });
-          } else {
-            setErrors(fieldErrors);
-          }
+        });
+
+        if (Object.keys(fieldErrors).length === 0) {
+          setErrors({ general: backendErrors[0]?.message || 'Please check your input and try again.' });
         } else {
-          setErrors({ general: errorObj.message || 'Please check your input and try again.' });
+          setErrors(fieldErrors);
         }
+      } else if (errorObj.status === 400) {
+        setErrors({ general: errorObj.message || 'Please check your input and try again.' });
       } else if (errorObj.status === 0) {
         setErrors({ general: 'Network error. Please check your connection.' });
       } else {
-        setErrors({ general: 'Login failed. Please try again.' });
+        setErrors({ general: errorObj.message || 'Login failed. Please try again.' });
       }
     } finally {
       setLoading(false);

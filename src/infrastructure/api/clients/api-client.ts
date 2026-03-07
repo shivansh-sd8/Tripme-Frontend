@@ -54,11 +54,13 @@ class ApiClient {
       // console.log(`🔍 API Response data stringified:`, JSON.stringify(data, null, 2));
 
       if (!response.ok) {
+        const normalizedErrors = data?.errors || data?.details?.errors || [];
         const error: any = {
           status: response.status,
-          message: data.message || data.error || 'Request failed',
-          errors: data.errors || [],
-          details: data.details,
+          message: data?.message || data?.error || 'Request failed',
+          errors: normalizedErrors,
+          // Provide a stable place for validation issues
+          details: data?.details || { errors: normalizedErrors },
           response: data
         };
         console.error('❌ API Error object:', error);

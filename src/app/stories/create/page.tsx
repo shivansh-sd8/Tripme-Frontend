@@ -56,6 +56,7 @@ const CreateStoryPage = () => {
   const [isPublished, setIsPublished] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const categories = [
@@ -226,19 +227,19 @@ const CreateStoryPage = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 overflow-x-hidden">
       <Header />
       
-      <main className="pt-48 pb-12">
+      <main className="pt-28 pb-10 sm:pt-36 md:pt-44 lg:pt-48">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                 <Button 
                   onClick={() => router.push('/stories')}
                   variant="outline"
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 w-full sm:w-auto"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back to Stories
@@ -248,7 +249,7 @@ const CreateStoryPage = () => {
                     <BookOpen className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent font-display">
+                    <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent font-display">
                       Create Your Story
                     </h1>
                     <p className="text-gray-600 font-body">Share your amazing travel experiences</p>
@@ -256,11 +257,11 @@ const CreateStoryPage = () => {
                 </div>
               </div>
               
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
                 <Button
                   onClick={() => setPreviewMode(!previewMode)}
                   variant="outline"
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 w-full sm:w-auto"
                 >
                   <Eye className="w-4 h-4" />
                   {previewMode ? 'Edit' : 'Preview'}
@@ -268,7 +269,7 @@ const CreateStoryPage = () => {
                 <Button
                   onClick={handleSubmit}
                   disabled={loading}
-                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium rounded-xl transition-all duration-300 hover:shadow-xl hover:scale-105 border-0 shadow-lg"
+                  className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium rounded-xl transition-all duration-300 hover:shadow-xl hover:scale-105 border-0 shadow-lg"
                 >
                   {loading ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -281,10 +282,10 @@ const CreateStoryPage = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
             {/* Main Editor */}
             <div className="lg:col-span-2">
-              <Card className="p-8 bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl">
+              <Card className="p-6 sm:p-8 bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl">
                 {/* Featured Image */}
                 <div className="mb-8">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -295,7 +296,7 @@ const CreateStoryPage = () => {
                       <img
                         src={featuredImage}
                         alt="Featured"
-                        className="w-full h-64 object-cover rounded-xl"
+                        className="w-full h-48 sm:h-64 object-cover rounded-xl"
                       />
                       <button
                         onClick={() => setFeaturedImage('')}
@@ -331,7 +332,7 @@ const CreateStoryPage = () => {
                     placeholder="Your story title..."
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full text-4xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none bg-transparent resize-none font-display"
+                    className="w-full text-3xl sm:text-4xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none bg-transparent resize-none font-display"
                     style={{ minHeight: '60px' }}
                   />
                 </div>
@@ -358,9 +359,8 @@ const CreateStoryPage = () => {
                     contentEditable={!previewMode}
                     suppressContentEditableWarning
                     onInput={(e) => setContent(e.currentTarget.textContent || '')}
-                    className="w-full text-lg text-gray-700 leading-relaxed min-h-[400px] border-none outline-none bg-transparent resize-none prose prose-lg max-w-none"
+                    className="w-full text-base sm:text-lg text-gray-700 leading-relaxed min-h-[320px] sm:min-h-[400px] border-none outline-none bg-transparent resize-none prose prose-lg max-w-none"
                     style={{ 
-                      minHeight: '400px',
                       whiteSpace: 'pre-wrap'
                     }}
                   >
@@ -377,9 +377,9 @@ const CreateStoryPage = () => {
 
             {/* Sidebar */}
             <div className="lg:col-span-1">
-              <div className="sticky top-24 space-y-6">
+              <div className="space-y-6 lg:sticky lg:top-24">
                 {/* Publish Settings */}
-                <Card className="p-6 bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl">
+                <Card className="p-5 sm:p-6 bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4">Publish Settings</h3>
                   <div className="space-y-4">
                     <div>
@@ -497,7 +497,7 @@ const CreateStoryPage = () => {
                 </Card>
 
                 {/* Additional Images */}
-                <Card className="p-6 bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl">
+                <Card className="p-5 sm:p-6 bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4">Additional Images</h3>
                   <div className="space-y-4">
                     {images.map((image, index) => (
@@ -516,14 +516,21 @@ const CreateStoryPage = () => {
                       </div>
                     ))}
                     <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full h-32 border-2 border-dashed border-purple-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-purple-400 transition-colors"
+                      onClick={() => galleryInputRef.current?.click()}
+                      className="w-full h-28 sm:h-32 border-2 border-dashed border-purple-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-purple-400 transition-colors"
                     >
                       <div className="text-center">
                         <Plus className="w-8 h-8 text-purple-400 mx-auto mb-2" />
                         <p className="text-sm text-gray-600">Add more images</p>
                       </div>
                     </button>
+                    <input
+                      ref={galleryInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAddImage}
+                      className="hidden"
+                    />
                   </div>
                 </Card>
               </div>
