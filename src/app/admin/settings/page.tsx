@@ -57,7 +57,12 @@ interface SystemSettings {
     currency: string;
     commission: number;
     platformFeeRate: number;
-    platformFeePercentage: string;
+    platformFeePercentage: number;
+    gstRate: number;
+    gstPercentage: number;
+    processingFeeRate: number;
+    processingFeePercentage: number;
+    processingFeeFixed: number;
     autoPayout: boolean;
     minPayout: number;
   };
@@ -93,8 +98,13 @@ export default function AdminSettings() {
     payments: {
       currency: 'INR',
       commission: 15,
-      platformFeeRate: 0.10, // This will be updated by the API call
-      platformFeePercentage: '15.0',
+      platformFeeRate: 0.10, // decimal form
+      platformFeePercentage: 10,
+      gstRate: 0.18,
+      gstPercentage: 18,
+      processingFeeRate: 0.029,
+      processingFeePercentage: 2.9,
+      processingFeeFixed: 30,
       autoPayout: false,
       minPayout: 1000
     },
@@ -136,16 +146,22 @@ export default function AdminSettings() {
         }));
       }
       
-      // Fetch current platform fee rate
+      // Fetch current platform/fee rates
       try {
         const feeResponse = await apiClient.get('/admin/pricing/platform-fee');
         if (feeResponse.success) {
+          const data = feeResponse.data;
           setSettings(prev => ({
             ...prev,
             payments: {
               ...prev.payments,
-              platformFeeRate: feeResponse.data.platformFeeRate,
-              platformFeePercentage: feeResponse.data.platformFeePercentage
+              platformFeeRate: data.platformFeeRate,
+              platformFeePercentage: Number(data.platformFeeRate * 100),
+              gstRate: data.gstRate ?? prev.payments.gstRate,
+              gstPercentage: Number((data.gstRate ?? prev.payments.gstRate) * 100),
+              processingFeeRate: data.processingFeeRate ?? prev.payments.processingFeeRate,
+              processingFeePercentage: Number((data.processingFeeRate ?? prev.payments.processingFeeRate) * 100),
+              processingFeeFixed: data.processingFeeFixed ?? prev.payments.processingFeeFixed
             }
           }));
         }
@@ -178,8 +194,11 @@ export default function AdminSettings() {
     try {
       setSaving(true);
       const response = await apiClient.put('/admin/pricing/platform-fee', {
-        platformFeeRate: newRate / 100, // Convert percentage to decimal
-        changeReason: changeReason || 'Platform fee rate updated via admin panel'
+        platformFeeRate: newRate / 100, // percentage -> decimal
+        gstRate: settings.payments.gstPercentage / 100,
+        processingFeeRate: settings.payments.processingFeePercentage / 100,
+        processingFeeFixed: settings.payments.processingFeeFixed,
+        changeReason: changeReason || 'Platform fee configuration updated via admin panel'
       });
       
       if (response.success) {
@@ -188,8 +207,13 @@ export default function AdminSettings() {
           ...prev,
           payments: {
             ...prev.payments,
-            platformFeeRate: newRate / 100,
-            platformFeePercentage: newRate.toFixed(1)
+            platformFeeRate: response.data.newConfig?.platformFeeRate ?? newRate / 100,
+            platformFeePercentage: Number(response.data.newConfig?.platformFeePercentage ?? newRate.toFixed(1)),
+            gstRate: response.data.newConfig?.gstRate ?? (settings.payments.gstPercentage / 100),
+            gstPercentage: Number(response.data.newConfig?.gstPercentage ?? settings.payments.gstPercentage),
+            processingFeeRate: response.data.newConfig?.processingFeeRate ?? (settings.payments.processingFeePercentage / 100),
+            processingFeePercentage: Number(response.data.newConfig?.processingFeePercentage ?? settings.payments.processingFeePercentage),
+            processingFeeFixed: response.data.newConfig?.processingFeeFixed ?? settings.payments.processingFeeFixed
           }
         }));
         console.log('Platform fee rate updated successfully');
@@ -552,49 +576,115 @@ export default function AdminSettings() {
                 </div>
               </div>
               
-              {/* Platform Fee Management */}
-              <div className="border-t pt-6">
-                <h4 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
+              {/* Platform / Tax / Processing Fees */}
+              <div className="border-t pt-6 space-y-4">
+                <h4 className="text-md font-semibold text-gray-900 flex items-center">
                   <CreditCard className="w-5 h-5 mr-2" />
-                  Platform Fee Management
+                  Platform & Fee Management
                 </h4>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-blue-900">Current Platform Fee Rate</p>
-                      <p className="text-2xl font-bold text-blue-600">{settings.payments.platformFeePercentage}%</p>
-                      <p className="text-xs text-blue-700">Applied to all new bookings</p>
-                    </div>
-                    <div className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const newRate = prompt('Enter new platform fee rate (0-100):', settings.payments.platformFeePercentage);
-                          if (newRate && !isNaN(parseFloat(newRate))) {
-                            const rate = parseFloat(newRate);
-                            if (rate >= 0 && rate <= 100) {
-                              const reason = prompt('Enter reason for change (optional):', '');
-                              updatePlatformFeeRate(rate, reason || '');
-                            } else {
-                              alert('Rate must be between 0 and 100');
-                            }
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">Platform Fee (%)</p>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={settings.payments.platformFeePercentage}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value || '0');
+                        setSettings(prev => ({
+                          ...prev,
+                          payments: {
+                            ...prev.payments,
+                            platformFeePercentage: val,
+                            platformFeeRate: val / 100
                           }
-                        }}
-                        disabled={saving}
-                      >
-                        {saving ? (
-                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
-                        ) : (
-                          <Settings className="w-4 h-4 mr-2" />
-                        )}
-                        Update Rate
-                      </Button>
-                    </div>
+                        }));
+                      }}
+                    />
+                    <p className="text-xs text-blue-700 mt-1">TripMe service fee applied to booking subtotal.</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">GST (%)</p>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={settings.payments.gstPercentage}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value || '0');
+                        setSettings(prev => ({
+                          ...prev,
+                          payments: {
+                            ...prev.payments,
+                            gstPercentage: val,
+                            gstRate: val / 100
+                          }
+                        }));
+                      }}
+                    />
+                    <p className="text-xs text-blue-700 mt-1">Applied on subtotal (including security deposit).</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">Processing Fee (%)</p>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={settings.payments.processingFeePercentage}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value || '0');
+                        setSettings(prev => ({
+                          ...prev,
+                          payments: {
+                            ...prev.payments,
+                            processingFeePercentage: val,
+                            processingFeeRate: val / 100
+                          }
+                        }));
+                      }}
+                    />
+                    <p className="text-xs text-blue-700 mt-1">Percent applied on subtotal for payment processing.</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">Processing Fee (₹ fixed)</p>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={settings.payments.processingFeeFixed}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value || '0');
+                        setSettings(prev => ({
+                          ...prev,
+                          payments: {
+                            ...prev.payments,
+                            processingFeeFixed: val
+                          }
+                        }));
+                      }}
+                    />
+                    <p className="text-xs text-blue-700 mt-1">Flat fee added per booking.</p>
                   </div>
                 </div>
+                <div className="flex items-center justify-end">
+                  <Button
+                    onClick={() => updatePlatformFeeRate(settings.payments.platformFeePercentage, '')}
+                    disabled={saving}
+                  >
+                    {saving ? (
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
+                    ) : (
+                      <Settings className="w-4 h-4 mr-2" />
+                    )}
+                    Save Fee Settings
+                  </Button>
+                </div>
                 <p className="text-xs text-gray-500">
-                  Platform fee is calculated as a percentage of the booking subtotal and affects all new bookings immediately.
+                  These fees apply to all new bookings immediately after saving.
                 </p>
               </div>
               

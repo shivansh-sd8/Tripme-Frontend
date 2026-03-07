@@ -201,7 +201,7 @@ export default function PricingBreakdown({
                 </div>
                 
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-600">Processing fee (2.9% + ₹30)</span>
+                  <span className="text-gray-600">Processing fee </span>
                   <span className="text-gray-900">{formatPrice(processingFee)}</span>
                 </div>
               </div>

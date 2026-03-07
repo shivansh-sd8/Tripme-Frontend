@@ -281,7 +281,7 @@ export default function AdminFeaturedPage() {
           {/* ── Tabs + Search + Filter ───────────────────────────── */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-5">
             {/* Tabs */}
-            <div className="flex gap-2 mb-5 overflow-x-auto">
+            <div className="flex flex-wrap gap-2 mb-5">
               {(
                 [
                   { key: 'all', label: 'All Listings', icon: BarChart2, count: totalListings },

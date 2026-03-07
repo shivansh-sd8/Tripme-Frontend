@@ -35,6 +35,7 @@ class ApiClient {
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
+   
 
     const config: RequestInit = {
       ...options,
@@ -53,11 +54,13 @@ class ApiClient {
       // console.log(`🔍 API Response data stringified:`, JSON.stringify(data, null, 2));
 
       if (!response.ok) {
+        const normalizedErrors = data?.errors || data?.details?.errors || [];
         const error: any = {
           status: response.status,
-          message: data.message || data.error || 'Request failed',
-          errors: data.errors || [],
-          details: data.details,
+          message: data?.message || data?.error || 'Request failed',
+          errors: normalizedErrors,
+          // Provide a stable place for validation issues
+          details: data?.details || { errors: normalizedErrors },
           response: data
         };
         console.error('❌ API Error object:', error);
@@ -550,6 +553,28 @@ class ApiClient {
   async deleteService(id: string): Promise<ApiResponse<void>> {
     return this.request(`/services/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  // Pre-validate booking BEFORE showing Razorpay UI
+  // Call this first — if it fails, don't open payment at all
+  async preValidateBooking(bookingData: {
+    propertyId?: string;
+    listingId?: string;
+    serviceId?: string;
+    checkIn: string;
+    checkOut: string;
+    checkInDateTime?: string;
+    bookingDuration?: 'daily' | '24hour';
+    guests: { adults: number; children?: number; infants?: number };
+    hourlyExtension?: any;
+    extensionHours?: number;
+    isLateCheckIn?: boolean;
+  }): Promise<ApiResponse<{ validationToken: string; expiresAt: string; is24HourBooking: boolean }>> {
+    console.log('Booking data before pre-validation:', bookingData);
+    return this.request('/bookings/pre-validate', {
+      method: 'POST',
+      body: JSON.stringify(bookingData),
     });
   }
 
