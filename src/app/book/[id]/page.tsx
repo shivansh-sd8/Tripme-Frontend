@@ -1332,6 +1332,33 @@ export default function BookingPage() {
     }
   };
 
+  // Compute isLateCheckIn: check-in at or after 4 PM with 24-hour pricing available
+  const parseTimeToMinutes = (time?: string | null) => {
+    if (!time) return 0;
+    const [h, m] = time.split(':').map(Number);
+    return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
+  };
+
+  const isLateCheckIn = (() => {
+    if (!property) return false;
+    const selectedTime = bookingData.checkInTime || property?.checkInTime || '15:00';
+    const thresholdTime = '16:00';
+    const base24 = property.pricing?.basePrice24Hour || 0;
+    const allow24 = property.enable24HourBooking || base24 > 0;
+    return allow24 && parseTimeToMinutes(selectedTime) >= parseTimeToMinutes(thresholdTime);
+  })();
+
+  // is24HourBooking: single-night + late check-in
+  const is24HourBookingComputed = (() => {
+    if (!property) return false;
+    const ciDate = bookingData.checkIn instanceof Date ? bookingData.checkIn : new Date(bookingData.checkIn);
+    const coDate = bookingData.checkOut instanceof Date ? bookingData.checkOut : new Date(bookingData.checkOut);
+    const startDay = new Date(ciDate.getFullYear(), ciDate.getMonth(), ciDate.getDate());
+    const endDay = new Date(coDate.getFullYear(), coDate.getMonth(), coDate.getDate());
+    const isSingleNight = endDay.getTime() - startDay.getTime() === 24 * 60 * 60 * 1000;
+    return isLateCheckIn && isSingleNight;
+  })();
+
   // Get price breakdown from secure backend
   const getSecurePricing = async () => {
     if (!property || !bookingData.checkIn || !bookingData.checkOut) {
@@ -1350,9 +1377,11 @@ export default function BookingPage() {
         guests: bookingData.guests,
         hourlyExtension: bookingData.hourlyExtension || 0,
         couponCode: couponData?.code ?? (couponCode?.trim() || undefined),
-        bookingType: (bookingData.is24Hour ? '24hour' : 'daily') as '24hour' | 'daily' | undefined,
+        bookingType: (is24HourBookingComputed ? '24hour' : (bookingData.is24Hour ? '24hour' : 'daily')) as '24hour' | 'daily' | undefined,
         checkInDateTime: bookingData.checkInDateTime ? (bookingData.checkInDateTime instanceof Date ? bookingData.checkInDateTime.toISOString() : bookingData.checkInDateTime) : undefined,
-        extensionHours: bookingData.extensionHours
+        extensionHours: bookingData.extensionHours,
+        // When check-in is after 4 PM for multi-night bookings, apply 24-hour price per night
+        isLateCheckIn: isLateCheckIn && !is24HourBookingComputed ? true : undefined
       };
 
       // Validate request before sending
@@ -1378,7 +1407,7 @@ export default function BookingPage() {
       });
 
       const newPriceBreakdown = {
-        basePrice: bookingData.is24Hour
+        basePrice: (isLateCheckIn || bookingData.is24Hour)
           ? property.pricing?.basePrice24Hour || property.pricing?.basePrice || 0
           : property.pricing?.basePrice || 0,
         discountAmount: pricing.discountAmount || couponFromPricing?.discountAmount || 0,
@@ -1723,6 +1752,22 @@ export default function BookingPage() {
         checkOutIsDate: bookingData.checkOut instanceof Date
       });
 
+      // Compute isLateCheckIn fresh at booking time (same logic as the pricing useEffect)
+      // so the booking backend uses the exact same base price that Razorpay was charged.
+      const _parseMin = (t?: string | null) => {
+        if (!t) return 0;
+        const [h, m] = t.split(':').map(Number);
+        return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
+      };
+      const _selectedTime = bookingData.checkInTime || property?.checkInTime || '15:00';
+      const _base24 = property?.pricing?.basePrice24Hour || 0;
+      const _allow24 = property?.enable24HourBooking || _base24 > 0;
+      const _lateCheckIn = _allow24 && _parseMin(_selectedTime) >= _parseMin('16:00');
+      const _startDay = new Date(checkInDate.getFullYear(), checkInDate.getMonth(), checkInDate.getDate());
+      const _endDay = new Date(checkOutDate.getFullYear(), checkOutDate.getMonth(), checkOutDate.getDate());
+      const _isSingleNight = _endDay.getTime() - _startDay.getTime() === 24 * 60 * 60 * 1000;
+      const _is24Computed = _lateCheckIn && _isSingleNight;
+
       // New flow: Process payment and create booking in one call
       const bookingPayload = {
         propertyId: id,
@@ -1745,7 +1790,11 @@ export default function BookingPage() {
         ...(bookingData.checkInTime && { checkInTime: bookingData.checkInTime }),
         ...(bookingData.checkInDateTime && { checkInDateTime: bookingData.checkInDateTime instanceof Date ? bookingData.checkInDateTime.toISOString() : bookingData.checkInDateTime }),
         ...(bookingData.extensionHours !== undefined && bookingData.extensionHours !== null && { extensionHours: bookingData.extensionHours }),
-        ...(bookingData.is24Hour && { bookingDuration: '24hour' }),
+        // bookingDuration: '24hour' for both explicit 24h flag and computed single-night late check-in
+        ...((bookingData.is24Hour || _is24Computed) && { bookingDuration: '24hour' }),
+        // isLateCheckIn: true when check-in >= 4 PM for multi-night daily bookings
+        // This tells the backend to use basePrice24Hour per night (same as the pricing API did)
+        ...(_lateCheckIn && !_is24Computed && { isLateCheckIn: true }),
         ...(bookingData.couponCode && bookingData.couponCode.trim() && { couponCode: bookingData.couponCode.trim() }),
         ...(bookingData.hourlyExtension && bookingData.hourlyExtension > 0 && property?.hourlyBooking?.enabled && {
           hourlyExtension: {
@@ -1756,8 +1805,9 @@ export default function BookingPage() {
         }),
         // Include pricing token for backend validation (prevents price manipulation)
         ...(priceBreakdown?.pricingToken && { pricingToken: priceBreakdown.pricingToken }),
-        // Do not include extra 24-hour specific fields; backend infers from dates and hourlyExtension
       };
+
+      console.log('🚀 isLateCheckIn flags:', { _lateCheckIn, _is24Computed, selectedTime: _selectedTime });
 
       console.log('🚀 Processing payment and creating booking with payload:', bookingPayload);
       console.log('💰 Current price breakdown:', priceBreakdown);
@@ -1862,13 +1912,147 @@ export default function BookingPage() {
     }
   };
 
-  // Get pricing from backend when booking data or coupon changes
+  // Get pricing from backend when booking data or coupon changes.
+  // Use primitive dep values (ms timestamps) so React detects Date changes by VALUE not reference.
+  const checkInMs = bookingData.checkIn instanceof Date ? bookingData.checkIn.getTime() : new Date(bookingData.checkIn).getTime();
+  const checkOutMs = bookingData.checkOut instanceof Date ? bookingData.checkOut.getTime() : new Date(bookingData.checkOut).getTime();
+
   useEffect(() => {
-    const updatePricing = async () => {
-      await getSecurePricing();
+    if (!property || !bookingData.checkIn || !bookingData.checkOut) return;
+
+    // AbortController: discard responses from stale API calls when deps change rapidly
+    const controller = new AbortController();
+    let cancelled = false;
+
+    const parseMin = (t?: string | null) => {
+      if (!t) return 0;
+      const [h, m] = t.split(':').map(Number);
+      return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
     };
-    updatePricing();
-  }, [bookingData.checkIn, bookingData.checkOut, bookingData.hourlyExtension, bookingData.guests, property, couponData]);
+
+    // Re-compute isLateCheckIn & is24HourBookingComputed with the CURRENT checkInTime
+    const selectedTime = bookingData.checkInTime || property?.checkInTime || '15:00';
+    const base24 = property.pricing?.basePrice24Hour || 0;
+    const allow24 = property.enable24HourBooking || base24 > 0;
+    const lateCheckIn = allow24 && parseMin(selectedTime) >= parseMin('16:00');
+
+    const ciDate = bookingData.checkIn instanceof Date ? bookingData.checkIn : new Date(bookingData.checkIn);
+    const coDate = bookingData.checkOut instanceof Date ? bookingData.checkOut : new Date(bookingData.checkOut);
+
+    // Normalize to local date strings for API
+    const checkInStr = ciDate.toLocaleDateString('en-CA');
+    const checkOutStr = coDate.toLocaleDateString('en-CA');
+
+    const startDay = new Date(ciDate.getFullYear(), ciDate.getMonth(), ciDate.getDate());
+    const endDay = new Date(coDate.getFullYear(), coDate.getMonth(), coDate.getDate());
+    const nightCount = Math.round((endDay.getTime() - startDay.getTime()) / (1000 * 60 * 60 * 24));
+    const isSingleNight = nightCount === 1;
+    const is24Computed = lateCheckIn && isSingleNight;
+
+    console.log('💰 Pricing effect triggered:', {
+      checkIn: checkInStr,
+      checkOut: checkOutStr,
+      nights: nightCount,
+      selectedTime,
+      lateCheckIn,
+      is24Computed
+    });
+
+    const runPricing = async () => {
+      try {
+        const [h, m_] = selectedTime.split(':').map(Number);
+        const checkInDt = new Date(ciDate);
+        checkInDt.setHours(isNaN(h) ? 15 : h, isNaN(m_) ? 0 : m_, 0, 0);
+
+        const pricingRequest = {
+          propertyId: property._id,
+          checkIn: checkInStr,
+          checkOut: checkOutStr,
+          guests: bookingData.guests,
+          hourlyExtension: bookingData.hourlyExtension || 0,
+          couponCode: couponData?.code ?? (couponCode?.trim() || undefined),
+          bookingType: (is24Computed ? '24hour' : (bookingData.is24Hour ? '24hour' : 'daily')) as '24hour' | 'daily' | undefined,
+          checkInDateTime: checkInDt.toISOString(),
+          extensionHours: bookingData.extensionHours,
+          // Tell the backend to use basePrice24Hour when check-in is >= 4 PM (multi-night)
+          isLateCheckIn: lateCheckIn && !is24Computed ? true : undefined
+        };
+
+        console.log('📤 Sending pricing request:', pricingRequest);
+
+        const validation = securePricingAPI.validatePricingRequest(pricingRequest);
+        if (!validation.isValid) {
+          console.error('❌ Invalid pricing request:', validation.errors);
+          return;
+        }
+
+        const response = await securePricingAPI.calculatePricing(pricingRequest);
+
+        // If this effect was superseded by a newer one, discard the result
+        if (cancelled) {
+          console.log('🚫 Discarding stale pricing response for', checkOutStr);
+          return;
+        }
+
+        if (!response.success) {
+          console.error('❌ Secure pricing calculation failed:', response);
+          return;
+        }
+
+        const pricing = response.data.pricing;
+        const couponFromPricing = response.data.coupon;
+
+        const newPriceBreakdown = {
+          basePrice: (lateCheckIn || bookingData.is24Hour)
+            ? property.pricing?.basePrice24Hour || property.pricing?.basePrice || 0
+            : property.pricing?.basePrice || 0,
+          discountAmount: pricing.discountAmount || couponFromPricing?.discountAmount || 0,
+          discountType: couponFromPricing?.discountType,
+          couponCode: couponFromPricing?.code,
+          couponValue: couponFromPricing?.amount,
+          couponMaxDiscount: couponFromPricing?.maxDiscount,
+          serviceFee: pricing.serviceFee,
+          cleaningFee: pricing.cleaningFee,
+          securityDeposit: pricing.securityDeposit,
+          extraGuestCost: pricing.extraGuestCost,
+          hourlyExtensionCost: pricing.hourlyExtension || 0,
+          platformFee: pricing.platformFee,
+          gst: pricing.gst,
+          processingFee: pricing.processingFee,
+          taxes: pricing.gst,
+          total: pricing.totalAmount,
+          nights: pricing.nights,
+          subtotal: pricing.subtotal,
+          pricingToken: response.data.security.pricingToken
+        };
+
+        console.log('✅ Pricing recalculated:', {
+          checkIn: checkInStr,
+          checkOut: checkOutStr,
+          nights: pricing.nights,
+          lateCheckIn,
+          is24Computed,
+          total: newPriceBreakdown.total,
+          basePrice: newPriceBreakdown.basePrice
+        });
+        setPriceBreakdown(newPriceBreakdown);
+      } catch (err) {
+        if (!cancelled) {
+          console.error('❌ Error calculating pricing:', err);
+        }
+      }
+    };
+
+    runPricing();
+
+    // Cleanup: mark this effect run as cancelled when deps change or component unmounts
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  // Use primitive timestamp values for Date deps so React compares by VALUE not reference
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkInMs, checkOutMs, bookingData.hourlyExtension, bookingData.guests, bookingData.checkInTime, property, couponData, couponCode]);
 
   // Clear availability state and invalidate old pricing token when dates or extension change
   useEffect(() => {

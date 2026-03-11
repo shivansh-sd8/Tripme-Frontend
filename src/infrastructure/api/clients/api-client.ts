@@ -101,6 +101,13 @@ class ApiClient {
     });
   }
 
+  async resendVerificationEmail(email: string): Promise<ApiResponse<any>> {
+    return this.request('/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
   // Listing endpoints (standardized from property)
   async createListing(listingData: any): Promise<ApiResponse<any>> {
     return this.request('/listings', {

@@ -22,12 +22,17 @@ import {
   Plus,
   Home,
   Briefcase,
-  StretchHorizontalIcon
+  StretchHorizontalIcon,
+  CheckCircle,
+  AlertTriangle,
+  RefreshCw,
+  X
 } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Card from '../ui/Card';
 import { apiClient } from '@/lib/api';
+import { apiClient as infraApiClient } from '@/infrastructure/api/clients/api-client';
 
 const ProfileContent: React.FC = () => {
   const { user, logout, updateUser, refreshUser } = useAuth();
@@ -49,6 +54,30 @@ const ProfileContent: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  // Email verification banner state
+  const [verifBannerDismissed, setVerifBannerDismissed] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
+
+  const handleResendVerification = async () => {
+    if (!user?.email) return;
+    setResendLoading(true);
+    setResendError(null);
+    setResendSuccess(false);
+    try {
+      const res = await infraApiClient.resendVerificationEmail(user.email);
+      if (res.success) {
+        setResendSuccess(true);
+      } else {
+        setResendError(res.message || 'Failed to resend email. Try again.');
+      }
+    } catch (err: any) {
+      setResendError(err.message || 'Failed to resend email. Try again.');
+    } finally {
+      setResendLoading(false);
+    }
+  };
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -246,6 +275,53 @@ const ProfileContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <div className="max-w-7xl mx-auto px-2 py-2 sm:px-4 sm:py-4">
+        {/* Email Verification Banner */}
+        {!user.isVerified && !verifBannerDismissed && (
+          <div className="mb-4 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 shadow-md">
+            <div className="flex items-start gap-4 p-4 sm:p-5">
+              <div className="mt-0.5 flex-shrink-0 w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                <AlertTriangle size={20} className="text-amber-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-amber-900 text-sm sm:text-base">
+                  Please verify your email address
+                </h4>
+                <p className="text-amber-700 text-xs sm:text-sm mt-0.5">
+                  We sent a verification link to{' '}
+                  <span className="font-medium">{user.email}</span>. Check your inbox and click the link to unlock all features.
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {resendSuccess ? (
+                    <span className="inline-flex items-center gap-1.5 text-green-700 text-xs font-medium bg-green-100 px-3 py-1.5 rounded-full">
+                      <CheckCircle size={14} />
+                      Verification email sent!
+                    </span>
+                  ) : (
+                    <button
+                      onClick={handleResendVerification}
+                      disabled={resendLoading}
+                      className="inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white text-xs font-semibold px-4 py-2 rounded-full transition-all duration-200 shadow-sm"
+                    >
+                      <RefreshCw size={13} className={resendLoading ? 'animate-spin' : ''} />
+                      {resendLoading ? 'Sending...' : 'Resend verification email'}
+                    </button>
+                  )}
+                  {resendError && (
+                    <span className="text-red-600 text-xs font-medium">{resendError}</span>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => setVerifBannerDismissed(true)}
+                className="flex-shrink-0 text-amber-400 hover:text-amber-600 transition-colors"
+                aria-label="Dismiss"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Mobile Profile Layout */}
         <div className="block sm:hidden w-full min-h-screen pb-24 overflow-x-hidden">
         {/* Profile Card */}
@@ -592,9 +668,9 @@ const ProfileContent: React.FC = () => {
                 type="email"
                 value={formData.email}
                 leftIcon={<Mail size={20} />}
-                      disabled={true}
-                      helperText="Email cannot be changed"
-                      className="bg-gray-50"
+                disabled={true}
+                helperText={user.isVerified ? 'Email verified' : 'Email not verified — check your inbox'}
+                className={user.isVerified ? 'bg-green-50/50' : 'bg-amber-50/50'}
               />
 
               <Input
