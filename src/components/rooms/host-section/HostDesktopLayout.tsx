@@ -129,8 +129,9 @@
 
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import StayCard from "@/components/trips/StayCard";
 
-export default function HostDesktopLayout({ host }: { host: any }) {
+export default function HostDesktopLayout({ host,hostListings }: { host: any,hostListings:any[] }) {
   const router = useRouter();
 
   return (
@@ -218,6 +219,30 @@ export default function HostDesktopLayout({ host }: { host: any }) {
             </div>
           </div>
         </div>
+
+        {/* host listing */}
+        <section className="mt-12">
+          <h2 className="font-bold text-2xl mb-6">Host Listings</h2>
+         
+            <div className="relative mt-6">
+                                
+                                   <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+                                     
+                                       {hostListings?.map((Hostlisting: any) => (
+                                         <div key={Hostlisting._id} className="flex-shrink-0">
+                                           <StayCard
+                                             stay={Hostlisting}
+                                             className="w-72"
+      
+                                           />
+                                         </div>
+                                       ))}  
+                                   
+                                   </div>
+                                  
+                                 
+                               </div>
+        </section>
       </div>
     </div>
   );

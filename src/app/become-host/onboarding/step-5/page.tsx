@@ -17,6 +17,10 @@ export default function Step5Page() {
   const { user, updateUser, refreshUser } = useAuth();
   const { data, resetData } = useOnboarding();
   const listingId = searchParams?.get('listingId');
+  // Read destination stored by step-1 (avoids chaining params through 10+ onboarding URLs)
+  const redirectAfter = typeof window !== 'undefined'
+    ? sessionStorage.getItem('hostOnboardingRedirect')
+    : null;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -32,11 +36,13 @@ export default function Step5Page() {
       if (user?.role === 'host') {
         setSuccess(true);
         resetData();
-        
-        // If continuing an existing listing, redirect to edit that listing
-        // Otherwise, redirect to dashboard
+        sessionStorage.removeItem('hostOnboardingRedirect');
+
+        // Priority: explicit redirect > listing edit > dashboard
         setTimeout(() => {
-          if (listingId) {
+          if (redirectAfter) {
+            router.push(redirectAfter);
+          } else if (listingId) {
             router.push(`/host/property/${listingId}`);
           } else {
             router.push('/host/dashboard');
@@ -51,13 +57,14 @@ export default function Step5Page() {
       if (response.success && response.data?.user) {
         updateUser(response.data.user);
         setSuccess(true);
-        
+
         // Reset onboarding data
         resetData();
+        sessionStorage.removeItem('hostOnboardingRedirect');
 
-        // Redirect to dashboard after 3 seconds
+        // Redirect to intended destination (or dashboard) after 3 seconds
         setTimeout(() => {
-          router.push('/host/dashboard');
+          router.push(redirectAfter || '/host/dashboard');
         }, 3000);
       } else {
         setError(response.message || 'Failed to become a host. Please try again.');
@@ -113,7 +120,9 @@ export default function Step5Page() {
                   Congratulations! 🎉
                 </h2>
                 <p className="text-xl text-gray-600 mb-8">
-                  You're now a host! Redirecting to your dashboard...
+                  You&apos;re now a host! {redirectAfter
+                    ? 'Taking you to your destination...'
+                    : 'Redirecting to your dashboard...'}
                 </p>
                 <div className="flex justify-center">
                   <Loader2 className="w-8 h-8 animate-spin text-[#FF385C]" />

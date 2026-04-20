@@ -2,15 +2,15 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { X } from 'lucide-react';
 import Image from 'next/image';
 
 interface BecomeHostIntroProps {
   onGetStarted: () => void;
   onExit?: () => void;
+  intent?: 'property' | 'service'; // controls which steps/heading are shown
 }
 
-const BecomeHostIntro: React.FC<BecomeHostIntroProps> = ({ onGetStarted, onExit }) => {
+const BecomeHostIntro: React.FC<BecomeHostIntroProps> = ({ onGetStarted, onExit, intent = 'property' }) => {
   const router = useRouter();
 
   const handleExit = () => {
@@ -22,33 +22,57 @@ const BecomeHostIntro: React.FC<BecomeHostIntroProps> = ({ onGetStarted, onExit 
   };
 
   const handleGetStartedClick = () => {
-    // Navigate to the new Airbnb-style onboarding flow
-    router.push('/become-host/about-your-place');
+    // Delegate to the parent's onGetStarted so the caller controls the destination
+    // (property listing onboarding vs service creation, etc.)
+    onGetStarted();
   };
 
-  const steps = [
+  const propertySteps = [
     {
       number: 1,
       title: 'Tell us about your place',
       description: 'Share some basic info, such as where it is and how many guests can stay.',
-      image: '/images/host-step-1.png',
       fallbackEmoji: '🏠'
     },
     {
       number: 2,
       title: 'Make it stand out',
       description: "Add 5 or more photos plus a title and description – we'll help you out.",
-      image: '/images/host-step-2.png',
       fallbackEmoji: '📸'
     },
     {
       number: 3,
       title: 'Finish up and publish',
       description: 'Choose a starting price, verify a few details, then publish your listing.',
-      image: '/images/host-step-3.png',
       fallbackEmoji: '🎉'
     }
   ];
+
+  const serviceSteps = [
+    {
+      number: 1,
+      title: 'Register as a host',
+      description: 'Complete a quick host registration so you can offer services on TripMe.',
+      fallbackEmoji: '✅'
+    },
+    {
+      number: 2,
+      title: 'Create your service',
+      description: 'Choose a category, describe what you offer, and set your availability.',
+      fallbackEmoji: '✨'
+    },
+    {
+      number: 3,
+      title: 'Start earning',
+      description: 'Set your price and publish — guests can book your service right away.',
+      fallbackEmoji: '💰'
+    }
+  ];
+
+  const steps = intent === 'service' ? serviceSteps : propertySteps;
+  const heading = intent === 'service'
+    ? 'Start offering services on TripMe'
+    : "It's easy to get started on TripMe";
 
   return (
     <div className="min-h-screen bg-white">
@@ -82,7 +106,7 @@ const BecomeHostIntro: React.FC<BecomeHostIntroProps> = ({ onGetStarted, onExit 
               transition={{ duration: 0.6 }}
             >
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
-                It's easy to get started on TripMe
+                {heading}
               </h1>
             </motion.div>
 

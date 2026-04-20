@@ -176,9 +176,40 @@ export default function PropertyDetailsPage() {
           return prev;
         });
       }
-    }
 
-    window.addEventListener("scroll", handleScroll);
+      // Sticky tab nav: show after scrolling past the photos section
+      // When sticky nav shows, hide the main Header to avoid both showing at once
+      const photosEl = photosRef.current;
+      if (photosEl) {
+        const photosBottom = photosEl.getBoundingClientRect().bottom;
+        const shouldShowSticky = photosBottom < 80;
+        setShowStickyNav(shouldShowSticky);
+        // Hide main header whenever sticky nav is visible
+        const isMobileScreen = window.innerWidth < 1024;
+        setHideHeader(shouldShowSticky || isMobileScreen);
+      }
+
+      // Determine active tab by which section is nearest top
+      const sectionRefs = [
+        { key: 'photos' as const, ref: photosRef },
+        { key: 'amenities' as const, ref: amenitiesRef },
+        { key: 'reviews' as const, ref: reviewsRef },
+        { key: 'location' as const, ref: locationRef },
+      ];
+
+      let currentTab: 'photos' | 'amenities' | 'reviews' | 'location' = 'photos';
+      for (const { key, ref } of sectionRefs) {
+        if (ref.current) {
+          const rect = ref.current.getBoundingClientRect();
+          if (rect.top <= 120) {
+            currentTab = key;
+          }
+        }
+      }
+      setActiveTab(currentTab);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, [availabilityChecked, isOwnProperty]);
 
@@ -248,18 +279,22 @@ export default function PropertyDetailsPage() {
   // Pricing breakdown state
   const [priceBreakdown, setPriceBreakdown] = useState({
     basePrice: 0,
+    baseAmount: 0,
     serviceFee: 0,
     cleaningFee: 0,
     securityDeposit: 0,
     extraGuestCost: 0,
-    hourlyExtensionCost: 0,
+    extraGuestPrice: 0,
+    extraGuests: 0,
+    hourlyExtension: 0,
     platformFee: 0,
     gst: 0,
     processingFee: 0,
     taxes: 0,
     total: 0,
     nights: 0,
-    subtotal: 0
+    subtotal: 0,
+    discountAmount: 0
   });
 
   // Sync local state with booking context
@@ -331,9 +366,8 @@ export default function PropertyDetailsPage() {
     if (!property) return false;
     const selectedTime = checkInTimeStr || property.checkInTime || '15:00';
     const thresholdTime = '16:00';
-    const base24 = property.pricing?.basePrice24Hour || 0;
-    const allow24 = property.enable24HourBooking || base24 > 0;
-    return allow24 && parseTimeToMinutes(selectedTime) >= parseTimeToMinutes(thresholdTime);
+    // Always compute based purely on time >= 4PM (backend decides price based on its config)
+    return parseTimeToMinutes(selectedTime) >= parseTimeToMinutes(thresholdTime);
   }, [property, checkInTimeStr]);
 
   // True ONLY for single-night bookings after 4 PM → uses the full 24-hour booking flow
@@ -481,6 +515,16 @@ export default function PropertyDetailsPage() {
   const checkInRef = useRef<HTMLDivElement>(null);
   const checkOutRef = useRef<HTMLDivElement>(null);
   const bookingSentinelRef = useRef<HTMLDivElement>(null);
+
+  // Section refs for sticky tab navigation
+  const photosRef = useRef<HTMLDivElement>(null);
+  const amenitiesRef = useRef<HTMLDivElement>(null);
+  const reviewsRef = useRef<HTMLDivElement>(null);
+  const locationRef = useRef<HTMLDivElement>(null);
+
+  // Sticky tab nav state
+  const [showStickyNav, setShowStickyNav] = useState(false);
+  const [activeTab, setActiveTab] = useState<'photos' | 'amenities' | 'reviews' | 'location'>('photos');
 
 
 
@@ -1587,11 +1631,12 @@ export default function PropertyDetailsPage() {
         checkOut: dateRange.endDate.toLocaleDateString('en-CA'),
         guests: { adults: guests, children: 0 },
         hourlyExtension: bookingType === 'daily' ? (hourlyExtension || 0) : 0,
-        bookingType,
+        bookingType: bookingType as 'daily' | '24hour',
         checkInDateTime: bookingType === '24hour' ? checkInDateTime.toISOString() : undefined,
         extensionHours: bookingType === '24hour' ? (hourlyExtension || 0) : undefined,
-        // When check-in is after 4 PM for multi-night, apply 24-hour price per night
-        isLateCheckIn: isLateCheckIn && !is24HourBooking ? true : undefined
+        // Always send checkInTime so backend can compute isLateCheckIn authoritatively
+        checkInTime: checkInTimeStr || property.checkInTime || '15:00',
+        isLateCheckIn: isLateCheckIn ? true : undefined
       };
 
       // Basic validation only - comprehensive validation on backend
@@ -1789,8 +1834,53 @@ export default function PropertyDetailsPage() {
 
       {/* Main Content */}
       <main className={` ${hideHeader ? "pt-0 " : "pt-40"} font-['Inter',system-ui,-apple-system,sans-serif] overflow-hidden`}>
+        {/* Sticky Section Tab Navigation */}
+        {showStickyNav && (
+          <div
+            className="fixed top-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm transition-all duration-300"
+            style={{ top: hideHeader ? 0 : undefined }}
+          >
+            <div className="max-w-7xl mx-auto px-4 sm:px-2 lg:px-8">
+              <div className="flex items-center gap-1 overflow-x-auto" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+                {([
+                  { key: 'photos', label: 'Photos' },
+                  { key: 'amenities', label: 'Amenities' },
+                  { key: 'reviews', label: 'Reviews' },
+                  { key: 'location', label: 'Location' },
+                ] as const).map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      const refMap = {
+                        photos: photosRef,
+                        amenities: amenitiesRef,
+                        reviews: reviewsRef,
+                        location: locationRef,
+                      };
+                      const el = refMap[key].current;
+                      if (el) {
+                        const offset = 80;
+                        const top = el.getBoundingClientRect().top + window.scrollY - offset;
+                        window.scrollTo({ top, behavior: 'smooth' });
+                      }
+                      setActiveTab(key);
+                    }}
+                    className={`relative flex-shrink-0 px-2 md:px-4 py-4 md:py-6 text-xs md:text-sm font-medium transition-colors duration-200 whitespace-nowrap border-b-2 ${
+                      activeTab === key
+                        ? 'border-gray-900 text-gray-900'
+                        : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Image Gallery */}
-        <div className="relative">
+        <div className="relative" ref={photosRef}>
           {/* MOBILE – HORIZONTAL SWIPE */}
 
 
@@ -1981,7 +2071,7 @@ export default function PropertyDetailsPage() {
 
               {/* Amenities Section */}
 
-              <div className="bg-white rounded-2xl shadow-md  p-5 md:p-8">
+              <div ref={amenitiesRef} className="bg-white rounded-2xl shadow-md  p-5 md:p-8">
                 {/* HEADER */}
                 <div className="flex items-center gap-3 mb-5">
                   <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center">
@@ -3339,12 +3429,12 @@ export default function PropertyDetailsPage() {
 
 
           </div>
-          <div className="mb-10 mt-10">
+          <div className="mb-10 mt-10" ref={reviewsRef}>
             <ReviewsSection property={property} />
           </div>
           {/* Location Section with Map */}
 
-          <div className="mb-10">
+          <div className="mb-10" ref={locationRef}>
 
             <PropertyMap
               address={property.location?.address || 'Address not specified'}
@@ -3420,8 +3510,6 @@ export default function PropertyDetailsPage() {
             </div>
           </div>
         )}
-
-
 
 
       </main>

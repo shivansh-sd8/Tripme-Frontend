@@ -67,12 +67,18 @@ import { TimeSpinner } from "@/components/rooms/timeSelection/TimeSpinner";
 const PaymentModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (paymentData: any) => void;
+  /** Called with Razorpay data when user pays. The parent handles backend booking creation.
+   *  Returns a Promise so the modal can stay in 'processing' until backend responds. */
+  onSuccess: (paymentData: any) => Promise<void>;
   amount: number;
   loading: boolean;
   bookingId?: string | null;
   propertyId?: string;
   user?: any;
+  /** Lets parent drive the modal step (e.g. 'error' when booking creation fails). */
+  setPaymentModalStep?: (step: 'init' | 'processing' | 'success' | 'error') => void;
+  /** Lets parent inject an error message into the modal. */
+  externalError?: string;
   securePricingContext?: {
     pricingToken?: string;
     propertyId?: string;
@@ -83,10 +89,26 @@ const PaymentModal: React.FC<{
     totalAmount: number;
     currency?: string;
   };
-}> = ({ isOpen, onClose, onSuccess, amount, loading, bookingId, propertyId, user, securePricingContext }) => {
+}> = ({ isOpen, onClose, onSuccess, amount, loading, bookingId, propertyId, user, securePricingContext, setPaymentModalStep, externalError }) => {
   const [paymentStep, setPaymentStep] = useState<'init' | 'processing' | 'success' | 'error'>('init');
   const [error, setError] = useState('');
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+
+  // Reset state each time the modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setPaymentStep('init');
+      setError('');
+    }
+  }, [isOpen]);
+
+  // Sync external error from parent into modal error state
+  useEffect(() => {
+    if (externalError) {
+      setError(externalError);
+      setPaymentStep('error');
+    }
+  }, [externalError]);
 
   const formatPrice = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -171,18 +193,27 @@ const PaymentModal: React.FC<{
         handler: async function (response: any) {
           console.log('✅ Razorpay payment success:', response);
 
-          // Payment successful - call onSuccess with payment data
-          onSuccess({
-            razorpayOrderId: response.razorpay_order_id,
-            razorpayPaymentId: response.razorpay_payment_id,
-            razorpaySignature: response.razorpay_signature,
-            razorpayPaymentDetails: response
-          });
+          // Keep modal in 'processing' — transition to success or error only AFTER
+          // the backend successfully creates the booking.  The parent's onSuccess
+          // is async and will call setPaymentModalStep when done.
+          setPaymentStep('processing');
 
-          setPaymentStep('success');
-          setTimeout(() => {
-            onClose();
-          }, 2000);
+          try {
+            await onSuccess({
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+              razorpayPaymentDetails: response
+            });
+            // If onSuccess resolves without throwing, redirect is happening —
+            // show brief success state
+            setPaymentStep('success');
+          } catch (bookingErr: any) {
+            console.error('❌ Booking creation failed after Razorpay payment:', bookingErr);
+            const msg = bookingErr?.message || 'Booking creation failed after payment. Please contact support.';
+            setError(msg);
+            setPaymentStep('error');
+          }
         },
         prefill: {
           name: user?.name || '',
@@ -302,16 +333,8 @@ const PaymentModal: React.FC<{
           {paymentStep === 'processing' && (
             <div className="text-center py-12">
               <div className="w-16 h-16 border-4 border-gray-200 border-t-gray-600 rounded-full animate-spin mx-auto mb-6"></div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Processing Payment</h3>
-              <p className="text-gray-600">Please wait while we process your payment securely...</p>
-            </div>
-          )}
-
-          {paymentStep === 'processing' && (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 border-4 border-gray-200 border-t-gray-600 rounded-full animate-spin mx-auto mb-6"></div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Opening Payment Gateway</h3>
-              <p className="text-gray-600">Please wait while we redirect you to Razorpay...</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Processing…</h3>
+              <p className="text-gray-600">Please wait while we confirm your booking securely.</p>
             </div>
           )}
 
@@ -320,27 +343,43 @@ const PaymentModal: React.FC<{
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 className="w-8 h-8 text-green-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Payment Successful!</h3>
-              <p className="text-gray-600">Your booking has been confirmed</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Booking Confirmed!</h3>
+              <p className="text-gray-600">Redirecting you to your booking...</p>
             </div>
           )}
 
           {paymentStep === 'error' && (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertCircle className="w-8 h-8 text-red-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Payment Failed</h3>
-              <p className="text-gray-600 mb-4">{error || 'An error occurred during payment'}</p>
-              <Button
-                onClick={() => {
-                  setPaymentStep('init');
-                  setError('');
-                }}
-                className="bg-gray-700 text-white px-6 py-2 rounded-lg"
-              >
-                Try Again
-              </Button>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Something Went Wrong</h3>
+              <p className="text-sm text-gray-600 mb-5 leading-relaxed">{error || 'An error occurred during payment'}</p>
+              <div className="flex flex-col gap-3">
+                {/* Only offer retry when the error is pre-payment (order creation / gateway error).
+                    If Razorpay already charged money, tell user to contact support. */}
+                {error?.toLowerCase().includes('contact support') || error?.toLowerCase().includes('mismatch') ? (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+                    ⚠️ Your payment was received but booking creation failed. Your money is safe — please contact support with your payment ID.
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      setPaymentStep('init');
+                      setError('');
+                    }}
+                    className="bg-gray-700 text-white px-6 py-2 rounded-lg"
+                  >
+                    Try Again
+                  </Button>
+                )}
+                <button
+                  onClick={onClose}
+                  className="text-sm text-gray-500 hover:text-gray-700 underline"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -372,7 +411,7 @@ export default function BookingPage() {
 
   // Helper function to parse date string to LOCAL midnight (not UTC)
   // new Date('YYYY-MM-DD') creates UTC midnight which shifts by 1 day in IST
-  const parseDateToLocal = (dateInput: string | Date | undefined): Date => {
+  const parseDateToLocal = (dateInput: string | Date | undefined | null): Date => {
     if (!dateInput) return new Date();
     return new Date(dateInput); // preserve time
     // if (!dateInput) return new Date();
@@ -486,6 +525,7 @@ export default function BookingPage() {
 
   const [priceBreakdown, setPriceBreakdown] = useState<{
     basePrice: number;
+    baseAmount: number;
     discountAmount: number;
     discountType?: 'percentage' | 'fixed';
     couponCode?: string;
@@ -495,7 +535,7 @@ export default function BookingPage() {
     cleaningFee: number;
     securityDeposit: number;
     extraGuestCost: number;
-    hourlyExtensionCost: number;
+    hourlyExtension: number;
     platformFee: number;
     gst: number;
     processingFee: number;
@@ -506,12 +546,13 @@ export default function BookingPage() {
     pricingToken?: string;
   }>({
     basePrice: 0,
+    baseAmount: 0,
     discountAmount: 0,
     serviceFee: 0,
     cleaningFee: 0,
     securityDeposit: 0,
     extraGuestCost: 0,
-    hourlyExtensionCost: 0,
+    hourlyExtension: 0,
     platformFee: 0,
     gst: 0,
     processingFee: 0,
@@ -1343,9 +1384,8 @@ export default function BookingPage() {
     if (!property) return false;
     const selectedTime = bookingData.checkInTime || property?.checkInTime || '15:00';
     const thresholdTime = '16:00';
-    const base24 = property.pricing?.basePrice24Hour || 0;
-    const allow24 = property.enable24HourBooking || base24 > 0;
-    return allow24 && parseTimeToMinutes(selectedTime) >= parseTimeToMinutes(thresholdTime);
+    // Always compute based purely on time >= 4PM (backend decides price based on its config)
+    return parseTimeToMinutes(selectedTime) >= parseTimeToMinutes(thresholdTime);
   })();
 
   // is24HourBooking: single-night + late check-in
@@ -1370,17 +1410,19 @@ export default function BookingPage() {
       console.log('🔒 Calculating secure pricing via backend API...');
 
       // Use secure pricing API - all calculations happen on backend
+      const bookingTypeStr = is24HourBookingComputed ? '24hour' : 'daily';
       const pricingRequest = {
         propertyId: property._id,
         checkIn: bookingData.checkIn instanceof Date ? bookingData.checkIn.toLocaleDateString('en-CA') : bookingData.checkIn,
         checkOut: bookingData.checkOut instanceof Date ? bookingData.checkOut.toLocaleDateString('en-CA') : bookingData.checkOut,
         guests: bookingData.guests,
-        hourlyExtension: bookingData.hourlyExtension || 0,
+        hourlyExtension: bookingTypeStr === 'daily' ? (bookingData.hourlyExtension || 0) : 0,
         couponCode: couponData?.code ?? (couponCode?.trim() || undefined),
-        bookingType: (is24HourBookingComputed ? '24hour' : (bookingData.is24Hour ? '24hour' : 'daily')) as '24hour' | 'daily' | undefined,
-        checkInDateTime: bookingData.checkInDateTime ? (bookingData.checkInDateTime instanceof Date ? bookingData.checkInDateTime.toISOString() : bookingData.checkInDateTime) : undefined,
-        extensionHours: bookingData.extensionHours,
+        bookingType: bookingTypeStr as '24hour' | 'daily' | undefined,
+        checkInDateTime: bookingTypeStr === '24hour' ? (bookingData.checkInDateTime ? (bookingData.checkInDateTime instanceof Date ? bookingData.checkInDateTime.toISOString() : bookingData.checkInDateTime) : undefined) : undefined,
+        extensionHours: bookingTypeStr === '24hour' ? (bookingData.hourlyExtension || 0) : undefined,
         // When check-in is after 4 PM for multi-night bookings, apply 24-hour price per night
+        checkInTime: bookingData.checkInTime || property?.checkInTime || '15:00',
         isLateCheckIn: isLateCheckIn && !is24HourBookingComputed ? true : undefined
       };
 
@@ -1407,7 +1449,7 @@ export default function BookingPage() {
       });
 
       const newPriceBreakdown = {
-        basePrice: (isLateCheckIn || bookingData.is24Hour)
+        basePrice: isLateCheckIn
           ? property.pricing?.basePrice24Hour || property.pricing?.basePrice || 0
           : property.pricing?.basePrice || 0,
         discountAmount: pricing.discountAmount || couponFromPricing?.discountAmount || 0,
@@ -1419,7 +1461,8 @@ export default function BookingPage() {
         cleaningFee: pricing.cleaningFee,
         securityDeposit: pricing.securityDeposit,
         extraGuestCost: pricing.extraGuestCost,
-        hourlyExtensionCost: pricing.hourlyExtension || 0,
+        baseAmount: pricing.baseAmount || 0,
+        hourlyExtension: pricing.hourlyExtension || 0,
         platformFee: pricing.platformFee,
         gst: pricing.gst,
         processingFee: pricing.processingFee,
@@ -1760,9 +1803,8 @@ export default function BookingPage() {
         return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
       };
       const _selectedTime = bookingData.checkInTime || property?.checkInTime || '15:00';
-      const _base24 = property?.pricing?.basePrice24Hour || 0;
-      const _allow24 = property?.enable24HourBooking || _base24 > 0;
-      const _lateCheckIn = _allow24 && _parseMin(_selectedTime) >= _parseMin('16:00');
+      // Always compute based purely on time >= 4PM (backend decides price based on its config)
+      const _lateCheckIn = _parseMin(_selectedTime) >= _parseMin('16:00');
       const _startDay = new Date(checkInDate.getFullYear(), checkInDate.getMonth(), checkInDate.getDate());
       const _endDay = new Date(checkOutDate.getFullYear(), checkOutDate.getMonth(), checkOutDate.getDate());
       const _isSingleNight = _endDay.getTime() - _startDay.getTime() === 24 * 60 * 60 * 1000;
@@ -1789,14 +1831,13 @@ export default function BookingPage() {
         // NEW: Include custom check-in time for 23-hour checkout calculation
         ...(bookingData.checkInTime && { checkInTime: bookingData.checkInTime }),
         ...(bookingData.checkInDateTime && { checkInDateTime: bookingData.checkInDateTime instanceof Date ? bookingData.checkInDateTime.toISOString() : bookingData.checkInDateTime }),
-        ...(bookingData.extensionHours !== undefined && bookingData.extensionHours !== null && { extensionHours: bookingData.extensionHours }),
-        // bookingDuration: '24hour' for both explicit 24h flag and computed single-night late check-in
-        ...((bookingData.is24Hour || _is24Computed) && { bookingDuration: '24hour' }),
+        ...(_is24Computed && bookingData.hourlyExtension && bookingData.hourlyExtension > 0 && { extensionHours: bookingData.hourlyExtension }),
+        ...(_is24Computed && { bookingDuration: '24hour' }),
         // isLateCheckIn: true when check-in >= 4 PM for multi-night daily bookings
         // This tells the backend to use basePrice24Hour per night (same as the pricing API did)
         ...(_lateCheckIn && !_is24Computed && { isLateCheckIn: true }),
         ...(bookingData.couponCode && bookingData.couponCode.trim() && { couponCode: bookingData.couponCode.trim() }),
-        ...(bookingData.hourlyExtension && bookingData.hourlyExtension > 0 && property?.hourlyBooking?.enabled && {
+        ...(!_is24Computed && bookingData.hourlyExtension && bookingData.hourlyExtension > 0 && property?.hourlyBooking?.enabled && {
           hourlyExtension: {
             hours: bookingData.hourlyExtension,
             rate: property?.hourlyBooking?.hourlyRates?.[`${bookingData.hourlyExtension === 6 ? 'six' : bookingData.hourlyExtension === 12 ? 'twelve' : 'eighteen'}Hours`] || 0,
@@ -1894,19 +1935,18 @@ export default function BookingPage() {
         : errorMessage;
 
       console.error('❌ Final error message:', finalErrorMessage);
+
+      // Also set bookingError on the page (shown if user closes the modal)
       setBookingError(finalErrorMessage);
 
-      // IMPORTANT: Payment succeeded, so don't revert dates immediately
-      // The payment was successful, so dates should remain blocked
-      // If booking creation failed, admin will need to process refund manually
-      // Extend blocking expiry to give time for resolution
+      // IMPORTANT: Payment succeeded (Razorpay charged), so don't revert dates.
+      // Admin will need to process refund manually.
       console.log('⚠️ Payment succeeded but booking creation failed. Dates remain blocked.');
-      if (blockingExpiry) {
-        const extendedExpiry = new Date(Date.now() + 30 * 60 * 1000); // Extend to 30 minutes
-        setBlockingExpiry(extendedExpiry);
-        console.log('⏰ Extended blocking expiry due to booking creation failure:', extendedExpiry);
-      }
       // Don't revert dates - payment was successful, need manual intervention
+
+      // Re-throw so the PaymentModal's handler can catch it and display the error
+      // inside the modal instead of showing a false "Payment Successful" state.
+      throw new Error(finalErrorMessage);
     } finally {
       setBookingLoading(false);
     }
@@ -1932,9 +1972,8 @@ export default function BookingPage() {
 
     // Re-compute isLateCheckIn & is24HourBookingComputed with the CURRENT checkInTime
     const selectedTime = bookingData.checkInTime || property?.checkInTime || '15:00';
-    const base24 = property.pricing?.basePrice24Hour || 0;
-    const allow24 = property.enable24HourBooking || base24 > 0;
-    const lateCheckIn = allow24 && parseMin(selectedTime) >= parseMin('16:00');
+    // Always compute based purely on time >= 4PM (backend decides price based on its config)
+    const lateCheckIn = parseMin(selectedTime) >= parseMin('16:00');
 
     const ciDate = bookingData.checkIn instanceof Date ? bookingData.checkIn : new Date(bookingData.checkIn);
     const coDate = bookingData.checkOut instanceof Date ? bookingData.checkOut : new Date(bookingData.checkOut);
@@ -1964,18 +2003,20 @@ export default function BookingPage() {
         const checkInDt = new Date(ciDate);
         checkInDt.setHours(isNaN(h) ? 15 : h, isNaN(m_) ? 0 : m_, 0, 0);
 
+        const bookingTypeStr = is24Computed ? '24hour' : 'daily';
         const pricingRequest = {
           propertyId: property._id,
           checkIn: checkInStr,
           checkOut: checkOutStr,
           guests: bookingData.guests,
-          hourlyExtension: bookingData.hourlyExtension || 0,
+          hourlyExtension: bookingTypeStr === 'daily' ? (bookingData.hourlyExtension || 0) : 0,
           couponCode: couponData?.code ?? (couponCode?.trim() || undefined),
-          bookingType: (is24Computed ? '24hour' : (bookingData.is24Hour ? '24hour' : 'daily')) as '24hour' | 'daily' | undefined,
-          checkInDateTime: checkInDt.toISOString(),
-          extensionHours: bookingData.extensionHours,
-          // Tell the backend to use basePrice24Hour when check-in is >= 4 PM (multi-night)
-          isLateCheckIn: lateCheckIn && !is24Computed ? true : undefined
+          bookingType: bookingTypeStr as '24hour' | 'daily' | undefined,
+          checkInDateTime: bookingTypeStr === '24hour' ? checkInDt.toISOString() : undefined,
+          extensionHours: bookingTypeStr === '24hour' ? (bookingData.hourlyExtension || 0) : undefined,
+          // Always send checkInTime so backend can compute isLateCheckIn authoritatively
+          checkInTime: selectedTime,
+          isLateCheckIn: lateCheckIn ? true : undefined
         };
 
         console.log('📤 Sending pricing request:', pricingRequest);
@@ -2003,7 +2044,7 @@ export default function BookingPage() {
         const couponFromPricing = response.data.coupon;
 
         const newPriceBreakdown = {
-          basePrice: (lateCheckIn || bookingData.is24Hour)
+          basePrice: lateCheckIn
             ? property.pricing?.basePrice24Hour || property.pricing?.basePrice || 0
             : property.pricing?.basePrice || 0,
           discountAmount: pricing.discountAmount || couponFromPricing?.discountAmount || 0,
@@ -2015,7 +2056,8 @@ export default function BookingPage() {
           cleaningFee: pricing.cleaningFee,
           securityDeposit: pricing.securityDeposit,
           extraGuestCost: pricing.extraGuestCost,
-          hourlyExtensionCost: pricing.hourlyExtension || 0,
+          baseAmount: pricing.baseAmount || 0,
+          hourlyExtension: pricing.hourlyExtension || 0,
           platformFee: pricing.platformFee,
           gst: pricing.gst,
           processingFee: pricing.processingFee,
@@ -2196,17 +2238,7 @@ export default function BookingPage() {
               <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-4 md:p-8 mt-14 md:mt-5">
                 {/* Property Header */}
                 <div className="mb-8">
-                  {/* <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 bg-gradient-to-r from-gray-700 to-gray-800 rounded-2xl flex items-center justify-center">
-                      <Sparkles className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-700 to-gray-800 bg-clip-text text-transparent">
-                        Complete your booking
-                      </h1>
-                      <p className="text-gray-600">Secure your perfect stay</p>
-                    </div>
-                  </div> */}
+                 
                   <div className="flex items-center justify-between w-full mb-6 gap-4">
                     {/* Icon Container - Fixed at the start */}
                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-gray-700 to-gray-800 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">

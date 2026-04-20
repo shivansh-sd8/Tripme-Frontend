@@ -349,6 +349,9 @@ export default function PricingPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Anytime check-in price (per night)
               </label>
+              <div className="block text-sm font-medium text-gray-700 mb-2">
+                    This price will be applied to all bookings which are after 4 pm.
+              </div>
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setAnytimeCheckInPrice(Math.max(basePrice, anytimeCheckInPrice - 100))}

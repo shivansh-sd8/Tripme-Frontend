@@ -72,8 +72,16 @@ class ApiClient {
       return data;
     } catch (error: any) {
       if (error.status === 401) {
-        // Token expired or invalid
+        // Token expired or invalid — clear session and redirect to login
         authService.logout();
+        if (typeof window !== 'undefined') {
+          const isTokenExpired =
+            error.message?.toLowerCase().includes('token expired') ||
+            error.response?.message?.toLowerCase().includes('token expired');
+          if (isTokenExpired) {
+            window.location.href = '/auth/login?reason=session_expired';
+          }
+        }
       }
       throw error;
     }
@@ -344,6 +352,11 @@ class ApiClient {
 
   async getHostById(hostId: string): Promise<ApiResponse<any>> {
     return this.request(`/host/profile/${hostId}`);
+  }
+
+  async getHostListing(hostId: string): Promise<ApiResponse<any>> {
+    console.log("get host listing call", hostId);
+    return this.request(`/host/profile/listings/${hostId}`);
   }
 
   async getPropertyReviews(propertyId: string, params?: any): Promise<ApiResponse<any>> {

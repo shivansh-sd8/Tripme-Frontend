@@ -275,8 +275,9 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
   useEffect(() => {
     if (mapInstanceRef.current && window.google) {
       mapInstanceRef.current.setCenter({ lat: center[1], lng: center[0] });
+      mapInstanceRef.current.setZoom(zoom);
     }
-  }, [center]);
+  }, [center, zoom]);
 
   // Add/update markers with throttling and duplicate prevention
   useEffect(() => {

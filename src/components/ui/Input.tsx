@@ -32,7 +32,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             htmlFor={inputId}
             className={cn(
               "block text-sm font-semibold text-gray-900",
-              variant === 'compact' ? 'mb-1' : 'mb-2'
+              variant === 'compact' ? 'mb-1' : 'mb-2',
+              
             )}
           >
             {label}

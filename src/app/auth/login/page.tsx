@@ -23,6 +23,7 @@ export default function LoginPage() {
   // Get redirect URL from search params
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect') || '/';
+  const reason = searchParams.get('reason');
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: '',
@@ -51,7 +52,7 @@ export default function LoginPage() {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
-
+     
   const handleGoogleError = (error: string) => {
     setGoogleError(error);
   };
@@ -189,6 +190,13 @@ export default function LoginPage() {
           onSubmit={handleSubmit}
           className="relative"
         >
+          {/* Session expired banner */}
+          {reason === 'session_expired' && !errors.general && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-300 rounded-lg">
+              <p className="text-sm text-amber-700 font-medium">⏱ Your session has expired. Please sign in again.</p>
+            </div>
+          )}
+
           {/* General error */}
           {errors.general && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">

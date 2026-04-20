@@ -1621,7 +1621,7 @@ function SearchPageContent() {
             <div className="h-full rounded-2xl overflow-hidden shadow-lg border border-gray-200">
               <GoogleMapDisplay
                 center={mapCenter || searchCenter || [78.9629, 20.5937]}
-                zoom={(mapCenter || searchCenter) ? 14 : 5}
+                zoom={(mapCenter || searchCenter) ? (city ? 11 : 12) : 5}
                 markers={mapMarkers}
                 onBoundsChange={handleBoundsChange}
                 onCenterChange={handleCenterChange}
@@ -1638,7 +1638,7 @@ function SearchPageContent() {
         <div className="flex-1 relative">
           <GoogleMapDisplay
             center={mapCenter || searchCenter || [78.9629, 20.5937]}
-            zoom={(mapCenter || searchCenter) ? 14 : 5}
+            zoom={(mapCenter || searchCenter) ? (city ? 11 : 12) : 5}
             markers={mapMarkers}
             onBoundsChange={handleBoundsChange}
             onCenterChange={handleCenterChange}

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useUI } from "@/core/store/uiContext";
 import Link from 'next/link';
 import Image from 'next/image';
@@ -96,6 +96,8 @@ const Header = ({ searchExpanded: externalSearchExpanded,
   const { user, isAuthenticated, isLoading, logout, refreshUser } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [hostMenuOpen, setHostMenuOpen] = useState(false);
+  const hostMenuRef = useRef<HTMLDivElement>(null);
   const [internalSearchExpanded, setInternalSearchExpanded] = useState(false);
   const searchExpanded = externalSearchExpanded !== undefined ? externalSearchExpanded : internalSearchExpanded;
   const setSearchExpanded = onSearchToggle || setInternalSearchExpanded;
@@ -130,6 +132,23 @@ const Header = ({ searchExpanded: externalSearchExpanded,
       }
     }
   }, [isAuthenticated, isLoading]);
+
+  // Close host menu on click outside or Escape
+  useEffect(() => {
+    if (!hostMenuOpen) return;
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setHostMenuOpen(false); };
+    const handleOutside = (e: MouseEvent) => {
+      if (hostMenuRef.current && !hostMenuRef.current.contains(e.target as Node)) {
+        setHostMenuOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    document.addEventListener('mousedown', handleOutside);
+    return () => {
+      document.removeEventListener('keydown', handleKey);
+      document.removeEventListener('mousedown', handleOutside);
+    };
+  }, [hostMenuOpen]);
 
 
   useEffect(() => {
@@ -192,7 +211,7 @@ const Header = ({ searchExpanded: externalSearchExpanded,
     <>
       <header className={`w-full z-50 fixed top-0 left-0 right-0
                        transition-all duration-300"
-                       ${hideHeader ? "hidden sm:block" : ""}
+                       ${hideHeader ? "hidden" : ""}
                         ${scrolled && !searchExpanded
           ? 'bg-white border-b border-gray-200 shadow-lg'
           : 'bg-white border-b border-gray-100'}
@@ -458,11 +477,99 @@ const Header = ({ searchExpanded: externalSearchExpanded,
                       </span>
                     </Link>
                   ) : (
-                    <Link href="/become-host">
-                      <span className="text-gray-700 hover:text-gray-900 font-medium text-sm transition-colors duration-200">
+                    <div className="relative" ref={hostMenuRef}>
+                      <button
+                        onClick={() => setHostMenuOpen((prev) => !prev)}
+                        className="text-gray-700 hover:text-gray-900 font-medium text-sm transition-colors duration-200 hover:underline focus:outline-none"
+                      >
                         Become a host
-                      </span>
-                    </Link>
+                      </button>
+
+                      {/* ===== Airbnb-style Host Popup ===== */}
+                      {hostMenuOpen && (
+                        <div
+                          className="absolute right-0 top-[calc(100%+12px)] w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[100] animate-fadeInDown"
+                          style={{ animation: 'fadeInDown 0.18s ease' }}
+                        >
+                          {/* Header section */}
+                          <div className="px-5 pt-5 pb-3">
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Hosting</p>
+
+                            {/* Host your home */}
+                            <Link
+                              href="/become-host"
+                              onClick={() => setHostMenuOpen(false)}
+                              className="flex items-center gap-4 px-3 py-3 rounded-xl hover:bg-purple-50 transition-all duration-200 group"
+                            >
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center shrink-0 group-hover:from-purple-200 group-hover:to-indigo-200 transition-all">
+                                <Home size={18} className="text-purple-600" />
+                              </div>
+                              <div>
+                                <div className="text-sm font-semibold text-gray-800 group-hover:text-purple-700">Host your home</div>
+                                <div className="text-xs text-gray-400 mt-0.5">Earn money sharing your space</div>
+                              </div>
+                            </Link>
+
+                            {/* Host services */}
+                            <Link
+                              href="/host/service/new"
+                              onClick={() => setHostMenuOpen(false)}
+                              className="flex items-center gap-4 px-3 py-3 rounded-xl hover:bg-purple-50 transition-all duration-200 group"
+                            >
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-100 to-blue-100 flex items-center justify-center shrink-0 group-hover:from-indigo-200 group-hover:to-blue-200 transition-all">
+                                <Sparkles size={18} className="text-indigo-600" />
+                              </div>
+                              <div>
+                                <div className="text-sm font-semibold text-gray-800 group-hover:text-indigo-700">Host services</div>
+                                <div className="text-xs text-gray-400 mt-0.5">Offer unique local experiences</div>
+                              </div>
+                            </Link>
+                          </div>
+
+                          {/* Divider */}
+                          <div className="h-px bg-gray-100 mx-5" />
+
+                          {/* Navigate section */}
+                          <div className="px-5 py-3">
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Explore</p>
+                            <div className="flex flex-col gap-0.5">
+                              <button
+                                onClick={() => { setHostMenuOpen(false); router.push('/search'); }}
+                                className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200"
+                              >
+                                <Home size={15} className="text-gray-400" />
+                                <span>Homes</span>
+                              </button>
+                              <button
+                                onClick={() => { setHostMenuOpen(false); router.push('/services'); }}
+                                className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200"
+                              >
+                                <Bell size={15} className="text-gray-400" />
+                                <span>Services</span>
+                              </button>
+                              <button
+                                onClick={() => { setHostMenuOpen(false); router.push('/stories'); }}
+                                className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200"
+                              >
+                                <BookOpen size={15} className="text-gray-400" />
+                                <span>Stories</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Footer CTA */}
+                          <div className="px-5 pb-5 pt-1">
+                            <Link
+                              href="/become-host"
+                              onClick={() => setHostMenuOpen(false)}
+                              className="block w-full text-center py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+                            >
+                              Get started as a host
+                            </Link>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
 
                   {/* User Menu */}
