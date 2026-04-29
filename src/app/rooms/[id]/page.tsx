@@ -2061,46 +2061,44 @@ const FloatingInsightBadge = ({ badge }) => {
 
 
                   {/* AIRBNB RATING STRIP */}
-                  <div   onClick={() => setIsOpen(true)} className=" cursor-pointer bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-xl border border-white/20 p-3 sm:p-8 mt-5 flex items-center justify-between text-center gap-1">
-  
-  {/* Icon - Smaller on mobile */}
-  <div className="flex flex-col items-center justify-center">
-    {/* <Crown className="w-6 h-6 sm:w-12 sm:h-12  text-yellow-500" /> */}
-  </div>
+                 <div
+  onClick={() => setIsOpen(true)}
+  className="cursor-pointer bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-xl border border-white/20 p-4 sm:p-6 mt-5 flex items-center justify-between gap-4"
+>
 
-  {/* Main Title - Font size adjusted for mobile */}
-  {/* <div className="flex-[1.5]">
-    <p className="text-sm sm:text-3xl font-black text-gray-900 leading-tight tracking-tight">
-      {property.badge}
-    </p>
-  </div> */}
-  <div className="flex-[1.5]">
-      <p className="text-sm sm:text-3xl font-black text-gray-900 leading-tight tracking-tight flex items-center gap-2">
-        <span className="text-yellow-500 text-xl sm:text-3xl">
-          {heroBadge.icon}
-        </span>
-        {heroBadge.label}
-      </p>
-    </div>
+  {/* LEFT SECTION */}
+  <div className="flex items-center gap-3 flex-[1.5]">
+    
+    {/* Icon */}
+    <span className="text-yellow-500 text-xl sm:text-2xl">
+      {heroBadge.icon}
+    </span>
 
-  {/* Description - Hidden or very small on mobile to save space */}
-  <div className="hidden md:flex flex-1">
-    <p className="text-sm font-bold text-gray-900">
-      { heroBadge.description ? heroBadge.description : "One of the most loved properties by Guest" }
+    {/* Title */}
+    <p className="text-base sm:text-2xl font-semibold text-gray-900 leading-tight">
+      {heroBadge.label}
     </p>
   </div>
 
-  {/* Rating */}
-  <div className="flex-1">
-    <p className="text-sm sm:text-2xl font-semibold text-gray-900">
-      {property.rating || 0}
+  {/* DESCRIPTION */}
+  <div className="hidden md:block flex-1">
+    <p className="text-sm text-gray-600 leading-snug">
+      {heroBadge.description || "One of the most loved properties by guests"}
     </p>
-    <div className="flex justify-center">
+  </div>
+
+  {/* RATING */}
+  <div className="flex flex-col items-center flex-1">
+    <p className="text-lg sm:text-xl font-semibold text-gray-900">
+      {property.rating ? Number(property.rating).toFixed(1) : "New"}
+    </p>
+
+    <div className="flex gap-[2px] mt-1">
       {[1, 2, 3, 4, 5].map((s) => (
         <Star
           key={s}
-          className={`w-2 h-2 sm:w-3 sm:h-3 ${
-            s <= Math.round(property.rating || 4.9)
+          className={`w-3 h-3 ${
+            s <= Math.round(property.rating || 0)
               ? "fill-black text-black"
               : "text-gray-300"
           }`}
@@ -2109,17 +2107,18 @@ const FloatingInsightBadge = ({ badge }) => {
     </div>
   </div>
 
-  {/* Divider - Hidden on very small screens to save space */}
-  <div className="hidden xs:block w-px h-8 sm:h-10 bg-gray-200" />
+  {/* DIVIDER */}
+  <div className="hidden sm:block w-px h-8 bg-gray-200" />
 
-  {/* Reviews */}
-  <div className="flex-1">
-    <p className="text-sm sm:text-2xl font-semibold text-gray-900">
+  {/* REVIEWS */}
+  <div className="flex flex-col items-center flex-1">
+    <p className="text-lg sm:text-xl font-semibold text-gray-900">
       {property.reviewCount || 0}
     </p>
-    <p className="text-[10px] sm:text-sm text-gray-700">Reviews</p>
+    <p className="text-xs text-gray-500">Reviews</p>
   </div>
-                   </div>
+
+</div>
 
                 </div>
 
