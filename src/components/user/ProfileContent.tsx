@@ -559,7 +559,7 @@ const ProfileContent: React.FC = () => {
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
                       className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left transition-all duration-300 group ${activeTab === tab.id
-                          ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg transform scale-105'
+                          ? 'bg-[#4285F4] hover:bg-[#3367D6] text-white shadow-lg transform scale-105'
                           : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 hover:text-purple-700 hover:shadow-md hover:scale-105'
                         }`}
                     >
@@ -623,7 +623,7 @@ const ProfileContent: React.FC = () => {
                         variant={isEditing ? "outline" : "ghost"}
                         size="sm"
                         onClick={() => setIsEditing(!isEditing)}
-                        className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+                        className="bg-[#4285f4] hover:bg-[#3367D6] text-white"
                       >
                         {isEditing ? (
                           <>

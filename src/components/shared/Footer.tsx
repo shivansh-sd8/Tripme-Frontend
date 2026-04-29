@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Home, Briefcase, User, Heart, Settings ,XIcon, Instagram, Facebook  ,Twitter ,Youtube} from 'lucide-react';
+import { Home, Briefcase, User, Heart, Settings ,XIcon, Instagram, Facebook  ,Twitter ,Youtube, Search} from 'lucide-react';
 import { useScrollDirection } from '@/hooks/userScrollDirection';
 import { useUI } from "@/core/store/uiContext";
 import { apiClient } from '@/infrastructure/api/clients/api-client';
@@ -112,7 +112,7 @@ export default function Footer() {
           <span className="text-xs mt-1 font-semibold">Home</span>
         </Link>
         <Link href="/search" className="flex flex-col items-center flex-1 py-2 text-gray-700 hover:text-indigo-600 transition-all">
-          <Home size={26} />
+          <Search size={26} />
           <span className="text-xs mt-1 font-semibold">Rooms</span>
         </Link>
         <Link href="/services" className="flex flex-col items-center flex-1 py-2 text-gray-700 hover:text-indigo-600 transition-all">

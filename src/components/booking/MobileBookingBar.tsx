@@ -290,7 +290,7 @@ export default function MobileBookingBar({
           <div className="bg-white border-t shadow-2xl px-4 py-3">
             <Button
               onClick={() => router.push(`/host/property/${property.id}`)}
-              className="w-full py-3 rounded-xl font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 text-white"
+              className="w-full py-3 rounded-xl font-semibold bg-[#4285f4] text-white"
             >
               Edit your property
             </Button>

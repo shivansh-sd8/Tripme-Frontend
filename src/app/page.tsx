@@ -810,7 +810,7 @@ export default function Home() {
 
 
         {(recentLoading || recentSearches.length > 0) && (
-          <div className="block md:hidden  pt-[169px] pb-[100px] ">
+          <div className="block md:hidden  pt-[169px]  ">
             {/* Dynamic Cities Section */}
 
             <section className="px-4 pb-2">
@@ -891,9 +891,9 @@ export default function Home() {
           </div>
         )}
 
-          <section className="md:hidden py-10 bg-white ">
+          <section className="md:hidden py-1 bg-white ">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-8">Popular Destinations</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-2 md:mb-8">Popular Destinations</h2>
 
               {/* City-wise Horizontal Property Display */}
               <div className="space-y-12">
@@ -910,7 +910,7 @@ export default function Home() {
                 />
               </div> */}
                         <div>
-                          <h3 className="text-xl font-bold text-gray-900">{city.name}</h3>
+                          <h3 className="text-md font-bold text-gray-900">{city.name}</h3>
                           <p className="text-gray-600">{city.description}</p>
                           <p className="text-sm text-gray-500">{city.propertyCount} stays</p>
                         </div>
@@ -957,7 +957,7 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="md:hidden px-4 pt-8 ">
+          {/* <section className="md:hidden px-4 pt-8 ">
             <h2 className="text-xl font-semibold mb-3">
               Active coupons
             </h2>
@@ -1000,7 +1000,7 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          </section>
+          </section> */}
 
 
 
@@ -1032,12 +1032,12 @@ export default function Home() {
             </section>
           )} */}
 
-            <section className="md:hidden py-20 bg-gray-50">
+            <section className="md:hidden py-1 bg-gray-50">
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
     {/* Heading */}
     <div className="mb-12">
-      <h2 className="text-4xl font-bold text-gray-900">
+      <h2 className="text-xl md:4xl font-bold text-gray-900">
         Top-Recommended Destinations
       </h2>
     </div>
@@ -1135,7 +1135,7 @@ export default function Home() {
           </section>
 
           {/* ================= MOBILE FEATURED STAYS ================= */}
-          <section className="px-4 mt-10 md:hidden">
+          <section className="px-4 mt-10 mb-10 md:hidden">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-sm font-medium" style={{ color: '#7c3aed' }}>Handpicked for you</p>
@@ -1171,6 +1171,11 @@ export default function Home() {
                 );
               })}
             </div>
+          </section>
+
+          
+          <section className="mb-100 md:hidden" >
+
           </section>
 
 
@@ -1405,7 +1410,7 @@ export default function Home() {
                       </div>
                       <button
                         onClick={() => router.push(`/search?city=${encodeURIComponent(city.name)}`)}
-                        className="flex items-center gap-2 text-gray-700 hover:text-black font-medium transition-colors"
+                        className="flex items-center gap-2 text-gray-700 hover:text-black font-medium text-[#174EA6] hover:text-[#6366f1] transition-colors"
                       >
                         View all
                         <ArrowRight className="w-4 h-4" />
@@ -1447,9 +1452,9 @@ export default function Home() {
           {/* Dynamic Coupon Section - Fixed Height Carousel */}
           <section className="py-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2 font-display">Active Coupons</h2>
-                <p className="text-base text-gray-600 max-w-2xl mx-auto font-body">
+              <div className="mb-6">
+                <h2 className="text-4xl font-bold text-gray-900 mb-8">Active Coupons</h2>
+                <p className="text-start text-gray-600 font-body">
                   Check out our latest active coupons and discounts
                 </p>
               </div>
@@ -1693,7 +1698,7 @@ export default function Home() {
                   <h2 className="text-3xl font-bold text-gray-900">Deals For The Weekend</h2>
                   <p className="text-gray-500 mt-1 text-sm">Limited-time stays for your next spontaneous escape</p>
                 </div>
-                <button onClick={() => router.push('/search')} className="hidden sm:flex items-center gap-1 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors">
+                <button onClick={() => router.push('/search')} className="hidden sm:flex items-center gap-1 text-sm font-semibold text-[#174EA6] hover:text-[#6366f1] transition-colors">
                   View all <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -1716,10 +1721,11 @@ export default function Home() {
                   <p className="text-gray-500 text-lg">No weekend offers available at the moment.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   {weekendProperties.slice(0, 6).map((property) => (
                     <StayCard
                       key={property._id}
+                      className="w-72"
                       stay={{
                         id: property._id,
                         title: property.title,
@@ -1758,7 +1764,7 @@ export default function Home() {
                   <h2 className="text-3xl font-bold text-gray-900">Featured Stays</h2>
                   <p className="text-gray-500 mt-1 text-sm">Handpicked accommodations for an unforgettable experience</p>
                 </div>
-                <button onClick={() => router.push('/search')} className="hidden sm:flex items-center gap-1 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors">
+                <button onClick={() => router.push('/search')} className="hidden sm:flex items-center gap-1 text-sm font-semibold text-[#174EA6] hover:text-[#6366f1] transition-colors">
                   View all <ArrowRight className="w-4 h-4" />
                 </button>
               </div>

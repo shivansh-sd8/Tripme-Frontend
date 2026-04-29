@@ -10,7 +10,7 @@ import Button from '@/components/ui/Button';
 import ReviewForm from '@/components/rooms/reviews/ReviewForm';
 interface Booking {
   _id: string;
-  propertyId: {
+  propertyId?: {
     _id: string;
     title: string;
     images: string[];
@@ -19,7 +19,13 @@ interface Booking {
       state: string;
     };
     host: string | { _id: string; name: string };
-  };
+  } | null;
+
+  service?: {
+    _id: string;
+    title: string;
+    media: { url: string }[];
+  } | null;
   checkIn: string;
   checkOut: string;
   guests: {
@@ -59,6 +65,10 @@ interface Booking {
       gst: number;
       totalAmount: number;
     };
+  };
+  timeSlot?:{
+    startTime: string;
+    endTime: string;
   };
    hasReviewed?: boolean;
   reviewId?: string;
@@ -126,20 +136,67 @@ const formatDateTime = (dateString?: string, timeString?: string) => {
   });
 };
 
-const getDisplayDateTime = (booking: Booking, type: 'checkin' | 'checkout') => {
-  const is24Hour = booking.bookingDuration === '24hour' || !!booking.checkInDateTime || !!booking.checkOutDateTime;
+// const getDisplayDateTime = (booking: Booking, type: 'checkin' | 'checkout') => {
+//   const is24Hour = booking.bookingDuration === '24hour' || !!booking.checkInDateTime || !!booking.checkOutDateTime;
 
-  if (is24Hour) {
-    const dateTimeString = type === 'checkin' ? booking.checkInDateTime : booking.checkOutDateTime;
+//   if (is24Hour) {
+//     const dateTimeString = type === 'checkin' ? booking.checkInDateTime : booking.checkOutDateTime;
+//     const formatted = formatDateTime(dateTimeString);
+//     if (formatted) return formatted;
+//   }
+
+//   const dateString = type === 'checkin' ? booking.checkIn : booking.checkOut;
+//   const timeString = type === 'checkin' ? booking.checkInTime : booking.checkOutTime;
+//   const formatted = formatDateTime(dateString, timeString);
+//   if (formatted) return formatted;
+
+//   return dateString ? formatDate(dateString) : 'N/A';
+// };
+
+const getDisplayDateTime = (
+  booking: Booking,
+  type: 'checkin' | 'checkout'
+) => {
+  const isService = !!booking.service;
+
+  // ✅ 1. Handle Service Bookings
+  if (isService && booking.timeSlot) {
+    const dateTimeString =
+      type === 'checkin'
+        ? booking.timeSlot.startTime
+        : booking.timeSlot.endTime;
+
     const formatted = formatDateTime(dateTimeString);
     if (formatted) return formatted;
   }
 
-  const dateString = type === 'checkin' ? booking.checkIn : booking.checkOut;
-  const timeString = type === 'checkin' ? booking.checkInTime : booking.checkOutTime;
+  // ✅ 2. Handle 24-hour / datetime bookings
+  const is24Hour =
+    booking.bookingDuration === '24hour' ||
+    !!booking.checkInDateTime ||
+    !!booking.checkOutDateTime;
+
+  if (is24Hour) {
+    const dateTimeString =
+      type === 'checkin'
+        ? booking.checkInDateTime
+        : booking.checkOutDateTime;
+
+    const formatted = formatDateTime(dateTimeString);
+    if (formatted) return formatted;
+  }
+
+  // ✅ 3. Default (date + time)
+  const dateString =
+    type === 'checkin' ? booking.checkIn : booking.checkOut;
+
+  const timeString =
+    type === 'checkin' ? booking.checkInTime : booking.checkOutTime;
+
   const formatted = formatDateTime(dateString, timeString);
   if (formatted) return formatted;
 
+  // ✅ 4. Fallback
   return dateString ? formatDate(dateString) : 'N/A';
 };
 
@@ -200,18 +257,43 @@ useEffect(() => {
 
 
 
+  // const filterBookings = (bookings: Booking[]) => {
+  //   const now = new Date();
+  //   if (activeTab === 'upcoming') {
+  //     return bookings.filter(booking => 
+  //       new Date(booking.checkIn) > now && booking.status !== 'cancelled'
+  //     );
+  //   } else {
+  //     return bookings.filter(booking => 
+  //       new Date(booking.checkIn) <= now || booking.status === 'cancelled'
+  //     );
+  //   }
+  // };
+
   const filterBookings = (bookings: Booking[]) => {
-    const now = new Date();
+  const now = new Date();
+
+  return bookings.filter((booking) => {
+    const isService = !!booking.service;
+
+    // ✅ Determine start & end
+    const startTime = isService
+      ? new Date(booking.timeSlot?.startTime!)
+      : new Date(booking.checkInDateTime || booking.checkIn);
+
+    const endTime = isService
+      ? new Date(booking.timeSlot?.endTime!)
+      : new Date(booking.checkOutDateTime || booking.checkOut);
+
     if (activeTab === 'upcoming') {
-      return bookings.filter(booking => 
-        new Date(booking.checkIn) > now && booking.status !== 'cancelled'
-      );
+      // 👉 Upcoming = not started yet
+      return startTime > now && booking.status !== 'cancelled';
     } else {
-      return bookings.filter(booking => 
-        new Date(booking.checkIn) <= now || booking.status === 'cancelled'
-      );
+      // 👉 Past = ended OR cancelled
+      return endTime <= now || booking.status === 'cancelled';
     }
-  };
+  });
+};
 
   const filteredBookings = filterBookings(bookings);
 
@@ -332,23 +414,39 @@ useEffect(() => {
             </div>
           ) : (
             <div className="space-y-6">
-              {filteredBookings.map((booking) => (
+              {filteredBookings.map((booking) => {
+                const isService = booking.bookingType === "service";
+
+  const title = isService
+    ? booking.service?.title
+    : booking.propertyId?.title;
+
+  const image = isService
+    ? booking.service?.media?.[0]?.url
+    : booking.propertyId?.images?.[0];
+
+  const location = isService
+    ? "Service Booking"
+    : `${booking.propertyId?.location?.city || ''}${
+        booking.propertyId?.location?.city && booking.propertyId?.location?.state ? ', ' : ''
+      }${booking.propertyId?.location?.state || ''}`;
+              return (
                 <div key={booking._id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col md:flex-row items-center md:items-stretch">
                   <div className="w-full md:w-48 h-40 md:h-auto flex-shrink-0 flex items-center justify-center bg-gray-100">
                     <img
-                      src={booking.propertyId?.images?.[0] || '/logo.png'}
-                      alt={booking.propertyId?.title || 'Property'}
+                      src={image || '/logo.png'}
+                      alt={title || 'Property'}
                       className="w-full h-full object-cover rounded-2xl md:rounded-none"
                     />
                   </div>
                   <div className="flex-1 p-6 flex flex-col justify-between">
                     <div>
                       <h3 className="text-xl font-bold text-gray-900 mb-1">
-                        {booking.propertyId?.title || 'Property'}
+                        {title || 'Property'}
                       </h3>
                       <div className="flex items-center gap-2 text-gray-600 mb-2">
                         <MapPin className="w-4 h-4" />
-                        <span>{booking.propertyId?.location?.city || ''}{booking.propertyId?.location?.city && booking.propertyId?.location?.state ? ', ' : ''}{booking.propertyId?.location?.state || ''}</span>
+                        <span>{location || 'Location'}</span>
                       </div>
                       <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-2">
                         <span>Check-in: {getDisplayDateTime(booking, 'checkin')}</span>
@@ -451,7 +549,7 @@ useEffect(() => {
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           )}
         </div>

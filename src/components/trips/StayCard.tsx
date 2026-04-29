@@ -201,7 +201,7 @@ const currency =
                 {stay.title}
               </h3>
               <div className="flex items-center gap-1 mt-1">
-                <MapPin size={14} className="text-gray-400 flex-shrink-0" />
+                <MapPin size={14} className="text-[#4285f4] flex-shrink-0" />
                 <p className="text-sm text-gray-500 truncate">
                   {stay.location.city}, {stay.location.state}
                 </p>

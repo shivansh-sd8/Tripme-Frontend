@@ -98,7 +98,7 @@ today.setHours(0, 0, 0, 0);
 
         {/* Tabs */}
         <div className="flex justify-center  items-center">
-          <button className="px-4 py-2 border border-gray-800 rounded-full text-sm font-medium text-gray-800">
+          <button className="px-4 py-2 border  rounded-full text-sm font-medium bg-[#4285f4] text-white">
             Dates
           </button>
           {/* <button className="px-4 py-2 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100">
@@ -170,10 +170,11 @@ today.setHours(0, 0, 0, 0);
                    isPast  ?
                "text-gray-300 cursor-not-allowed pointer-events-none" :
                   isStartOrEndDay
-                    ? "bg-gray-800 text-white font-bold"
-                    : inRange
-                    ? "bg-gray-200 text-gray-800"
-                    : "text-gray-600 hover:bg-gray-100"
+                    
+                     ? "bg-[#4285f4] text-white font-bold"
+                      : inRange
+                      ? "bg-[#ECF2FD] text-black"
+                      : "text-gray-900 hover:bg-gray-100"
                 }`}
               >
                 {day}

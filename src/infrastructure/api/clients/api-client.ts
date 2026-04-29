@@ -644,29 +644,36 @@ class ApiClient {
     bookingId: string | null,
     amount: number,
     currency: string = 'INR',
-    propertyId?: string,
+    serviceOrPropertyId?: string,
     securePricingContext?: {
-      pricingToken: string;
-      propertyId: string;
+      pricingToken?: string;
+      serviceId?: string;
+      propertyId?: string;
       checkIn: string;
       checkOut: string;
       guests: { adults: number; children?: number; infants?: number };
       nights: number;
       totalAmount: number;
       currency?: string;
-    }
+    },
+    isService: boolean = false
   ): Promise<ApiResponse<any>> {
     return this.request('/payments/create-order', {
       method: 'POST',
       body: JSON.stringify({
         bookingId,
-        propertyId,
+        // Send as serviceId or propertyId depending on context
+        ...(isService
+          ? { serviceId: serviceOrPropertyId }
+          : { propertyId: serviceOrPropertyId }
+        ),
         amount,
         currency,
-        ...(securePricingContext && {
+        ...(securePricingContext?.pricingToken && {
           pricingToken: securePricingContext.pricingToken,
           pricingContext: {
             propertyId: securePricingContext.propertyId,
+            serviceId: securePricingContext.serviceId,
             checkIn: securePricingContext.checkIn,
             checkOut: securePricingContext.checkOut,
             guests: securePricingContext.guests,

@@ -240,7 +240,7 @@ const Header = ({ searchExpanded: externalSearchExpanded,
               <button
                 onClick={() => {
                   setActiveCategory('homes');
-                  router.push('/search');
+                  router.push('/');
                 }}
                 className={`flex items-center gap-3 px-6 py-3 rounded-full transition-all duration-200 group relative ${activeCategory === 'homes'
                   ? 'text-purple-600 bg-purple-50'
@@ -530,11 +530,11 @@ const Header = ({ searchExpanded: externalSearchExpanded,
                           <div className="h-px bg-gray-100 mx-5" />
 
                           {/* Navigate section */}
-                          <div className="px-5 py-3">
+                          <div className="px-5 py-3 mt-5">
                             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Explore</p>
                             <div className="flex flex-col gap-0.5">
                               <button
-                                onClick={() => { setHostMenuOpen(false); router.push('/search'); }}
+                                onClick={() => { setHostMenuOpen(false); router.push('/'); }}
                                 className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200"
                               >
                                 <Home size={15} className="text-gray-400" />
@@ -722,12 +722,12 @@ const Header = ({ searchExpanded: externalSearchExpanded,
           {/* Mobile menu */}
           {/* this code replace with tab menu */}
           {mobileMenuOpen && (
-            <div className="lg:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50">
+            <div className="lg:hidden absolute top-full mt-5 left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50">
               <div className="px-4 py-4 space-y-3">
                 <button
                   onClick={() => {
                     setActiveCategory('homes');
-                    router.push('/search');
+                    router.push('/');
                     setMobileMenuOpen(false);
                   }}
                   className={`flex items-center gap-3 px-4 py-3 rounded-2xl w-full text-left transition-all duration-200 ${activeCategory === 'homes'
@@ -871,11 +871,11 @@ const Header = ({ searchExpanded: externalSearchExpanded,
             </button>
 
             {/* Tabs */}
-            <div className="flex justify-around border-b border-gray-200">
+            <div className="flex justify-around border-b border-gray-200 mt-5 ">
               <button
                 onClick={() => {
                   setActiveCategory("homes");
-                  router.push("/search");
+                  router.push("/");
                 }}
                 className={`pb-2 text-sm font-medium relative ${activeCategory === "homes"
                   ? "text-black"

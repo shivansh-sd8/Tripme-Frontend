@@ -2225,7 +2225,7 @@ export default function BookingPage() {
           <div className="mb-8 hidden lg:block">
             <Button
               onClick={() => router.back()}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl px-4 py-2 hover:shadow-md"
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl px-4 py-2 hover:bg-[#4285f4]"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to property
@@ -2241,7 +2241,7 @@ export default function BookingPage() {
                  
                   <div className="flex items-center justify-between w-full mb-6 gap-4">
                     {/* Icon Container - Fixed at the start */}
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-gray-700 to-gray-800 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#4285f4]  rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
                       <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
 
@@ -2264,7 +2264,7 @@ export default function BookingPage() {
                     </div>
                     <span>•</span>
                     <div className="flex items-center gap-1">
-                      <MapPin className="w-4 h-4" />
+                      <MapPin className="w-4 h-4 text-[#4285f4]" />
                       <span>{property.location?.city}, {property.location?.state}</span>
                     </div>
                   </div>
@@ -2287,7 +2287,7 @@ export default function BookingPage() {
                   {/* Header */}
                   <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
+                      <div className="w-10 h-10  bg-[#4285f4]  rounded-xl flex items-center justify-center">
                         <Calendar className="w-5 h-5 text-white" />
                       </div>
                       <div>
@@ -2452,7 +2452,7 @@ export default function BookingPage() {
                             }))}
                             className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
                               bookingData.hourlyExtension === opt.hours
-                                ? 'bg-purple-600 text-white border-purple-600'
+                                ? ' bg-[#4285f4]  text-white border-purple-600'
                                 : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-purple-300'
                             }`}
                           >
@@ -2732,8 +2732,8 @@ export default function BookingPage() {
             {/* Right Column - Booking Summary - Modern Design */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 sticky top-24">
-                <div className="flex items-center gap-3 mb-6">
-                  <Receipt className="w-5 h-5 text-gray-500" />
+                <div className="flex items-center gap-3 mb-6 ">
+                  <Receipt className="w-5 h-5   text-[#4285f4]" />
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">Booking Summary</h3>
                     <p className="text-sm text-gray-600">Review your selection</p>
@@ -2850,7 +2850,7 @@ export default function BookingPage() {
 
                     {/* Header */}
                     <div className="flex items-start sm:items-center gap-3 mb-4">
-                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shrink-0">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10  bg-[#4285f4]  rounded-xl flex items-center justify-center shrink-0">
                         <Gift className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
                       <div>
@@ -2899,7 +2899,7 @@ export default function BookingPage() {
                       <button
                         onClick={() => validateCoupon(couponCode)}
                         disabled={!couponCode.trim() || couponLoading}
-                        className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
+                        className="w-full sm:w-auto px-6 py-3  bg-[#4285f4]  text-white rounded-xl font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
                       >
                         {couponLoading ? (
                           <>
@@ -3040,8 +3040,8 @@ export default function BookingPage() {
                   }}
                   disabled={!bookingData.agreeToTerms || bookingLoading || availabilityLoading}
                   className={`w-full py-3 rounded-lg font-semibold text-base transition-colors ${!bookingData.agreeToTerms || bookingLoading || availabilityLoading
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-gray-800 hover:bg-gray-700 text-white'
+                      ? 'bg-[#E2ECFD] text-gray-500 cursor-not-allowed'
+                      : ' bg-[#4285f4]  hover:bg-gray-700 text-white'
                     }`}
                 >
                   {bookingLoading ? (

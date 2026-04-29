@@ -209,7 +209,9 @@ export default function HostDesktopLayout({ host,hostListings }: { host: any,hos
             </div>
             <div className="text-center">
               <div className="text-3xl mb-2">🏠</div>
-              <div className="font-semibold">{host.listings?.length || 0}</div>
+              <div className="font-semibold">
+                 {hostListings?.length || 0}
+              </div>
               <div className="text-gray-600 text-sm">Listings</div>
             </div>
             <div className="text-center">

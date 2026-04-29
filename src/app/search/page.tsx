@@ -1006,7 +1006,7 @@ const PropertyImageCarousel = ({ images, onFavorite, isFavorite, onClick }: {
             </div>
           ))
         ) : (
-          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+          <div className="w-full h-full bg-[#4285f4] justify-center">
             <MapPin className="w-12 h-12 text-gray-400" />
           </div>
         )}
@@ -1593,6 +1593,7 @@ function SearchPageContent() {
                       stay={stay}
                       onMouseEnter={() => setHoveredPropertyId(stay.id)}
                       onMouseLeave={() => setHoveredPropertyId(null)}
+                      
                       guests={guests}
                       checkIn={checkIn}
                       checkOut={checkOut}
@@ -1603,7 +1604,7 @@ function SearchPageContent() {
                 </div>
               ) : (
                 <div className="text-center py-16">
-                  <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <MapPin className="w-12 h-12 text-[#4285f4] mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No places found</h3>
                   <p className="text-gray-600 mb-6">Try adjusting your search location or dates.</p>
                   <button

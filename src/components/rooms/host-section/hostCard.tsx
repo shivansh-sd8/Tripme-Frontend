@@ -6,7 +6,7 @@ import { Star, ShieldCheck } from "lucide-react";
 export default function HostCard({ host }: { host: any }) {
   return (
     <Link href={`/user/host/${host.id}`} className="block">
-      <div className="bg-white rounded-2xl shadow-sm p-4 flex items-center gap-4 hover:shadow-md transition">
+      <div className="flex items-center gap-4 ">
         <img
           src={host.profileImage}
           className="w-16 h-16 rounded-full object-cover"
@@ -14,7 +14,7 @@ export default function HostCard({ host }: { host: any }) {
         />
 
         <div className="flex-1">
-          <h3 className="text-lg font-semibold">{host.name}</h3>
+          <h3 className="text-lg font-semibold"> Hosted by {host.name}</h3>
 
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Star className="w-4 h-4 fill-black" />

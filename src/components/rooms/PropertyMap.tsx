@@ -412,7 +412,7 @@ new PriceMarker({ lat: currentCoords.lat, lng: currentCoords.lng }).setMap(map);
       <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-2">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-20 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
+            <div className="w-20 h-10 bg-[#4285f4] rounded-xl flex items-center justify-center">
               <MapPin className="w-5 h-5 text-white" />
             </div>
             {/* <div>

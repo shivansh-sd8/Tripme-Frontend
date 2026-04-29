@@ -117,15 +117,18 @@ import {
   Map,
   BadgeCheck,
   Tags,
+  Crown
 } from "lucide-react";
 
 import { ReviewSummary } from "@/shared/types";
 
 interface ReviewSummaryProps {
   summary: ReviewSummary;
+  badge: any;
 }
 
-export default function ReviewSummaryAirbnb({ summary }: ReviewSummaryProps) {
+
+export default function ReviewSummaryAirbnb({ summary,badge }: ReviewSummaryProps) {
   const categories = [
     { key: "cleanliness", label: "Cleanliness", icon: Sparkles },
     { key: "accuracy", label: "Accuracy", icon: BadgeCheck },
@@ -135,15 +138,25 @@ export default function ReviewSummaryAirbnb({ summary }: ReviewSummaryProps) {
     { key: "value", label: "Value", icon: Tags },
   ];
 
+  const heroBadge = badge;
+
   return (
     <section className="bg-white rounded-2xl border-white/20 shadow-sm p-8">
       {/* TOP SECTION */}
       <div className="flex flex-col items-center text-center mb-10">
-        <div className="text-6xl font-semibold text-gray-900">
+       
+
+        <div className="text-2xl md:4xl font-semibold text-gray-900">
           {summary.averageRating.toFixed(2)}
         </div>
+            
+       <h3 className="flex items-center justify-center gap-2 text-4xl font-semibold mt-4">
+           <span className="text-yellow-500 text-2xl">
+      {badge.icon}
+    </span>
 
-        <h3 className="text-2xl font-semibold mt-4">Guest favourite</h3>
+    {badge.label}
+    </h3>
 
         <p className="text-gray-600 mt-2 max-w-lg">
           This home is a guest favourite based on ratings, reviews and

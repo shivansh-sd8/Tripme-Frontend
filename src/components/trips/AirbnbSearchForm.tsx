@@ -526,7 +526,7 @@ today.setHours(0, 0, 0, 0);
   return (
     
     <div className="space-y-3">
-      <h4 className="text-gray-800 font-semibold text-center">
+      <h4 className="text-[#4285f4] font-semibold text-center">
         {monthYear}
       </h4>
 
@@ -555,10 +555,10 @@ today.setHours(0, 0, 0, 0);
   isPast
     ? "text-gray-300 cursor-not-allowed pointer-events-none"
     : isStartOrEndDay
-    ? "bg-gray-800 text-white font-bold"
+    ? "bg-[#4285f4] text-white font-bold"
     : inRange
-    ? "bg-gray-200 text-gray-800"
-    : "text-gray-600 hover:bg-gray-100"
+    ? "bg-[#ECF2FD] text-black"
+    : "text-gray-900 hover:bg-gray-100"
 }`}
 
             >
@@ -1051,8 +1051,10 @@ const isStartOrEnd = (day, monthDate) => {
              isHidden && "h-0 opacity-0 -translate-y-6 pointer-events-none",
     !isHidden && "opacity-100 translate-y-0",
           activeField 
-            ? "bg-[#EBEBEB] shadow-[0_3px_12px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.08)]" 
-            : "bg-white shadow-[0_1px_2px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.05)] border border-gray-200 hover:shadow-[0_2px_4px_rgba(0,0,0,0.1),0_8px_16px_rgba(0,0,0,0.1)]"
+             ? "bg-[#F8F9FA] shadow-[0_4px_16px_rgba(0,0,0,0.12)] border border-gray-200" 
+             : "bg-white shadow-[0_1px_2px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.05)] border border-gray-200 hover:shadow-[0_6px_20px_rgba(0,0,0,0.1)]"
+            // ? "bg-[#EBEBEB] shadow-[0_3px_12px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.08)]" 
+            // : "bg-white shadow-[0_1px_2px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.05)] border border-gray-200 hover:shadow-[0_2px_4px_rgba(0,0,0,0.1),0_8px_16px_rgba(0,0,0,0.1)]"
           
         )}
       >
@@ -1065,10 +1067,12 @@ const isStartOrEnd = (day, monthDate) => {
               "w-full px-8 py-3.5 text-left transition-all duration-200 rounded-full flex flex-col justify-center",
               // isCompact ? "px-4 py-2" : "px-8 py-3.5",
               activeField === 'where' 
-                ? "bg-white shadow-[0_2px_16px_rgba(0,0,0,0.12)]" 
+                ? "bg-white shadow-[0_2px_16px_rgba(0,0,0,0.12)]  border-[#4285F4]" 
                 : activeField 
-                  ? "hover:bg-[#DDDDDD]" 
-                  : "hover:bg-gray-100"
+                ? "hover:bg-[#F1F3F4] text-gray-500" // Dimmed: Soft gray hover when another field is active
+        : "hover:bg-[#F8F9FA] text-gray-700" // Neutral: Very light gray hover
+                  // ? "hover:bg-[#DDDDDD]" 
+                  // : "hover:bg-gray-100"
             )}
           >
              <div className="text-xs font-semibold text-gray-800">Where</div>
@@ -1104,8 +1108,10 @@ const isStartOrEnd = (day, monthDate) => {
               (activeField === 'checkin' || activeField === 'checkout')
                 ? "bg-white shadow-[0_2px_16px_rgba(0,0,0,0.12)]" 
                 : activeField 
-                  ? "hover:bg-[#DDDDDD]" 
-                  : "hover:bg-gray-100"
+                   ? "hover:bg-[#F1F3F4] text-gray-500" // Dimmed: Soft gray hover when another field is active
+        : "hover:bg-[#F8F9FA] text-gray-700" // Neutral: Very light gray hover
+                  // ? "hover:bg-[#DDDDDD]" 
+                  // : "hover:bg-gray-100"
             )}
           >
              <div className="text-xs font-semibold text-gray-800">Date</div>
@@ -1124,7 +1130,10 @@ const isStartOrEnd = (day, monthDate) => {
         {/* Divider - hide when any field is active */}
         <div className={cn(
           "h-8 w-px flex-shrink-0 transition-opacity duration-200",
-          activeField ? "bg-transparent" : "bg-gray-300"
+          activeField 
+             ? "hover:bg-[#F1F3F4] text-gray-500" // Dimmed: Soft gray hover when another field is active
+        : "hover:bg-[#F8F9FA] text-gray-700" // Neutral: Very light gray hover
+          // ? "bg-transparent" : "bg-gray-300"
         )}></div>
 
         {/* Who Field + Search Button */}
@@ -1160,8 +1169,10 @@ const isStartOrEnd = (day, monthDate) => {
                 activeField === 'who' 
                   ? "bg-white shadow-[0_2px_16px_rgba(0,0,0,0.12)]" 
                   : activeField 
-                    ? "hover:bg-[#DDDDDD]" 
-                    : "hover:bg-gray-100"
+                      ? "hover:bg-[#F1F3F4] text-gray-500" // Dimmed: Soft gray hover when another field is active
+        : "hover:bg-[#F8F9FA] text-gray-700" // Neutral: Very light gray hover
+                    // ? "hover:bg-[#DDDDDD]" 
+                    // : "hover:bg-gray-100"
               )}
             >
               <div className="text-xs font-semibold text-gray-800">Who</div>
@@ -1177,7 +1188,7 @@ const isStartOrEnd = (day, monthDate) => {
           {/* Search Button - Airbnb Pink Pill */}
           <button
             type="submit"
-            className="mr-2 h-12 px-5 bg-[#FF385C] hover:bg-[#E31C5F] text-white rounded-full flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.04] active:scale-[0.98] font-medium shadow-sm"
+            className="mr-2 h-12 px-5 bg-[#1967D2] hover:bg-[#1A73E8] text-white rounded-full flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.04] active:scale-[0.98] font-medium shadow-sm"
           >
             <Search size={16} strokeWidth={2.5} />
             <span className="text-sm font-medium">Search</span>
@@ -1352,10 +1363,10 @@ const isStartOrEnd = (day, monthDate) => {
         )}>
           <div className="p-3 max-h-[70vh] overflow-y-auto">
             <div className="flex items-center justify-center mb-4">
-              <div className="inline-flex bg-gray-100 rounded-full p-1">
+              <div className="inline-flex bg-[#4285f4] rounded-full p-1">
                 <button
                   type="button"
-                  className="px-6 py-2 text-sm font-semibold rounded-full transition-colors bg-white text-gray-900 shadow-sm"
+                  className="px-6 py-2 text-sm font-semibold rounded-full   text-white shadow-sm"
                 >
                   Dates
                 </button>
@@ -1372,7 +1383,7 @@ const isStartOrEnd = (day, monthDate) => {
         )
       )
     }
-    className="text-lg text-gray-600 hover:text-black"
+    className="text-lg text-[#4285F4] hover:text-[#174EA6]"
   >
     ←
   </button>
@@ -1386,7 +1397,7 @@ const isStartOrEnd = (day, monthDate) => {
         )
       )
     }
-    className="text-lg text-gray-600 hover:text-black"
+    className="text-lg text-[#4285F4] hover:text-[#174EA6]"
   >
     →
   </button>
@@ -1494,14 +1505,14 @@ const isStartOrEnd = (day, monthDate) => {
                   });
                   setIsSelectingStartDate(true);
                 }}
-                className="text-sm text-gray-600 hover:text-gray-800 underline"
+                className="text-sm text-[#4285f4] hover:text-gray-800 underline"
               >
                 Clear dates
               </button>
               <button
                 type="button"
                 onClick={() => setActiveField(null)}
-                className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+                className="px-4 py-2 bg-[#4285f4] text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
               >
                 Close
               </button>
