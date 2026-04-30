@@ -162,15 +162,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="h-screen flex bg-white">
+    <div className="min-h-screen flex bg-white">
       {/* Left Side - Carousel */}
-      <div className="hidden lg:block lg:w-1/2 h-screen">
+      <div className="hidden lg:block lg:w-1/2 min-h-screen sticky top-0">
         <Carousel images={carouselImages} />
       </div>
 
       {/* Right Side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 overflow-y-auto">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 border-0">
+      <div className="w-full lg:w-1/2 flex flex-col justify-center px-4 py-12 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md mx-auto bg-white rounded-2xl sm:shadow-lg p-6 sm:p-8 border-0">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
@@ -245,7 +245,7 @@ export default function LoginPage() {
           />
 
           {/* Remember me and forgot password */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <Checkbox
               checked={formData.rememberMe}
               onChange={(e) => handleInputChange('rememberMe', e.target.checked)}

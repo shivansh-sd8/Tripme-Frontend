@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter, Playfair_Display, Poppins } from 'next/font/google';
+import { Inter, Playfair_Display, Poppins, Montserrat } from 'next/font/google';
 import '@/styles/globals.css';
 import { AuthProvider } from '@/core/store/auth-context';
 import { BookingProvider } from '@/core/store/booking-context';
@@ -13,6 +13,12 @@ import { UIProvider } from '@/core/store/uiContext';
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
+});
+
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-montserrat',
 });
 
 const playfair = Playfair_Display({
@@ -85,7 +91,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${playfair.variable} ${poppins.variable} antialiased`}
+        className={`${inter.variable} ${playfair.variable} ${poppins.variable} ${montserrat.variable} antialiased`}
       >
         <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>
           <ErrorBoundary>

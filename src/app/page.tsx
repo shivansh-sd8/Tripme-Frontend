@@ -789,6 +789,38 @@ export default function Home() {
 
   const { label, action } = getCTAConfig();
 
+  const [pendingBooking, setPendingBooking] = useState<{ id: string, propertyName: string, imageSrc: string } | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('tripme_pending_booking');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && parsed.expiresAt > Date.now()) {
+          setPendingBooking(parsed);
+        } else {
+          localStorage.removeItem('tripme_pending_booking');
+        }
+      }
+    } catch (e) {
+      console.error('Error loading pending booking', e);
+    }
+  }, []);
+
+
+  const ContinueBookingCard = ({ propertyName, imageSrc }: { propertyName: string, imageSrc: string }) => (
+  <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex items-center gap-4 max-w-sm">
+    <img src={imageSrc} className="w-16 h-16 rounded-xl object-cover" alt="Property" />
+    <div className="flex-1">
+      <p className="text-xs text-gray-500 uppercase font-bold tracking-tighter">Continue Booking</p>
+      <h4 className="font-semibold text-gray-900 line-clamp-1">{propertyName}</h4>
+    </div>
+    <button className="bg-[#4285F4] text-white p-2 rounded-full">
+      <ChevronRight size={20} />
+    </button>
+  </div>
+);
+
 
 
   return (
@@ -804,13 +836,18 @@ export default function Home() {
       )}
 
       <main className="pt-0 z-0 relative">
-
+        {/* Mobile Header Spacer to prevent overlap when fixed header is present */}
+        <div className="block md:hidden pt-[169px]"></div>
 
         {/* Latest Viewed Properties */}
-
+        {pendingBooking && (
+          <div className="block md:hidden px-4 py-4 cursor-pointer" onClick={() => router.push(`/rooms/${pendingBooking.id}`)}>
+            <ContinueBookingCard propertyName={pendingBooking.propertyName} imageSrc={pendingBooking.imageSrc} />
+          </div>
+        )}
 
         {(recentLoading || recentSearches.length > 0) && (
-          <div className="block md:hidden  pt-[169px]  ">
+          <div className="block md:hidden">
             {/* Dynamic Cities Section */}
 
             <section className="px-4 pb-2">
@@ -1248,7 +1285,7 @@ export default function Home() {
           </div>
         <div className="hidden md:block">
           {/* Hero Section - Two Column Layout Inspired by Image */}
-          <section className="relative min-h-screen flex items-center pt-32 pb-8">
+          <section className="relative min-h-screen flex items-center pt-24 pb-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 xl:gap-16 items-start lg:items-center">
 
@@ -1305,7 +1342,7 @@ export default function Home() {
           </section>
 
           {recentSearches.length > 0 && (
-            <section className="py-10 bg-white">
+            <section className="py-5 bg-white">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="flex items-end justify-between mb-6">
@@ -1384,7 +1421,7 @@ export default function Home() {
           )}
 
           {/* Dynamic Cities Section */}
-          <section className="py-10 bg-white">
+          <section className="py-5 bg-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <h2 className="text-4xl font-bold text-gray-900 mb-8">Popular Destinations</h2>
 
@@ -1450,7 +1487,7 @@ export default function Home() {
             </div>
           </section>
           {/* Dynamic Coupon Section - Fixed Height Carousel */}
-          <section className="py-8">
+          <section className="py-5">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="mb-6">
                 <h2 className="text-4xl font-bold text-gray-900 mb-8">Active Coupons</h2>
@@ -1624,7 +1661,7 @@ export default function Home() {
 
           {/* Top-Recommended Destinations Section */}
 
-            <section className="py-20 bg-gray-50">
+            <section className="py-5 bg-gray-50">
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
     {/* Heading */}
@@ -1687,7 +1724,7 @@ export default function Home() {
            </section>
 
           {/* Weekend Offers Section */}
-          <section className="py-16 bg-gray-50">
+          <section className="py-5 bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               {/* Header Section */}
               <div className="flex items-end justify-between mb-10">
@@ -1754,7 +1791,7 @@ export default function Home() {
           </section>
 
           {/* Featured Stays */}
-          <section className="py-16 bg-white">
+          <section className="py-5 bg-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-end justify-between mb-10">
                 <div>
@@ -1810,7 +1847,7 @@ export default function Home() {
           </section>
 
           {/* CTA Section */}
-          <section className="py-20 bg-gradient-to-br from-gray-900 to-gray-800">
+          <section className="py-5 bg-gradient-to-br from-gray-900 to-gray-800">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
               <h2 className="text-4xl font-bold text-white mb-6">
                 Ready to Start Your Journey?

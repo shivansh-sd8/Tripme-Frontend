@@ -594,8 +594,24 @@ export default function BookingPage() {
     setLoading(true);
     apiClient.getListing(id as string)
       .then((res: any) => {
-        setProperty(res.data?.listing || null);
+        const prop = res.data?.listing || null;
+        setProperty(prop);
         setError("");
+        
+        // Save pending booking info locally
+        if (prop) {
+          try {
+            const pendingBooking = {
+              id: prop._id,
+              propertyName: prop.title,
+              imageSrc: prop.images?.[0] || '/logo.png',
+              expiresAt: Date.now() + 2 * 60 * 60 * 1000 // 2 hours
+            };
+            localStorage.setItem('tripme_pending_booking', JSON.stringify(pendingBooking));
+          } catch (e) {
+            console.error('Error saving pending booking:', e);
+          }
+        }
       })
       .catch(() => setError("Property not found"))
       .finally(() => setLoading(false));
@@ -1890,6 +1906,7 @@ export default function BookingPage() {
 
         // Clear booking context data after redirect is initiated
         clearBookingData();
+        localStorage.removeItem('tripme_pending_booking');
       } else {
         // Extract detailed error message from response
         const errorMessage = response.message || response.error || 'Failed to process payment and create booking';

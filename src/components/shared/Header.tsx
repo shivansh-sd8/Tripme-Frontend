@@ -109,9 +109,9 @@ const Header = ({ searchExpanded: externalSearchExpanded,
 
 
   const categories = [
-  { id: 'homes', icon: <Home size={24} />, label: 'Homes', path: '/' },
-  { id: 'services', icon: <Bell size={24} />, label: 'Services', path: '/services' },
-  { id: 'stories', icon: <BookOpen size={24} />, label: 'Stories', path: '/stories' },
+  { id: 'homes', icon: '🏠', label: 'Homes', path: '/' },
+  { id: 'services',icon: '🔔', label: 'Services', path: '/services' },
+  { id: 'stories',  icon: '📖', label: 'Stories', path: '/stories' },
 ];
 
 
@@ -248,11 +248,12 @@ const Header = ({ searchExpanded: externalSearchExpanded,
                   router.push('/');
                 }}
                 className={`flex items-center gap-3 px-6 py-3 rounded-full transition-all duration-200 group relative ${activeCategory === 'homes'
-                  ? 'text-purple-600 bg-purple-50'
-                  : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
+                  ? 'text-[#4285F4]'
+                  : 'text-gray-700 hover:text-[#4285F4]'
                   }`}
               >
-                <Home size={22} className="group-hover:scale-110 transition-transform duration-200" />
+                <span className='text-2xl group-hover:scale-110 transition-transform duration-200'>🏠</span>
+                {/* <Home size={22} className="group-hover:scale-110 transition-transform duration-200" /> */}
                 <span className="font-medium text-base">Homes</span>
               </button>
               <button
@@ -261,11 +262,12 @@ const Header = ({ searchExpanded: externalSearchExpanded,
                   router.push('/services');
                 }}
                 className={`flex items-center gap-3 px-6 py-3 rounded-full transition-all duration-200 group relative ${activeCategory === 'services'
-                  ? 'text-purple-600 bg-purple-50'
+                  ? 'text-[#4285F4]'
                   : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
                   }`}
               >
-                <Bell size={22} className="group-hover:scale-110 transition-transform duration-200" />
+                <span className='text-2xl group-hover:scale-110 transition-transform duration-200'>🔔</span>
+                {/* <Bell size={22} className="group-hover:scale-110 transition-transform duration-200" /> */}
                 <span className="font-medium text-base">Services</span>
               </button>
               <button
@@ -274,11 +276,12 @@ const Header = ({ searchExpanded: externalSearchExpanded,
                   router.push('/stories');
                 }}
                 className={`flex items-center gap-3 px-6 py-3 rounded-full transition-all duration-200 group relative ${activeCategory === 'stories'
-                  ? 'text-purple-600 bg-purple-50'
+                  ? 'text-[#4285F4]'
                   : 'text-gray-700 hover:text-purple-600 hover:bg-purple-50'
                   }`}
               >
-                <BookOpen size={22} className="group-hover:scale-110 transition-transform duration-200" />
+                <span className='text-2xl group-hover:scale-110 transition-transform duration-200'>📖</span>
+                {/* <BookOpen size={22} className="group-hover:scale-110 transition-transform duration-200" /> */}
                 <span className="font-medium text-base">Stories</span>
               </button>
             </div>

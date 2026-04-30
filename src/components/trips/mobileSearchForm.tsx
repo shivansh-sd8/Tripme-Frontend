@@ -771,7 +771,7 @@ useEffect(() => {
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         className="w-full bg-white rounded-t-3xl flex flex-col overflow-hidden"
-        style={{ height: '95dvh' }}
+        style={{ height: '100dvh' }}
       >
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-2">
