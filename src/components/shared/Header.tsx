@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { boolean } from 'zod/v4';
 import { on } from 'events';
+import { cn } from '@/lib/utils';
 
 
 
@@ -107,7 +108,11 @@ const Header = ({ searchExpanded: externalSearchExpanded,
 
 
 
-
+  const categories = [
+  { id: 'homes', icon: <Home size={24} />, label: 'Homes', path: '/' },
+  { id: 'services', icon: <Bell size={24} />, label: 'Services', path: '/services' },
+  { id: 'stories', icon: <BookOpen size={24} />, label: 'Stories', path: '/stories' },
+];
 
 
   // Set active category based on current route
@@ -119,7 +124,7 @@ const Header = ({ searchExpanded: externalSearchExpanded,
     } else if (pathname === '/search') {
       setActiveCategory('homes');
     } else {
-      setActiveCategory(null); // Default state - nothing selected
+      setActiveCategory('homes'); // Default state - nothing selected
     }
   }, [pathname]);
 
@@ -850,7 +855,12 @@ const Header = ({ searchExpanded: externalSearchExpanded,
           </div>)}
 
           {/* mobile search form */}
-          <div className="md:hidden px-4 pb-3 mt-5">
+          <div
+  className={cn(
+    "md:hidden px-4 pb-3 mt-5 transition-transform duration-300",
+    scrolled ? "scale-[0.96]" : "scale-100"
+  )}
+>
             <button
               onClick={() => setSearchExpanded(true)}
               className="
@@ -871,7 +881,7 @@ const Header = ({ searchExpanded: externalSearchExpanded,
             </button>
 
             {/* Tabs */}
-            <div className="flex justify-around border-b border-gray-200 mt-5 ">
+            {/* <div className="flex justify-around border-b border-gray-200 mt-5 ">
               <button
                 onClick={() => {
                   setActiveCategory("homes");
@@ -919,7 +929,68 @@ const Header = ({ searchExpanded: externalSearchExpanded,
                   <span className="absolute left-0 right-0 -bottom-[1px] h-[2px] bg-black rounded-full" />
                 )}
               </button>
-            </div>
+            </div> */}
+           <div
+  className={cn(
+    "flex justify-around bg-white sticky z-40 transition-all duration-300 ease-in-out",
+    
+    // 🔥 dynamic spacing
+    scrolled
+      ? "top-[56px] py-1 "
+      : "top-[72px] py-3 "
+  )}
+>
+  {categories.map((cat) => {
+    const isActive = activeCategory === cat.id;
+
+    return (
+      <button
+  key={cat.id}
+  onClick={() => {
+    // setActiveCategory(cat.id);
+    router.push(cat.path);
+  }}
+  className={cn(
+    "flex flex-col items-center justify-center relative min-w-[70px]",
+    "transition-all duration-300 ease-in-out",
+    scrolled ? "gap-0" : "gap-1.5",
+    isActive ? "text-[#4285F4]" : "text-gray-500"
+  )}
+>
+  {/* ICON with smooth fade + collapse */}
+  <div
+    className={cn(
+      "transition-all duration-300 ease-in-out transform",
+      scrolled
+        ? "opacity-0 scale-75 h-0 overflow-hidden"
+        : "opacity-100 scale-100 h-5"
+    )}
+  >
+    {cat.icon}
+  </div>
+
+  {/* LABEL */}
+  <span
+    className={cn(
+      "font-medium tracking-wide transition-all duration-300",
+      scrolled ? "text-sm" : "text-xs",
+      isActive ? "text-[#4285F4]" : "text-gray-500"
+    )}
+  >
+    {cat.label}
+  </span>
+
+  {/* ACTIVE LINE */}
+  <span
+    className={cn(
+      "absolute left-0 right-0 bottom-0 h-[2px] rounded-t-full transition-all duration-300",
+      isActive ? "bg-[#4285F4] opacity-100" : "opacity-0"
+    )}
+  />
+</button>
+    );
+  })}
+</div>
           </div>
 
 

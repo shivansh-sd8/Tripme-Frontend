@@ -16,6 +16,7 @@ interface PropertyMapProps {
   state: string;
   country?: string;
   coordinates?: [number, number] | { lat: number; lng: number };
+  price: number;
 }
 
 // Default coordinates for major Indian cities if not provided
@@ -78,7 +79,8 @@ export default function PropertyMap({
   city, 
   state, 
   country = 'India',
-  coordinates 
+  coordinates ,
+  price
 }: PropertyMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -278,7 +280,7 @@ markerDiv.innerHTML = `
     box-shadow:0 4px 12px rgba(0,0,0,0.2);
     cursor:pointer;
   ">
-    ₹3,200
+     ₹${price}
   </div>
 `;
 

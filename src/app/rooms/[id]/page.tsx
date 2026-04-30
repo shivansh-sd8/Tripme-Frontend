@@ -3656,6 +3656,7 @@ const FloatingInsightBadge = ({ badge }) => {
               state={property.location?.state || 'State not specified'}
               country={property.location?.country || 'India'}
               coordinates={property.location?.coordinates}
+              price={property.pricing.basePrice}
             />
           </div>
 

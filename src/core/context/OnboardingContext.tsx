@@ -2,7 +2,7 @@
 import { id } from 'date-fns/locale';
 import React, { createContext, useContext, useState, ReactNode ,useEffect } from 'react';
 
-export type PropertyType = 'entire' | 'private' | 'shared' | 'experience';
+export type PropertyType = 'entire' | 'room' | 'shared' | 'experience';
 export type StructureType = 'house' | 'apartment' | 'guesthouse' | 'hotel' | 'villa' | 'cottage' | 'cabin' | 'farm' | 'boat' | 'camper' | 'treehouse' | 'tent' | 'castle' | 'other';
 
 // Airbnb-style 3 main steps with sub-steps
