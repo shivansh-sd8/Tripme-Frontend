@@ -853,7 +853,7 @@ export default function Home() {
             <section className="px-4 pb-2">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-sm
+                  <h2 className="text-xl
                    font-bold text-gray-900">Recently Viewed</h2>
                   <p className="text-[11px] text-gray-500 mt-0.5">Pick up where you left off</p>
                 </div>
