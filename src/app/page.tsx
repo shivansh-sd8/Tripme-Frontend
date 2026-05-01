@@ -750,28 +750,12 @@ export default function Home() {
     }).format(amount);
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-6"></div>
-          <span className="text-xl text-gray-600">Loading amazing destinations...</span>
-        </div>
-      </div>
-    );
-  }
-
   const getCTAConfig = () => {
     if (typeof window === 'undefined') {
       return { label: 'Explore stays', action: '/search' };
     }
 
     const path = window.location.pathname;
-
-    // Host-specific CTA
-    if (user?.role === 'host') {
-      return { label: 'Host dashboard', action: '/host/dashboard' };
-    }
 
     // Room details page
     if (path.startsWith('/rooms/')) {
@@ -783,11 +767,16 @@ export default function Home() {
       return { label: 'View map', action: 'toggle-map' };
     }
 
+    // Host-specific CTA (for other pages, but not the home page)
+    if (user?.role === 'host' && path == '/profile') {
+      return { label: 'Host dashboard', action: '/host/dashboard' };
+    }
+
     // Default (home / anywhere else)
-    return { label: 'Explore stays', action: '/search' };
+    return null;
   };
 
-  const { label, action } = getCTAConfig();
+  const cta  = getCTAConfig();
 
   const [pendingBooking, setPendingBooking] = useState<{ id: string, propertyName: string, imageSrc: string } | null>(null);
 
@@ -821,6 +810,17 @@ export default function Home() {
   </div>
 );
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-6"></div>
+          <span className="text-xl text-gray-600">Loading amazing destinations...</span>
+        </div>
+      </div>
+    );
+  }
+
 
 
   return (
@@ -853,8 +853,8 @@ export default function Home() {
             <section className="px-4 pb-2">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Recently Viewed</h2>
-                  <p className="text-xs text-gray-500 mt-0.5">Pick up where you left off</p>
+                  <h2 className="text-xs font-bold text-gray-900">Recently Viewed</h2>
+                  <p className="text-[10px] text-gray-500 mt-0.5">Pick up where you left off</p>
                 </div>
                 {recentSearches.length > 0 && (
                   <button
@@ -881,7 +881,7 @@ export default function Home() {
                   {recentSearches.slice(0, MAX_RECENT_SEARCHES).map((stay: any, index: number) => (
                     <div
                       key={`${stay.id || stay._id || 'recent'}-${index}`}
-                      className="min-w-[220px] max-w-[220px] flex-shrink-0 cursor-pointer group"
+                      className="min-w-[100px] max-w-[100px] flex-shrink-0 cursor-pointer group"
                       onClick={() => handlePropertyNavigation(stay)}
                     >
                       {/* Image */}
@@ -900,25 +900,27 @@ export default function Home() {
                         )}
                         {/* Heart */}
                         <button
-                          className="absolute top-2 right-2 w-7 h-7 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm"
+                          className="absolute  top-2 right-2 md:top-4 md:right-4 p-1 md:p-2  bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm"
                           onClick={e => { e.stopPropagation(); }}
                         >
-                          <Heart className="w-3.5 h-3.5 text-gray-700" />
+                          <Heart className="w-2.5 h-2.5 md:w-3.5 md:h-3.5 text-gray-700" />
                         </button>
                       </div>
 
                       {/* Info */}
                       <div className="space-y-0.5 px-0.5">
-                        <h3 className="font-semibold text-sm text-gray-900 line-clamp-1 leading-tight">
+                        <h3 className="font-semibold text-xs text-gray-900 line-clamp-1 leading-tight">
                           {stay.title || 'Untitled Property'}
                         </h3>
-                        <p className="text-xs text-gray-400 line-clamp-1">
-                          {[stay.location?.city, stay.location?.state].filter(Boolean).join(', ')}
+                        <p className="text-[10px] text-gray-400 line-clamp-1">
+                          {` ${stay.beds} Beds `}
+                          
                         </p>
-                        <p className="text-sm font-bold text-gray-900 pt-0.5">
+
+                        {/* <p className="text-sm font-bold text-gray-900 pt-0.5">
                           {formatPrice(stay.price?.amount || 0, stay.price?.currency || 'INR')}
                           <span className="font-normal text-gray-500 text-xs"> / night</span>
-                        </p>
+                        </p> */}
                       </div>
                     </div>
                   ))}
@@ -930,34 +932,30 @@ export default function Home() {
 
           <section className="md:hidden py-1 bg-white ">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <h2 className="text-xl font-bold text-gray-900 mb-2 md:mb-8">Popular Destinations</h2>
+              <h2 className="text-xs font-bold text-gray-900 mb-2 md:mb-8">Popular Destinations</h2>
 
               {/* City-wise Horizontal Property Display */}
-              <div className="space-y-12">
+              <div className="space-y-4">
                 {allCities.map((city) => (
-                  <div key={city.name} className="space-y-4">
+                  <div key={city.name} className="space-y-2">
                     {/* City Header */}
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        {/* <div className="w-16 h-16 rounded-lg overflow-hidden">
-                <img
-                  src={city.image}
-                  alt={city.name}
-                  className="w-full h-full object-cover"
-                />
-              </div> */}
+                    
                         <div>
-                          <h3 className="text-md font-bold text-gray-900">{city.name}</h3>
-                          <p className="text-gray-600">{city.description}</p>
-                          <p className="text-sm text-gray-500">{city.propertyCount} stays</p>
+                          <h3 className="text-xs font-bold text-gray-900">{city.name}</h3>
+                          <p className="text-[10px] text-gray-600">{city.description}</p>
+                          <p className="text-[8px] text-gray-500">{city.propertyCount} stays</p>
                         </div>
                       </div>
                       <button
                         onClick={() => router.push(`/search?city=${encodeURIComponent(city.name)}`)}
                         className="flex items-center gap-2 text-gray-700 hover:text-black font-medium transition-colors"
                       >
-                        View all
-                        <ArrowRight className="w-4 h-4" />
+                        {/* View all */}
+                        <div className="flex items-center gap-1 text-sm font-semibold text-[#174EA6] hover:text-[#6366f1] transition-colors">
+                   <ArrowRight className="w-4 h-4" />
+                </div>
                       </button>
                     </div>
 
@@ -970,7 +968,7 @@ export default function Home() {
                             <div key={property.id} className="flex-shrink-0">
                               <StayCard
                                 stay={property}
-                                className="w-72"
+                                className="w-[130px]"
                                 isFavorite={
                                   favorites.has(property.id)}
                                 onFavorite={handleFavorite}
@@ -1074,7 +1072,7 @@ export default function Home() {
 
     {/* Heading */}
     <div className="mb-12">
-      <h2 className="text-xl md:4xl font-bold text-gray-900">
+      <h2 className="text-lg md:4xl font-bold text-gray-900">
         Top-Recommended Destinations
       </h2>
     </div>
@@ -1097,11 +1095,11 @@ export default function Home() {
             onClick={() =>
               router.push(`/search?city=${encodeURIComponent(dest.name)}`)
             }
-            className="group bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 cursor-pointer"
+            className="group bg-white rounded-[1rem] md:rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 cursor-pointer"
           >
             
             {/* IMAGE CONTAINER */}
-            <div className="relative  h-[120px] sm:h-[190px] md:h-[220px] w-full overflow-hidden">
+            <div className="relative  h-[80px] sm:h-[190px] md:h-[220px] w-full overflow-hidden">
               
               {/* Image */}
               <img
@@ -1119,7 +1117,7 @@ export default function Home() {
 
             {/* TITLE */}
             <div className="py-4 text-center">
-              <span className="text-lg font-semibold text-gray-800 group-hover:text-blue-600 transition-colors duration-300">
+              <span className="text-xs font-semibold text-gray-800 group-hover:text-blue-600 transition-colors duration-300">
                 {dest.name}
               </span>
             </div>
@@ -1139,7 +1137,13 @@ export default function Home() {
                 <p className="text-sm font-medium" style={{ color: '#e85d75' }}>Weekend offers</p>
                 <h2 className="text-xl font-bold text-gray-900">Deals for the weekend</h2>
               </div>
-              <button onClick={() => router.push('/search')} className="text-xs text-gray-400 font-semibold underline">See all</button>
+              <button onClick={() => router.push('/search')} className="text-xs text-gray-400 font-semibold underline">
+                <div className="flex items-center gap-1 text-sm font-semibold text-[#174EA6] hover:text-[#6366f1] transition-colors">
+                   <div className="flex items-center gap-1 text-sm font-semibold text-[#174EA6] hover:text-[#6366f1] transition-colors">
+                   <ArrowRight className="w-4 h-4" />
+                </div>
+                </div>
+              </button>
             </div>
             <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide -mx-4 px-4">
               {weekendProperties.map((property) => {
@@ -1161,7 +1165,9 @@ export default function Home() {
                         beds: property.beds || 0,
                         bathrooms: property.bathrooms || 0,
                         tags: ['weekend-deal'],
+                        
                       }}
+                      varient="featured"
                       isFavorite={isFav}
                       onFavorite={handleFavorite}
                     />
@@ -1178,7 +1184,11 @@ export default function Home() {
                 <p className="text-sm font-medium" style={{ color: '#7c3aed' }}>Handpicked for you</p>
                 <h2 className="text-xl font-bold text-gray-900">Featured stays</h2>
               </div>
-              <button onClick={() => router.push('/search')} className="text-xs text-gray-400 font-semibold underline">See all</button>
+              <button onClick={() => router.push('/search')} className="text-xs text-gray-400 font-semibold underline">
+                <div className="flex items-center gap-1 text-sm font-semibold text-[#174EA6] hover:text-[#6366f1] transition-colors">
+                   <ArrowRight className="w-4 h-4" />
+                </div>
+              </button>
             </div>
             <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide -mx-4 px-4">
               {featuredStays.map((stay) => {
@@ -1200,7 +1210,9 @@ export default function Home() {
                         beds: 0,
                         bathrooms: 0,
                         tags: ['featured'],
+                        
                       }}
+                      varient="featured"
                       isFavorite={isFav}
                       onFavorite={handleFavorite}
                     />
@@ -1243,46 +1255,49 @@ export default function Home() {
         </div> */}
 
           {/* ================= MOBILE CTA ================= */}
-          <div
-            className={`
-    fixed left-0 right-0 z-40 sm:hidden
-    transition-all duration-300 ease-out
-    ${scrollDirection === 'down'
-                ? 'bottom-4 opacity-100 translate-y-0'
-                : 'bottom-[-80px] opacity-0 translate-y-4 pointer-events-none'}
-  `}
-          >
-            <div className="px-4">
-              <div className="bg-black text-white rounded-2xl p-4 shadow-xl flex gap-3">
-                <button
-                  onClick={() => {
-                    if (action === 'toggle-map') {
-                      document.dispatchEvent(new CustomEvent('toggle-map'));
-                    } else if (action === '#booking') {
-                      document
-                        .getElementById('booking')
-                        ?.scrollIntoView({ behavior: 'smooth' });
-                    } else {
-                      window.location.href = action;
-                    }
-                  }}
-                  className="flex-1 bg-white text-black py-3 rounded-xl font-semibold"
-                >
-                  {label}
-                </button>
+         {cta && (
+  <div
+    className={`
+      fixed left-0 right-0 z-40 sm:hidden
+      transition-all duration-300 ease-out
+      ${scrollDirection === 'down'
+        ? 'bottom-4 opacity-100 translate-y-0'
+        : 'bottom-[-80px] opacity-0 translate-y-4 pointer-events-none'}
+    `}
+  >
+    <div className="px-4">
+      <div className="bg-black text-white rounded-2xl p-4 shadow-xl flex gap-3">
 
-                {/* Secondary action (optional) */}
-                <button
-                  onClick={() =>
-                    window.location.href = '/search'
-                  }
-                  className="flex-1 border border-white/20 py-3 rounded-xl text-sm"
-                >
-                  Filters
-                </button>
-              </div>
-            </div>
-          </div>
+        {/* PRIMARY CTA */}
+        <button
+          onClick={() => {
+            if (cta.action === 'toggle-map') {
+              document.dispatchEvent(new CustomEvent('toggle-map'));
+            } else if (cta.action === '#booking') {
+              document
+                .getElementById('booking')
+                ?.scrollIntoView({ behavior: 'smooth' });
+            } else {
+              window.location.href = cta.action;
+            }
+          }}
+          className="flex-1 bg-white text-black py-3 rounded-xl font-semibold"
+        >
+          {cta.label}
+        </button>
+
+        {/* OPTIONAL secondary */}
+        <button
+          onClick={() => window.location.href = '/search'}
+          className="flex-1 border border-white/20 py-3 rounded-xl text-sm"
+        >
+          Filters
+        </button>
+
+      </div>
+    </div>
+  </div>
+)}
         <div className="hidden md:block">
           {/* Hero Section - Two Column Layout Inspired by Image */}
           <section className="relative min-h-screen flex items-center pt-24 pb-8">
@@ -1449,8 +1464,12 @@ export default function Home() {
                         onClick={() => router.push(`/search?city=${encodeURIComponent(city.name)}`)}
                         className="flex items-center gap-2 text-gray-700 hover:text-black font-medium text-[#174EA6] hover:text-[#6366f1] transition-colors"
                       >
-                        View all
-                        <ArrowRight className="w-4 h-4" />
+                        {/* View all */}
+                       <div className="flex items-center gap-1 text-sm font-semibold text-[#174EA6] hover:text-[#6366f1] transition-colors">
+                  <div className="flex items-center gap-1 text-sm font-semibold text-[#174EA6] hover:text-[#6366f1] transition-colors">
+                   <ArrowRight className="w-4 h-4" />
+                </div>
+                </div>
                       </button>
                     </div>
 
@@ -1736,7 +1755,11 @@ export default function Home() {
                   <p className="text-gray-500 mt-1 text-sm">Limited-time stays for your next spontaneous escape</p>
                 </div>
                 <button onClick={() => router.push('/search')} className="hidden sm:flex items-center gap-1 text-sm font-semibold text-[#174EA6] hover:text-[#6366f1] transition-colors">
-                  View all <ArrowRight className="w-4 h-4" />
+                  <div className="flex items-center gap-1 text-sm font-semibold text-[#174EA6] hover:text-[#6366f1] transition-colors">
+                   <div className="flex items-center gap-1 text-sm font-semibold text-[#174EA6] hover:text-[#6366f1] transition-colors">
+                   <ArrowRight className="w-4 h-4" />
+                </div>
+                </div>
                 </button>
               </div>
 
@@ -1744,7 +1767,7 @@ export default function Home() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {[1, 2, 3].map(i => (
                     <div key={i} className="rounded-2xl overflow-hidden animate-pulse">
-                      <div className="aspect-[4/3] bg-gray-200 rounded-t-2xl" />
+                      <div className="aspect-[4/3]   bg-gray-200 rounded-t-2xl" />
                       <div className="p-4 bg-white rounded-b-2xl space-y-2">
                         <div className="h-4 bg-gray-200 rounded w-3/4" />
                         <div className="h-3 bg-gray-100 rounded w-1/2" />
@@ -1783,6 +1806,7 @@ export default function Home() {
                         const updated = savePropertyToRecent(stay);
                         if (updated) setRecentSearches(updated);
                       }}
+                      varient="featured"
                     />
                   ))}
                 </div>
@@ -1802,15 +1826,20 @@ export default function Home() {
                   <p className="text-gray-500 mt-1 text-sm">Handpicked accommodations for an unforgettable experience</p>
                 </div>
                 <button onClick={() => router.push('/search')} className="hidden sm:flex items-center gap-1 text-sm font-semibold text-[#174EA6] hover:text-[#6366f1] transition-colors">
-                  View all <ArrowRight className="w-4 h-4" />
+                   <div className="flex items-center gap-1 text-sm font-semibold text-[#174EA6] hover:text-[#6366f1] transition-colors">
+                   <div className="flex items-center gap-1 text-sm font-semibold text-[#174EA6] hover:text-[#6366f1] transition-colors">
+                   <ArrowRight className="w-4 h-4" />
+                </div>
+                </div>
                 </button>
               </div>
 
               {featuredStays.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   {featuredStays.map((stay) => (
                     <StayCard
                       key={stay._id}
+                      className="w-72"
                       stay={{
                         id: stay._id,
                         title: stay.title,
@@ -1831,6 +1860,7 @@ export default function Home() {
                         const updated = savePropertyToRecent(s);
                         if (updated) setRecentSearches(updated);
                       }}
+                      varient="featured"
                     />
                   ))}
                 </div>
@@ -1861,7 +1891,11 @@ export default function Home() {
                   onClick={() => router.push('/search')}
                 >
                   Start Exploring
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  <div className="flex items-center gap-1 text-sm font-semibold text-[#174EA6] hover:text-[#6366f1] transition-colors">
+                  <div className="flex items-center gap-1 text-sm font-semibold text-[#174EA6] hover:text-[#6366f1] transition-colors">
+                   <ArrowRight className="w-4 h-4" />
+                </div>
+                </div>
                 </Button>
                 {user?.role === 'host' ? (
                   <Button

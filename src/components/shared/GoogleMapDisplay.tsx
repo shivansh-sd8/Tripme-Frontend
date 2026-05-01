@@ -354,11 +354,16 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
 
         // Add click listener for map card
         marker.addListener('click', (event: any) => {
-          // Use actual property data
+          // 1. Notify parent (useful for mobile sheet state)
+          if (markerData.onClick) {
+            markerData.onClick();
+          }
+
+          // 2. Internal card logic (used for desktop floating card)
           const propertyData = markerData.property;
           setSelectedProperty(propertyData);
           
-          // Smart positioning like Airbnb - choose best position relative to marker
+          // Smart positioning logic...
           const mapDiv = mapRef.current;
           if (mapDiv) {
             const mapRect = mapDiv.getBoundingClientRect();
@@ -474,10 +479,10 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
         style={{ height }}
       />
       
-      {/* Property Card Overlay */}
+      {/* Property Card Overlay (Desktop only) */}
       {selectedProperty && cardPosition && (
         <div
-          className="absolute bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden cursor-pointer"
+          className="hidden lg:block absolute bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden cursor-pointer"
           style={{
             left: `${cardPosition.x}px`,
             top: `${cardPosition.y}px`,
