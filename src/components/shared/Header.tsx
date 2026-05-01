@@ -963,7 +963,8 @@ const Header = ({ searchExpanded: externalSearchExpanded,
   {/* ICON with smooth fade + collapse */}
   <div
     className={cn(
-      "transition-all duration-300 ease-in-out transform",
+      "transition-all duration-300 ease-in-out transform ",
+
       scrolled
         ? "opacity-0 scale-75 h-0 overflow-hidden"
         : "opacity-100 scale-100 h-5"

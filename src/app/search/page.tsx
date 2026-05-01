@@ -951,10 +951,17 @@ const convertPropertyToStay = (property: any): Stay => {
       id: property.host?._id || property.host?.id || '',
       name: property.host?.name || 'Unknown Host',
       avatar: property.host?.profileImage || '',
-      isSuperhost: false
+      isSuperhost: property.host?.isSuperhost || false
     },
     amenities: property.amenities || [],
-    tags: property.tags || [],
+    tags: [
+      ...(property.tags || []),
+      ...(property.isTopRated ? ['favourite', 'top-rated'] : []),
+      ...(property.isFeatured ? ['featured'] : []),
+      ...(property.isSponsored ? ['sponsored'] : [])
+    ],
+    isTopRated: property.isTopRated || false,
+    isFeatured: property.isFeatured || false,
     maxGuests: property.maxGuests || 1,
     bedrooms: property.bedrooms || 0,
     beds: property.beds || 0,
@@ -1605,6 +1612,36 @@ function SearchPageContent() {
     return listings.map(convertPropertyToStay);
   }, [listings]);
 
+  // Intersection Observer for scroll-based map highlighting
+  useEffect(() => {
+    const observerOptions = {
+      root: null,
+      rootMargin: '-45% 0px -45% 0px', // Focus on the center area of the viewport
+      threshold: 0,
+    };
+
+    const observerCallback = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const propertyId = entry.target.getAttribute('data-property-id');
+          if (propertyId) {
+            setHoveredPropertyId(propertyId);
+          }
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+    
+    // Find all property card containers
+    const cards = document.querySelectorAll('.property-card-container');
+    cards.forEach((card) => observer.observe(card));
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [stayListings]);
+
   return (
     <div className="min-h-screen bg-white">
       <Header 
@@ -1652,18 +1689,22 @@ function SearchPageContent() {
               ) : stayListings.length > 0 ? (
                 <div className="grid grid-cols-3 gap-6">
                   {stayListings.map((stay) => (
-                    <StayCard
-                      key={stay.id}
-                      stay={stay}
-                      onMouseEnter={() => setHoveredPropertyId(stay.id)}
-                      onMouseLeave={() => setHoveredPropertyId(null)}
-                      
-                      guests={guests}
-                      checkIn={checkIn}
-                      checkOut={checkOut}
-                      isFavorite={favorites.has(stay.id)}
-                      onFavorite={handleFavorite}
-                    />
+                    <div 
+                      key={stay.id} 
+                      className="property-card-container" 
+                      data-property-id={stay.id}
+                    >
+                      <StayCard
+                        stay={stay}
+                        onMouseEnter={() => setHoveredPropertyId(stay.id)}
+                        onMouseLeave={() => setHoveredPropertyId(null)}
+                        guests={guests}
+                        checkIn={checkIn}
+                        checkOut={checkOut}
+                        isFavorite={favorites.has(stay.id)}
+                        onFavorite={handleFavorite}
+                      />
+                    </div>
                   ))}
                 </div>
               ) : (
@@ -1845,7 +1886,8 @@ function SearchPageContent() {
                     {stayListings.map((stay) => (
                       <div
                         key={stay.id}
-                        className="bg-white rounded-xl overflow-hidden border border-gray-200"
+                        className="property-card-container bg-white rounded-xl overflow-hidden border border-gray-200"
+                        data-property-id={stay.id}
                       >
                         <PropertyImageCarousel
                           images={stay.images}

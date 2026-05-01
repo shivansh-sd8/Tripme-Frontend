@@ -205,6 +205,8 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
       // Add debug map click listener
       map.addListener('click', (e: any) => {
         console.log('🗺️ MAP CLICKED!', e);
+        setSelectedProperty(null);
+        setCardPosition(null);
       });
 
       // Add bounds_changed listener for viewport-based filtering (only once)
@@ -291,7 +293,8 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
       const markersString = JSON.stringify(markers.map(m => ({
         id: m.id,
         pos: m.position,
-        highlighted: m.isHighlighted
+        highlighted: m.isHighlighted,
+        isSelected: m.id === selectedProperty?._id
       })));
       
       if (markersString === lastMarkersRef.current) {
@@ -323,6 +326,11 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
         // Create custom SVG icon for price tag
         const priceText = markerData.price ? `₹${markerData.price}` : '₹N/A';
         
+        const isSelected = markerData.id === selectedProperty?._id || markerData.isHighlighted;
+        const bgColor = isSelected ? '#4285f4' : 'white';
+        const textColor = isSelected ? 'white' : '#1f2937';
+        const strokeColor = isSelected ? '#4285f4' : '#e5e7eb';
+        
         const markerIcon = {
           url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
             <svg width="80" height="36" viewBox="0 0 80 36" xmlns="http://www.w3.org/2000/svg">
@@ -332,10 +340,10 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
                 </filter>
               </defs>
               <g filter="url(#shadow)">
-                <rect x="3" y="3" width="74" height="26" rx="13" fill="white" stroke="#e5e7eb" stroke-width="2"/>
-                <text x="40" y="20" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#1f2937">${priceText}</text>
-                <polygon points="36,29 40,35 44,29" fill="white"/>
-                <polygon points="35,29 40,36 45,29" fill="#e5e7eb"/>
+                <rect x="3" y="3" width="74" height="26" rx="13" fill="${bgColor}" stroke="${strokeColor}" stroke-width="2"/>
+                <text x="40" y="20" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="${textColor}">${priceText}</text>
+                <polygon points="36,29 40,35 44,29" fill="${bgColor}"/>
+                <polygon points="35,29 40,36 45,29" fill="${strokeColor}"/>
               </g>
             </svg>
           `)}`,
@@ -444,7 +452,7 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
         markersRef.current.push(marker);
       });
     }, 300); // Throttle marker updates by 300ms
-  }, [markerPosition, markers, isLoading]);
+  }, [markerPosition, markers, isLoading, selectedProperty]);
 
   if (isLoading) {
     return (

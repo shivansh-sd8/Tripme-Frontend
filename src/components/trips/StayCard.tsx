@@ -37,15 +37,28 @@ const StayCard: React.FC<StayCardProps> = ({
   const handleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onFavorite?.(stay.id);
+    const stayId = stay.id || (stay as any)._id;
+    if (stayId) {
+      onFavorite?.(stayId);
+    }
   };
 
   // Enhanced badge logic
-  const badge = stay.tags?.includes('superhost')
+  const isSuperhost = stay.tags?.includes('superhost') || stay.host?.isSuperhost;
+  const isGuestFavorite = stay.tags?.includes('favourite') || stay.tags?.includes('top-rated') || (stay as any).isTopRated;
+  const isFeatured = stay.tags?.includes('featured') || (stay as any).isFeatured;
+  const isWeekendDeal = stay.tags?.includes('weekend-deal');
+  const isNew = stay.tags?.includes('new') || (stay.createdAt && (new Date().getTime() - new Date(stay.createdAt).getTime()) < 14 * 24 * 60 * 60 * 1000);
+
+  const badge = isSuperhost
     ? { text: 'Superhost', color: 'bg-gradient-to-r from-purple-600 to-pink-600' }
-    : stay.tags?.includes('favourite')
+    : isGuestFavorite
     ? { text: 'Guest favorite', color: 'bg-gradient-to-r from-orange-500 to-red-500' }
-    : stay.tags?.includes('new')
+    : isWeekendDeal
+    ? { text: 'Weekend Deal', color: 'bg-gradient-to-r from-orange-400 to-amber-600' }
+    : isFeatured
+    ? { text: 'Featured', color: 'bg-gradient-to-r from-blue-600 to-cyan-600' }
+    : isNew
     ? { text: 'New', color: 'bg-gradient-to-r from-green-500 to-emerald-500' }
     : null;
 
@@ -176,10 +189,11 @@ const currency =
           {/* Favorite Button */}
           <button
             onClick={handleFavorite}
-            className="absolute top-2 right-2 md:top-4 md:right-4 p-1 md:p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all duration-200 hover:scale-110 shadow-lg"
+            className="absolute top-2 right-2 md:top-4 md:right-4 p-3 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all duration-200 hover:scale-110 shadow-lg z-50 pointer-events-auto"
+            aria-label="Add to favorites"
           >
             <Heart
-              size={12}
+              size={20}
               className={`transition-colors ${
                 isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-700 hover:text-red-500'
               }`}
@@ -188,7 +202,7 @@ const currency =
           
           {/* Badge */}
           {badge && (
-            <div className={`absolute top-4 left-4 ${badge.color} text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg`}>
+            <div className={`absolute top-4 left-4 ${badge.color} text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg z-20`}>
               {badge.text}
             </div>
           )}

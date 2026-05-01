@@ -33,7 +33,7 @@ export default function Home() {
   const router = useRouter();
   const { isAuthenticated, user, isLoading, refreshUser } = useAuth();
   const [featuredStays, setFeaturedStays] = useState<Array<{
-    _id: string;
+    id: string;
     title: string;
     description: string;
     price: { amount: number; currency: string };
@@ -382,7 +382,15 @@ export default function Home() {
           bedrooms: property.bedrooms || 1,
           beds: property.beds || 1,
           bathrooms: property.bathrooms || 1,
-          tags: property.amenities || [],
+          tags: [
+            ...(property.tags || []),
+            ...(property.isTopRated ? ['favourite', 'top-rated'] : []),
+            ...(property.isFeatured ? ['featured'] : []),
+            ...(property.isSponsored ? ['sponsored'] : []),
+            ...(property.isNew ? ['new'] : [])
+          ],
+          isTopRated: property.isTopRated || false,
+          isFeatured: property.isFeatured || false,
           instantBookable: property.instantBookable || false,
           amenities: property.amenities || [],
           host: {
@@ -546,7 +554,7 @@ export default function Home() {
 
         // Transform the data to match the expected format
         const transformedStays = fetchedStays.map((stay: any) => ({
-          _id: stay._id,
+          id: stay._id,
           title: stay.title,
           description: stay.description,
           price: {
@@ -558,7 +566,14 @@ export default function Home() {
           location: stay.location,
           rating: stay.rating?.average || stay.rating || 0,
           reviewCount: stay.reviewCount || 0,
-          tags: [...(stay.amenities || []), ...(stay.features || [])]
+          tags: [
+            ...(stay.tags || []),
+            ...(stay.isTopRated ? ['favourite', 'top-rated'] : []),
+            ...(stay.isFeatured || true ? ['featured'] : [])
+          ],
+          isTopRated: stay.isTopRated || false,
+          isFeatured: stay.isFeatured || true, // It's from the featured endpoint
+          amenities: stay.amenities || []
         }));
 
         setFeaturedStays(transformedStays);
@@ -669,6 +684,11 @@ export default function Home() {
   };
 
   const handleFavorite = async (stayId: string) => {
+    if (!isAuthenticated) {
+      router.push('/auth/login');
+      return;
+    }
+
     if (favorites.has(stayId)) {
       const found = findWishlistItem(stayId);
       if (!found) return;
@@ -695,29 +715,46 @@ export default function Home() {
       return;
     }
 
-    const wishlist = wishlists[0];
-    const res = await apiClient.addToWishlist(wishlist._id, {
-      itemType: 'Property',
-      itemId: stayId
-    });
+    try {
+      const wishlist = wishlists[0];
+      const res = await apiClient.addToWishlist(wishlist._id, {
+        itemType: 'Property',
+        itemId: stayId
+      });
 
-    setWishlists(prev => prev.map(wl => wl._id === wishlist._id ? res.data : wl));
-    setFavorites(prev => new Set(prev).add(stayId));
+      setWishlists(prev => prev.map(wl => wl._id === wishlist._id ? res.data : wl));
+      setFavorites(prev => {
+        const newSet = new Set(prev);
+        newSet.add(stayId);
+        return newSet;
+      });
+    } catch (error) {
+      console.error('Error adding to wishlist:', error);
+    }
   };
 
 
   useEffect(() => {
     const loadWishlists = async () => {
-      const res = await apiClient.getMyWishlists();
-      setWishlists(res.data);
+      try {
+        const res = await apiClient.getMyWishlists();
+        if (res.success && res.data) {
+          setWishlists(res.data);
 
-      const favSet = new Set<string>();
-      res.data.forEach((wl: any) => {
-        wl.items.forEach((item: any) => {
-          favSet.add(item.itemId.id.toString());
-        });
-      });
-      setFavorites(favSet);
+          const favSet = new Set<string>();
+          res.data.forEach((wl: any) => {
+            wl.items?.forEach((item: any) => {
+              const itemId = item.itemId?._id || item.itemId?.id || (typeof item.itemId === 'string' ? item.itemId : null);
+              if (itemId) {
+                favSet.add(itemId.toString());
+              }
+            });
+          });
+          setFavorites(favSet);
+        }
+      } catch (error) {
+        console.error('Error loading wishlists:', error);
+      }
     };
 
     loadWishlists();
@@ -901,10 +938,18 @@ export default function Home() {
                         )}
                         {/* Heart */}
                         <button
-                          className="absolute  top-2 right-2 md:top-4 md:right-4 p-1 md:p-2  bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm"
-                          onClick={e => { e.stopPropagation(); }}
+                          className="absolute top-2 right-2 p-2 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md z-30 hover:scale-110 transition-transform"
+                          onClick={e => { 
+                            e.stopPropagation(); 
+                            const id = stay.id || stay._id;
+                            if (id) handleFavorite(id);
+                          }}
                         >
-                          <Heart className="w-2.5 h-2.5 md:w-3.5 md:h-3.5 text-gray-700" />
+                          <Heart 
+                            className={`w-4 h-4 transition-colors ${
+                              favorites.has(stay.id || stay._id) ? 'fill-red-500 text-red-500' : 'text-gray-700'
+                            }`} 
+                          />
                         </button>
                       </div>
 
@@ -1839,10 +1884,10 @@ export default function Home() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   {featuredStays.map((stay) => (
                     <StayCard
-                      key={stay._id}
+                      key={stay.id}
                       className="w-72"
                       stay={{
-                        id: stay._id,
+                        id: stay.id,
                         title: stay.title,
                         description: stay.description || '',
                         images: stay.images || [],
@@ -1925,6 +1970,44 @@ export default function Home() {
 
       {/* Prices Include All Fees Popup */}
       <PricesPopup />
+
+      {/* Wishlist Modal */}
+      {showWishlistModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
+            <h3 className="text-xl font-bold mb-4 text-gray-900">Create new wishlist</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input
+                  className="border border-gray-300 w-full p-3 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                  placeholder="e.g. Summer Vacation, My Dream Stays"
+                  value={wishlistName}
+                  onChange={e => setWishlistName(e.target.value)}
+                  autoFocus
+                />
+                <p className="text-xs text-gray-500 mt-1">Maximum 50 characters</p>
+              </div>
+              
+              <div className="flex justify-end gap-3 pt-2">
+                <button 
+                  onClick={() => setShowWishlistModal(false)}
+                  className="px-5 py-2.5 text-gray-700 hover:bg-gray-100 rounded-xl font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-7 py-2.5 rounded-xl font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100 shadow-lg shadow-indigo-200"
+                  onClick={createWishlistAndSave}
+                  disabled={!wishlistName.trim() || wishlistName.length > 50}
+                >
+                  Create & Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

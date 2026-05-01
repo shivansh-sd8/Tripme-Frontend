@@ -12,9 +12,14 @@ module.exports = {
       //   'body': ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
       // },
 
+      //  fontFamily: {
+      //   sans: ['var(--font-montserrat)', 'Montserrat', 'system-ui', 'sans-serif'],
+      // },
        fontFamily: {
-        sans: ['var(--font-montserrat)', 'Montserrat', 'system-ui', 'sans-serif'],
+       sans: ['Jost','Inter', 'system-ui', 'sans-serif'],
+       
       },
+      
       fontSize: {
         h1: ['36px', { lineHeight: '44px', fontWeight: '600' }],
         h2: ['28px', { lineHeight: '36px', fontWeight: '600' }],
@@ -22,6 +27,7 @@ module.exports = {
         body: ['16px', { lineHeight: '26px', fontWeight: '400' }],
         small: ['14px', { lineHeight: '22px', fontWeight: '400' }],
       },
+      
       colors: {
         primary: {
           DEFAULT: '#FF6B00',
