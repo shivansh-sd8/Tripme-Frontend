@@ -853,8 +853,9 @@ export default function Home() {
             <section className="px-4 pb-2">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-xs font-bold text-gray-900">Recently Viewed</h2>
-                  <p className="text-[10px] text-gray-500 mt-0.5">Pick up where you left off</p>
+                  <h2 className="text-sm
+                   font-bold text-gray-900">Recently Viewed</h2>
+                  <p className="text-[11px] text-gray-500 mt-0.5">Pick up where you left off</p>
                 </div>
                 {recentSearches.length > 0 && (
                   <button
@@ -932,7 +933,7 @@ export default function Home() {
 
           <section className="md:hidden py-1 bg-white ">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <h2 className="text-xs font-bold text-gray-900 mb-2 md:mb-8">Popular Destinations</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-2 md:mb-8">Popular Destinations</h2>
 
               {/* City-wise Horizontal Property Display */}
               <div className="space-y-4">
@@ -968,7 +969,7 @@ export default function Home() {
                             <div key={property.id} className="flex-shrink-0">
                               <StayCard
                                 stay={property}
-                                className="w-[130px]"
+                                className="w-[150px]"
                                 isFavorite={
                                   favorites.has(property.id)}
                                 onFavorite={handleFavorite}
