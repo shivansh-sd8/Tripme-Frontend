@@ -158,6 +158,8 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
   // Load current availability from backend
   useEffect(() => {
     const fetchData = async () => {
+
+       if (!targetId) return;
       try {
         setError(null);
         if (targetType === 'listing') {
@@ -231,6 +233,9 @@ export default function AvailabilityManager({ targetType, targetId }: Availabili
 
           setDayMeta(map);
         } else {
+          
+          if (!targetId) return;
+          console.log("targetId", targetId);
           const availRes = await apiClient.getServiceAvailability(targetId);
           const slots = (availRes as any)?.data?.availableSlots || (availRes as any)?.data?.data?.availableSlots || [];
           const map: Record<string, {

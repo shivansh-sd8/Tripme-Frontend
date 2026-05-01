@@ -20,6 +20,7 @@ export interface SecurePricingRequest {
   bookingType?: 'daily' | '24hour';
   checkInDateTime?: string;
   extensionHours?: number;
+  checkInTime?: string; // HH:mm — backend uses this to compute isLateCheckIn server-side
   /** When true, apply basePrice24Hour rate per night even for multi-night (daily) bookings */
   isLateCheckIn?: boolean;
 }

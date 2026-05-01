@@ -916,7 +916,7 @@
 "use client";
 import React, { useEffect, useState, Suspense, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { MapPin } from 'lucide-react';
+import { MapPin, Heart } from 'lucide-react';
 import Image from 'next/image';
 import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
@@ -990,7 +990,7 @@ const PropertyImageCarousel = ({ images, onFavorite, isFavorite, onClick }: {
       <div 
         ref={imageScrollRef}
         onScroll={handleImageScroll}
-        className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide h-full"
+        className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide h-full touch-pan-x"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         // onClick={(e) => e.stopPropagation()} // Prevent click from bubbling when scrolling images
       >
@@ -1006,7 +1006,7 @@ const PropertyImageCarousel = ({ images, onFavorite, isFavorite, onClick }: {
             </div>
           ))
         ) : (
-          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+          <div className="w-full h-full bg-[#4285f4] justify-center">
             <MapPin className="w-12 h-12 text-gray-400" />
           </div>
         )}
@@ -1117,23 +1117,25 @@ function SearchPageContent() {
   
   // Bottom sheet states
   const [sheetState, setSheetState] = useState<'peek' | 'half' | 'full'>('half');
-  const [isDragging, setIsDragging] = useState(false);
-  const [startY, setStartY] = useState(0);
-  const [currentY, setCurrentY] = useState(0);
   const sheetRef = useRef<HTMLDivElement>(null);
   const listScrollRef = useRef<HTMLDivElement>(null);
   const [showStickyMapButton, setShowStickyMapButton] = useState(false);
   
+  // ── Drag refs (all mutable, no re-renders during drag) ──
+  const dragStartY = useRef(0);
+  const dragStartX = useRef(0);
+  const dragCurrentY = useRef(0);
+  const isDraggingRef = useRef(false);     // are we in a confirmed drag?
+  const isPotentialDrag = useRef(false);   // has a touch started?
+  const dragDirectionLocked = useRef<'none' | 'vertical' | 'horizontal'>('none');
+
   const [filterOpen, setFilterOpen] = useState(false);
   const [filteredResultsCount, setFilteredResultsCount] = useState(0);
-  // const { hideHeader, setHideHeader } = useUI();
-   const { hideHeader, setHideHeader ,hideBottomNav, setHideBottomNav } = useUI();
-  const [currentCardIndex, setCurrentCardIndex] = useState(0);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { hideHeader, setHideHeader ,hideBottomNav, setHideBottomNav } = useUI();
 
   const SHEET_HEIGHTS = {
     peek: '12vh',
-    half: '50vh',
+    half: '60vh',
     full: '92vh'
   };
 
@@ -1143,46 +1145,108 @@ function SearchPageContent() {
     setHideBottomNav(scrollTop > 100);
   };
 
-  const handleDragStart = (e: React.TouchEvent | React.MouseEvent) => {
-    if (sheetState === 'full' && listScrollRef.current) {
-      const scrollTop = listScrollRef.current.scrollTop;
-      if (scrollTop > 0) return;
-    }
+  // ─── Drag helpers ────────────────────────────────────────────────────────────
+  // All coordinate tracking lives in refs so we never trigger re-renders
+  // (and never read stale closure values) during a drag gesture.
 
-    setIsDragging(true);
+  const applyDragOffset = (deltaY: number) => {
+    if (!sheetRef.current) return;
+    // Clamp: sheet can never be dragged in an invalid direction
+    let clamped = deltaY;
+    if (sheetState === 'full')  clamped = Math.max(0, deltaY);   // only down
+    if (sheetState === 'peek')  clamped = Math.min(0, deltaY);   // only up
+    // Slight rubber-band resistance at the extremes
+    const resistance = 0.4;
+    const max = window.innerHeight * 0.5;
+    if (Math.abs(clamped) > max) {
+      clamped = Math.sign(clamped) * (max + (Math.abs(clamped) - max) * resistance);
+    }
+    sheetRef.current.style.transform = `translateY(${clamped}px)`;
+  };
+
+  const resetDragOffset = () => {
+    if (sheetRef.current) sheetRef.current.style.transform = '';
+  };
+
+  const handleDragStart = (e: React.TouchEvent | React.MouseEvent) => {
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    setStartY(clientY);
-    setCurrentY(clientY);
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    dragStartY.current = clientY;
+    dragStartX.current = clientX;
+    dragCurrentY.current = clientY;
+    isDraggingRef.current = false;
+    isPotentialDrag.current = true;
+    dragDirectionLocked.current = 'none';
+    // Disable transition during drag for instant feedback
+    if (sheetRef.current) sheetRef.current.style.transition = 'none';
   };
 
   const handleDragMove = (e: React.TouchEvent | React.MouseEvent) => {
-    if (!isDragging) return;
+    if (!isPotentialDrag.current) return;
+
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    setCurrentY(clientY);
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const deltaY = clientY - dragStartY.current;
+    const deltaX = clientX - dragStartX.current;
+
+    // Lock gesture direction once we've moved enough
+    if (dragDirectionLocked.current === 'none') {
+      if (Math.abs(deltaY) < 5 && Math.abs(deltaX) < 5) return; // not enough movement yet
+      dragDirectionLocked.current = Math.abs(deltaY) >= Math.abs(deltaX) ? 'vertical' : 'horizontal';
+    }
+
+    if (dragDirectionLocked.current === 'horizontal') {
+      // Let the browser handle horizontal scroll natively
+      isPotentialDrag.current = false;
+      return;
+    }
+
+    // Vertical gesture — decide if we should actually drag the sheet
+    if (!isDraggingRef.current) {
+      const isHandle = !!(e.target as HTMLElement).closest('.drag-handle');
+      const isAtTop = !listScrollRef.current || listScrollRef.current.scrollTop <= 0;
+
+      const shouldDrag =
+        isHandle ||
+        (sheetState === 'full' && deltaY > 0 && isAtTop) ||
+        (sheetState === 'peek' && deltaY < 0) ||
+        sheetState === 'half';
+
+      if (!shouldDrag) {
+        isPotentialDrag.current = false;
+        return;
+      }
+      isDraggingRef.current = true;
+    }
+
+    // Confirmed drag — move the sheet
+    if ('touches' in e && e.cancelable) e.preventDefault();
+    dragCurrentY.current = clientY;
+    applyDragOffset(deltaY);
   };
 
   const handleDragEnd = () => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    
-    const deltaY = currentY - startY;
+    isPotentialDrag.current = false;
+    // Re-enable CSS transition for the snap animation
+    if (sheetRef.current) sheetRef.current.style.transition = '';
+
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    resetDragOffset();
+
+    const deltaY = dragCurrentY.current - dragStartY.current;
     const threshold = 80;
-    
-    if (sheetState === 'peek') {
-      if (deltaY < -threshold) {
-        setSheetState('half');
-      }
-    } else if (sheetState === 'half') {
-      if (deltaY > threshold) {
-        setSheetState('peek');
-      } else if (deltaY < -threshold) {
-        setSheetState('full');
-      }
-    } else if (sheetState === 'full') {
-      if (deltaY > threshold) {
-        setSheetState('half');
-      }
+
+    if (deltaY < -threshold) {
+      // Swiped UP
+      if (sheetState === 'peek')       setSheetState('half');
+      else if (sheetState === 'half')  setSheetState('full');
+    } else if (deltaY > threshold) {
+      // Swiped DOWN
+      if (sheetState === 'full')       setSheetState('half');
+      else if (sheetState === 'half')  setSheetState('peek');
     }
+    dragDirectionLocked.current = 'none';
   };
 
   const applyFilters = async (filters: any) => {
@@ -1369,9 +1433,21 @@ function SearchPageContent() {
     const property = allProperties.find(p => p._id === propertyId);
     if (property) {
       setSelectedProperty(property);
-      setShowPropertyModal(true);
+      setSheetState('peek'); // Minimize sheet to show the card on map
+      
+      // Center map on selected property
+      if (property.location?.coordinates) {
+        setMapCenter([property.location.coordinates[0], property.location.coordinates[1]]);
+      }
     }
   }, [allProperties]);
+
+  // Clear selected property when sheet is pulled up
+  useEffect(() => {
+    if (sheetState !== 'peek' && selectedProperty) {
+      setSelectedProperty(null);
+    }
+  }, [sheetState, selectedProperty]);
 
   useEffect(() => {
     if (mapBounds && initialLoadComplete) {
@@ -1509,18 +1585,6 @@ function SearchPageContent() {
     setShowWishlistModal(false);
   };
 
-  const handleScroll = () => {
-    if (scrollContainerRef.current) {
-      const scrollLeft = scrollContainerRef.current.scrollLeft;
-      const cardWidth = scrollContainerRef.current.offsetWidth;
-      const newIndex = Math.round(scrollLeft / cardWidth);
-      setCurrentCardIndex(newIndex);
-      
-      if (stayListings[newIndex]) {
-        setHoveredPropertyId(stayListings[newIndex].id);
-      }
-    }
-  };
 
 
 
@@ -1593,6 +1657,7 @@ function SearchPageContent() {
                       stay={stay}
                       onMouseEnter={() => setHoveredPropertyId(stay.id)}
                       onMouseLeave={() => setHoveredPropertyId(null)}
+                      
                       guests={guests}
                       checkIn={checkIn}
                       checkOut={checkOut}
@@ -1603,7 +1668,7 @@ function SearchPageContent() {
                 </div>
               ) : (
                 <div className="text-center py-16">
-                  <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <MapPin className="w-12 h-12 text-[#4285f4] mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No places found</h3>
                   <p className="text-gray-600 mb-6">Try adjusting your search location or dates.</p>
                   <button
@@ -1621,10 +1686,11 @@ function SearchPageContent() {
             <div className="h-full rounded-2xl overflow-hidden shadow-lg border border-gray-200">
               <GoogleMapDisplay
                 center={mapCenter || searchCenter || [78.9629, 20.5937]}
-                zoom={(mapCenter || searchCenter) ? 14 : 5}
+                zoom={(mapCenter || searchCenter) ? (city ? 11 : 12) : 5}
                 markers={mapMarkers}
                 onBoundsChange={handleBoundsChange}
                 onCenterChange={handleCenterChange}
+                onMapClick={() => setSelectedProperty(null)}
                 height="100%"
                 className="w-full h-full rounded-2xl"
               />
@@ -1638,10 +1704,11 @@ function SearchPageContent() {
         <div className="flex-1 relative">
           <GoogleMapDisplay
             center={mapCenter || searchCenter || [78.9629, 20.5937]}
-            zoom={(mapCenter || searchCenter) ? 14 : 5}
+            zoom={(mapCenter || searchCenter) ? (city ? 11 : 12) : 5}
             markers={mapMarkers}
             onBoundsChange={handleBoundsChange}
             onCenterChange={handleCenterChange}
+            onMapClick={() => setSelectedProperty(null)}
             height="100%"
             className="w-full h-full"
           />
@@ -1654,6 +1721,74 @@ function SearchPageContent() {
               <span className="text-sm font-medium text-gray-700">Prices include all fees</span>
             </div>
           </div>
+
+          {/* Selected Property Card (Airbnb Style) */}
+          {selectedProperty && (
+            <div className="absolute bottom-32 left-4 right-4 z-20 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex h-32 border border-gray-100 relative ring-1 ring-black/5">
+                {/* Close Button */}
+                <button 
+                  onClick={() => setSelectedProperty(null)}
+                  className="absolute top-2 left-2 z-30 bg-white/90 backdrop-blur-sm rounded-full p-1.5 shadow-md hover:bg-white transition-all active:scale-90"
+                >
+                  <svg className="w-4 h-4 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+
+                <div className="w-1/3 relative">
+                  <Image
+                    src={selectedProperty.images?.[0]?.url || selectedProperty.images?.[0] || "/placeholder.jpg"}
+                    alt={selectedProperty.title}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                
+                <div className="w-2/3 p-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-start">
+                      <h3 className="font-bold text-gray-900 line-clamp-1 text-sm">{selectedProperty.title}</h3>
+                      <button className="text-gray-400 hover:text-pink-500 transition-colors">
+                        <Heart className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                      {selectedProperty.location?.city || 'Selected Location'}
+                    </p>
+                    
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-xs font-bold text-gray-900">₹{selectedProperty.pricing?.basePrice || selectedProperty.price?.amount}</span>
+                      <span className="text-[10px] text-gray-600">/ night</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-auto">
+                    {selectedProperty.rating > 0 && (
+                      <div className="flex items-center gap-1">
+                        <svg className="w-3 h-3 text-yellow-500 fill-current" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        <span className="text-xs font-semibold">{selectedProperty.rating}</span>
+                      </div>
+                    )}
+                    <button 
+                      onClick={() => {
+                        const params = new URLSearchParams();
+                        if (guests) params.set('guests', guests);
+                        if (checkIn) params.set('checkIn', checkIn);
+                        if (checkOut) params.set('checkOut', checkOut);
+                        router.push(`/rooms/${selectedProperty._id || selectedProperty.id}?${params.toString()}`);
+                      }}
+                      className="text-xs font-bold text-pink-600 hover:text-pink-700 underline underline-offset-2"
+                    >
+                      View Details
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {sheetState === 'full' && showStickyMapButton && (
             <button
@@ -1671,24 +1806,22 @@ function SearchPageContent() {
         {/* Bottom Sheet */}
         <div
           ref={sheetRef}
-          className="absolute left-0 right-0 bg-white rounded-t-3xl shadow-2xl transition-all duration-300 ease-out z-40"
+          className="absolute left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-40"
           style={{
             bottom: 0,
             height: SHEET_HEIGHTS[sheetState],
-            transform: isDragging ? `translateY(${Math.max(0, currentY - startY)}px)` : 'none'
+            transition: 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
           }}
+          onTouchStart={handleDragStart}
+          onTouchMove={handleDragMove}
+          onTouchEnd={handleDragEnd}
+          onMouseDown={handleDragStart}
+          onMouseMove={handleDragMove}
+          onMouseUp={handleDragEnd}
         >
-          <div 
-            className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing"
-            onTouchStart={handleDragStart}
-            onTouchMove={handleDragMove}
-            onTouchEnd={handleDragEnd}
-            onMouseDown={handleDragStart}
-            onMouseMove={handleDragMove}
-            onMouseUp={handleDragEnd}
-            onMouseLeave={handleDragEnd}
-          >
-            <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+          {/* Drag Handle */}
+          <div className="drag-handle flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing select-none">
+            <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
           </div>
 
           <div className="h-[calc(100%-2.5rem)] overflow-hidden flex flex-col">
@@ -1698,71 +1831,11 @@ function SearchPageContent() {
               </div>
             )}
 
-            {sheetState === 'half' && (
-              <div className="flex-1 px-4 pb-20">
-                <div 
-                  ref={scrollContainerRef}
-                  onScroll={handleScroll}
-                  className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide h-full"
-                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                >
-                  {stayListings.map((stay) => (
-                    <div key={stay.id} className="flex-shrink-0 w-[85vw] snap-center">
-                      <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 h-full">
-                        <PropertyImageCarousel
-                          images={stay.images}
-                          onFavorite={() => handleFavorite(stay.id)}
-                          isFavorite={favorites.has(stay.id)}
-                          onClick={() => {
-                            const params = new URLSearchParams();
-                            if (guests) params.set('guests', guests);
-                            if (checkIn) params.set('checkIn', checkIn);
-                            if (checkOut) params.set('checkOut', checkOut);
-                             console.log('on click guests:', guests, 'checkIn:', checkIn, 'checkOut:', checkOut);
-                            router.push(`/rooms/${stay.id}?${params.toString()}`);
-                          }}
-                        />
-
-                        <div className="p-4">
-                          <h3 className="font-semibold text-gray-900 mb-1 line-clamp-1">{stay.title}</h3>
-                          <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                            {stay.description || `${stay.bedrooms} bedroom · ${stay.beds} bed`}
-                          </p>
-                          
-                          <div className="flex items-center justify-between mt-3">
-                            <div>
-                              <span className="text-lg font-bold text-gray-900">₹{stay.price.amount}</span>
-                              <span className="text-sm text-gray-600"> / night</span>
-                            </div>
-                            
-                            {stay.rating > 0 && (
-                              <div className="flex items-center gap-1 text-sm">
-                                <svg className="w-4 h-4 text-yellow-500 fill-current" viewBox="0 0 20 20">
-                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                </svg>
-                                <span className="font-semibold text-gray-900">{stay.rating}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="text-center pb-2 pt-2">
-                  <span className="text-xs font-medium text-gray-600">
-                    {currentCardIndex + 1} / {stayListings.length}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {sheetState === 'full' && (
+            {(sheetState === 'half' || sheetState === 'full') && (
               <div 
                 ref={listScrollRef}
                 onScroll={handleListScroll}
-                className="flex-1 overflow-y-auto pb-20"
+                className="flex-1 overflow-y-auto pb-20 touch-pan-y"
               >
                 <div className="px-4 pt-2 pb-4">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">

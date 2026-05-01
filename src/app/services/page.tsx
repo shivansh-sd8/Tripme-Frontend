@@ -20,6 +20,16 @@ function groupByCity(services: any[]) {
   return grouped;
 }
 
+function groupByCategory(services: any[]) {
+  const grouped: Record<string, any[]> = {};
+  services.forEach((service) => {
+    const category = service.serviceType || 'Other';
+    if (!grouped[category]) grouped[category] = [];
+    grouped[category].push(service);
+  });
+  return grouped;
+} 
+
 export default function ServicesPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -55,7 +65,9 @@ export default function ServicesPage() {
   };
 
   const servicesByCity = groupByCity(services);
-
+  const servicesByCategory = groupByCategory(services);
+  console.log(servicesByCategory);
+  
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen bg-white">
@@ -98,7 +110,7 @@ export default function ServicesPage() {
               </div>
             </div>
           )}
-          {Object.keys(servicesByCity).length === 0 && (
+          {Object.keys(servicesByCategory).length === 0 && (
             <div className="max-w-4xl mx-auto">
               {/* Modern No Services Design */}
               <div className="text-center py-16 px-6">
@@ -270,9 +282,9 @@ export default function ServicesPage() {
               </div>
             </div>
           )}
-          {Object.entries(servicesByCity).map(([city, services]) => (
-            <section key={city} className="mb-12">
-              <h2 className="text-2xl font-bold text-indigo-700 mb-4 font-heading">{city}</h2>
+          {Object.entries(servicesByCategory).map(([category, services]) => (
+            <section key={category} className="mb-12">
+              <h2 className="text-2xl font-bold text-indigo-700 mb-4 font-heading">{category}</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {services.map((service) => (
                   <ServiceCard 

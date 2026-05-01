@@ -7,12 +7,14 @@ import HostingDashboard from "@/components/host/HostingDashboard";
 import BecomeHostIntro from "@/components/host/BecomeHostIntro";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/core/store/auth-context";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiClient } from "@/infrastructure/api/clients/api-client";
 
 export default function HostingPage() {
   const { user, isAuthenticated } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectAfter = searchParams.get('redirect'); // forwarded from become-host page
   const [hasListings, setHasListings] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [showIntro, setShowIntro] = useState(false);
@@ -49,12 +51,24 @@ export default function HostingPage() {
     checkListings();
   }, [user, isAuthenticated]);
 
+  const isServiceIntent = redirectAfter?.includes('/host/service');
+
   const handleGetStarted = () => {
-    router.push("/become-host/onboarding/step-1");
+    if (isServiceIntent) {
+      // Service flow: call becomeHost() API directly via lightweight page.
+      // No property listing onboarding needed. sessionStorage already has the redirect.
+      router.push('/become-host/host-register');
+    } else {
+      // Property listing flow: unchanged — full property onboarding.
+      const dest = redirectAfter
+        ? `/become-host/onboarding/step-1?redirect=${encodeURIComponent(redirectAfter)}`
+        : '/become-host/onboarding/step-1';
+      router.push(dest);
+    }
   };
 
   const handleCreateNewListing = () => {
-    router.push("/become-host/onboarding/step-1");
+    router.push('/become-host/onboarding/step-1');
   };
 
   if (loading) {
@@ -74,9 +88,10 @@ export default function HostingPage() {
   if (user?.role !== "host" || showIntro) {
     return (
       <ProtectedRoute requireAuth={true}>
-        <BecomeHostIntro 
-          onGetStarted={handleGetStarted} 
+        <BecomeHostIntro
+          onGetStarted={handleGetStarted}
           onExit={() => router.push("/")}
+          intent={isServiceIntent ? 'service' : 'property'}
         />
       </ProtectedRoute>
     );

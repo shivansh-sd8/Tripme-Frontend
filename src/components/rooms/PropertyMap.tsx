@@ -16,6 +16,7 @@ interface PropertyMapProps {
   state: string;
   country?: string;
   coordinates?: [number, number] | { lat: number; lng: number };
+  price: number;
 }
 
 // Default coordinates for major Indian cities if not provided
@@ -78,7 +79,8 @@ export default function PropertyMap({
   city, 
   state, 
   country = 'India',
-  coordinates 
+  coordinates ,
+  price
 }: PropertyMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -278,7 +280,7 @@ markerDiv.innerHTML = `
     box-shadow:0 4px 12px rgba(0,0,0,0.2);
     cursor:pointer;
   ">
-    ₹3,200
+     ₹${price}
   </div>
 `;
 
@@ -412,7 +414,7 @@ new PriceMarker({ lat: currentCoords.lat, lng: currentCoords.lng }).setMap(map);
       <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-2">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-20 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
+            <div className="w-20 h-10 bg-[#4285f4] rounded-xl flex items-center justify-center">
               <MapPin className="w-5 h-5 text-white" />
             </div>
             {/* <div>

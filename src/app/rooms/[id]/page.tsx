@@ -23,7 +23,7 @@ import MobileBookingBar from "@/components/booking/MobileBookingBar";
 import { ShareOption } from "@/components/shared/SharedProperty";
 import CancellationPolicy from "@/components/rooms/property/CancellationPolicy";
 import HouseRules from "@/components/rooms/property/HouseRules";
-
+import { Crown } from "lucide-react";
 // Dynamically import PropertyMap to avoid SSR issues with Google Maps
 const PropertyMap = dynamic(() => import("@/components/rooms/PropertyMap"), {
   ssr: false,
@@ -134,6 +134,114 @@ export default function PropertyDetailsPage() {
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [showHeaderCheckBtn, setShowHeaderCheckBtn] = useState(false);
   const [showBookingButton, setShowBookingButton] = useState(false);
+  //  badges
+  // ⭐ HERO (only 1)
+const heroBadge = property?.badges?.highlight?.[0] || null;
+
+// 📊 DETAILS (multiple)
+const detailBadges = property?.badges?.details || [];
+
+// 🔥 INSIGHTS (pricing section)
+const insightBadges = property?.badges?.insights || [];
+
+// ⚡ URGENCY (bottom / sticky)
+const urgencyBadge = property?.badges?.urgency?.[0] || null;
+  
+
+
+const PricingBadge = ({ badge }) => {
+  return (
+    <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-white border border-gray-200 shadow-sm">
+      
+      {/* Icon */}
+      <div className="text-lg">
+        {badge.icon}
+      </div>
+
+      {/* Label */}
+      <p className="text-gray-900 text-sm font-semibold leading-snug">
+        {badge.label}
+      </p>
+    </div>
+  );
+};
+
+// const FloatingInsightBadge = ({ badge }) => {
+//   if (!badge || !badge.label) return null;
+
+//   return (
+//     <div className="fixed bottom-40 left-4 right-4 z-50 block md:hidden">
+//       <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white border border-gray-200 shadow-lg">
+        
+//         <div className="text-lg">{badge.icon}</div>
+
+//         <p className="text-sm font-medium text-gray-800">
+//           {badge.label}
+//         </p>
+
+//       </div>
+//     </div>
+//   );
+// };
+
+
+
+const FloatingInsightBadge = ({ badge }) => {
+  const [show, setShow] = useState(false);
+
+  // 🧠 Check if already shown
+  useEffect(() => {
+    const alreadyShown = sessionStorage.getItem("insightBadgeShown");
+
+    if (!alreadyShown && badge) {
+      setShow(true);
+      sessionStorage.setItem("insightBadgeShown", "true");
+    }
+  }, [badge]);
+
+  // ⏱ Auto hide after 3 sec
+  useEffect(() => {
+    if (!show) return;
+
+    const timer = setTimeout(() => {
+      setShow(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [show]);
+
+  // 📜 Hide on scroll
+  useEffect(() => {
+    if (!show) return;
+
+    const handleScroll = () => {
+      setShow(false);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [show]);
+
+  if (!badge || !badge.label || !show) return null;
+
+  return (
+    <div
+      className={`fixed bottom-20 left-4 right-4 z-[9999] md:hidden transition-all duration-300 ${
+        show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+      }`}
+    >
+      <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white border border-gray-200 shadow-lg">
+        
+        <div className="text-lg">{badge.icon}</div>
+
+        <p className="text-sm font-medium text-gray-800">
+          {badge.label}
+        </p>
+
+      </div>
+    </div>
+  );
+};
 
 
 
@@ -176,9 +284,40 @@ export default function PropertyDetailsPage() {
           return prev;
         });
       }
-    }
 
-    window.addEventListener("scroll", handleScroll);
+      // Sticky tab nav: show after scrolling past the photos section
+      // When sticky nav shows, hide the main Header to avoid both showing at once
+      const photosEl = photosRef.current;
+      if (photosEl) {
+        const photosBottom = photosEl.getBoundingClientRect().bottom;
+        const shouldShowSticky = photosBottom < 80;
+        setShowStickyNav(shouldShowSticky);
+        // Hide main header whenever sticky nav is visible
+        const isMobileScreen = window.innerWidth < 1024;
+        setHideHeader(shouldShowSticky || isMobileScreen);
+      }
+
+      // Determine active tab by which section is nearest top
+      const sectionRefs = [
+        { key: 'photos' as const, ref: photosRef },
+        { key: 'amenities' as const, ref: amenitiesRef },
+        { key: 'reviews' as const, ref: reviewsRef },
+        { key: 'location' as const, ref: locationRef },
+      ];
+
+      let currentTab: 'photos' | 'amenities' | 'reviews' | 'location' = 'photos';
+      for (const { key, ref } of sectionRefs) {
+        if (ref.current) {
+          const rect = ref.current.getBoundingClientRect();
+          if (rect.top <= 120) {
+            currentTab = key;
+          }
+        }
+      }
+      setActiveTab(currentTab);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, [availabilityChecked, isOwnProperty]);
 
@@ -248,18 +387,22 @@ export default function PropertyDetailsPage() {
   // Pricing breakdown state
   const [priceBreakdown, setPriceBreakdown] = useState({
     basePrice: 0,
+    baseAmount: 0,
     serviceFee: 0,
     cleaningFee: 0,
     securityDeposit: 0,
     extraGuestCost: 0,
-    hourlyExtensionCost: 0,
+    extraGuestPrice: 0,
+    extraGuests: 0,
+    hourlyExtension: 0,
     platformFee: 0,
     gst: 0,
     processingFee: 0,
     taxes: 0,
     total: 0,
     nights: 0,
-    subtotal: 0
+    subtotal: 0,
+    discountAmount: 0
   });
 
   // Sync local state with booking context
@@ -331,9 +474,8 @@ export default function PropertyDetailsPage() {
     if (!property) return false;
     const selectedTime = checkInTimeStr || property.checkInTime || '15:00';
     const thresholdTime = '16:00';
-    const base24 = property.pricing?.basePrice24Hour || 0;
-    const allow24 = property.enable24HourBooking || base24 > 0;
-    return allow24 && parseTimeToMinutes(selectedTime) >= parseTimeToMinutes(thresholdTime);
+    // Always compute based purely on time >= 4PM (backend decides price based on its config)
+    return parseTimeToMinutes(selectedTime) >= parseTimeToMinutes(thresholdTime);
   }, [property, checkInTimeStr]);
 
   // True ONLY for single-night bookings after 4 PM → uses the full 24-hour booking flow
@@ -458,6 +600,13 @@ export default function PropertyDetailsPage() {
 
 
 
+  const Stat = ({ label, value }: { label: string; value: number }) => (
+  <div>
+    <p className="font-semibold text-lg"> {typeof value === "number" ? value.toFixed(1) : "0.0"}</p>
+    <p className="text-xs text-gray-500">{label}</p>
+  </div>
+);
+
   // Booked dates state - for showing red marks on calendar
   const [bookedDates, setBookedDates] = useState<Set<string>>(new Set());
 
@@ -482,7 +631,17 @@ export default function PropertyDetailsPage() {
   const checkOutRef = useRef<HTMLDivElement>(null);
   const bookingSentinelRef = useRef<HTMLDivElement>(null);
 
+  // Section refs for sticky tab navigation
+  const photosRef = useRef<HTMLDivElement>(null);
+  const amenitiesRef = useRef<HTMLDivElement>(null);
+  const reviewsRef = useRef<HTMLDivElement>(null);
+  const locationRef = useRef<HTMLDivElement>(null);
 
+  // Sticky tab nav state
+  const [showStickyNav, setShowStickyNav] = useState(false);
+  const [activeTab, setActiveTab] = useState<'photos' | 'amenities' | 'reviews' | 'location'>('photos');
+  //  review model 
+  const [isOpen, setIsOpen] = useState(false);
 
   const timeOptions = generateTimeOptions();
 
@@ -1523,33 +1682,33 @@ export default function PropertyDetailsPage() {
 
   const getAmenityIcon = (amenity: string) => {
     const iconMap: Record<string, any> = {
-      'wifi': <WifiIcon className="w-5 h-5" />,
-      'tv': <Tv className="w-5 h-5" />,
-      'kitchen': <ChefHat className="w-5 h-5" />,
-      'washer': <Droplets className="w-5 h-5" />,
-      'dryer': <Droplets className="w-5 h-5" />,
-      'ac': <Snowflake className="w-5 h-5" />,
-      'heating': <Flame className="w-5 h-5" />,
-      'workspace': <Monitor className="w-5 h-5" />,
-      'pool': <PoolIcon className="w-5 h-5" />,
-      'parking': <CarIcon className="w-5 h-5" />,
-      'gym': <GymIcon className="w-5 h-5" />,
-      'breakfast': <CoffeeIcon className="w-5 h-5" />,
-      'smoke-alarm': <Bell className="w-5 h-5" />,
-      'first-aid-kit': <Stethoscope className="w-5 h-5" />,
-      'fire-extinguisher': <Flame className="w-5 h-5" />,
-      'essentials': <Package className="w-5 h-5" />,
-      'mountain-view': <ViewIcon className="w-5 h-5" />,
-      'city-view': <Building2 className="w-5 h-5" />,
-      'garden': <Trees className="w-5 h-5" />,
-      'balcony': <Home className="w-5 h-5" />,
-      'terrace': <Home className="w-5 h-5" />,
-      'fireplace': <FireplaceIcon className="w-5 h-5" />,
-      'pet-friendly': <PetIcon className="w-5 h-5" />,
-      'smoking-allowed': <SmokingIcon className="w-5 h-5" />,
-      'long-term-stays': <ClockIcon className="w-5 h-5" />
+      'wifi': <WifiIcon className="w-5 h-5 text-[#174EA6]"  />,
+      'tv': <Tv className="w-5 h-5 text-[#174EA6]" />,
+      'kitchen': <ChefHat className="w-5 h-5 text-[#174EA6]" />,
+      'washer': <Droplets className="w-5 h-5 text-[#174EA6]" />,
+      'dryer': <Droplets className="w-5 h-5 text-[#174EA6]" />,
+      'ac': <Snowflake className="w-5 h-5 text-[#174EA6]" />,
+      'heating': <Flame className="w-5 h-5 text-[#174EA6]" />,
+      'workspace': <Monitor className="w-5 h-5 text-[#174EA6]" />,
+      'pool': <PoolIcon className="w-5 h-5 text-[#174EA6]" />,
+      'parking': <CarIcon className="w-5 h-5 text-[#174EA6]" />,
+      'gym': <GymIcon className="w-5 h-5 text-[#174EA6]" />,
+      'breakfast': <CoffeeIcon className="w-5 h-5 text-[#174EA6]" />,
+      'smoke-alarm': <Bell className="w-5 h-5 text-[#174EA6]" />,
+      'first-aid-kit': <Stethoscope className="w-5 h-5 text-[#174EA6]" />,
+      'fire-extinguisher': <Flame className="w-5 h-5 text-[#174EA6]" />,
+      'essentials': <Package className="w-5 h-5 text-[#174EA6]" />,
+      'mountain-view': <ViewIcon className="w-5 h-5 text-[#174EA6]" />,
+      'city-view': <Building2 className="w-5 h-5 text-[#174EA6]" />,
+      'garden': <Trees className="w-5 h-5 text-[#174EA6]" />,
+      'balcony': <Home className="w-5 h-5 text-[#174EA6]" />,
+      'terrace': <Home className="w-5 h-5 text-[#174EA6]" />,
+      'fireplace': <FireplaceIcon className="w-5 h-5 text-[#174EA6]" />,
+      'pet-friendly': <PetIcon className="w-5 h-5 text-[#174EA6]" />,
+      'smoking-allowed': <SmokingIcon className="w-5 h-5 text-[#174EA6]" />,
+      'long-term-stays': <ClockIcon className="w-5 h-5 text-[#174EA6]" />
     };
-    return iconMap[amenity] || <CheckCircle className="w-5 h-5" />;
+    return iconMap[amenity] || <CheckCircle className="w-5 h-5 text-[#174EA6]" />;
   };
 
   const calculateTotalNights = () => {
@@ -1587,11 +1746,12 @@ export default function PropertyDetailsPage() {
         checkOut: dateRange.endDate.toLocaleDateString('en-CA'),
         guests: { adults: guests, children: 0 },
         hourlyExtension: bookingType === 'daily' ? (hourlyExtension || 0) : 0,
-        bookingType,
+        bookingType: bookingType as 'daily' | '24hour',
         checkInDateTime: bookingType === '24hour' ? checkInDateTime.toISOString() : undefined,
         extensionHours: bookingType === '24hour' ? (hourlyExtension || 0) : undefined,
-        // When check-in is after 4 PM for multi-night, apply 24-hour price per night
-        isLateCheckIn: isLateCheckIn && !is24HourBooking ? true : undefined
+        // Always send checkInTime so backend can compute isLateCheckIn authoritatively
+        checkInTime: checkInTimeStr || property.checkInTime || '15:00',
+        isLateCheckIn: isLateCheckIn ? true : undefined
       };
 
       // Basic validation only - comprehensive validation on backend
@@ -1789,8 +1949,53 @@ export default function PropertyDetailsPage() {
 
       {/* Main Content */}
       <main className={` ${hideHeader ? "pt-0 " : "pt-40"} font-['Inter',system-ui,-apple-system,sans-serif] overflow-hidden`}>
+        {/* Sticky Section Tab Navigation */}
+        {showStickyNav && (
+          <div
+            className="fixed top-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm transition-all duration-300"
+            style={{ top: hideHeader ? 0 : undefined }}
+          >
+            <div className="max-w-7xl mx-auto px-4 sm:px-2 lg:px-8">
+              <div className="flex items-center gap-1 overflow-x-auto" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+                {([
+                  { key: 'photos', label: 'Photos' },
+                  { key: 'amenities', label: 'Amenities' },
+                  { key: 'reviews', label: 'Reviews' },
+                  { key: 'location', label: 'Location' },
+                ] as const).map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      const refMap = {
+                        photos: photosRef,
+                        amenities: amenitiesRef,
+                        reviews: reviewsRef,
+                        location: locationRef,
+                      };
+                      const el = refMap[key].current;
+                      if (el) {
+                        const offset = 80;
+                        const top = el.getBoundingClientRect().top + window.scrollY - offset;
+                        window.scrollTo({ top, behavior: 'smooth' });
+                      }
+                      setActiveTab(key);
+                    }}
+                    className={`relative flex-shrink-0 px-2 md:px-4 py-4 md:py-6 text-xs md:text-sm font-medium transition-colors duration-200 whitespace-nowrap border-b-2 ${
+                      activeTab === key
+                        ? 'border-gray-900 text-gray-900'
+                        : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Image Gallery */}
-        <div className="relative">
+        <div className="relative" ref={photosRef}>
           {/* MOBILE – HORIZONTAL SWIPE */}
 
 
@@ -1856,72 +2061,113 @@ export default function PropertyDetailsPage() {
 
 
                   {/* AIRBNB RATING STRIP */}
-                  <div className="mt-5 border-t border-b py-4 flex items-center justify-between text-center">
+                 <div
+  onClick={() => setIsOpen(true)}
+  className="cursor-pointer bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-xl border border-white/20 p-4 sm:p-6 mt-5 flex items-center justify-between gap-4"
+>
 
-                    {/* Rating */}
-                    <div className="flex-1">
-                      <p className="text-2xl font-semibold text-gray-900">
-                        {property.rating || 0}
-                      </p>
-                      <div className="flex justify-center">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star
-                            key={s}
-                            className={`w-3 h-3 ${s <= Math.round(property.rating || 4.9)
-                              ? "fill-black text-black"
-                              : "text-gray-300"
-                              }`}
-                          />
-                        ))}
-                      </div>
-                    </div>
+  {/* LEFT SECTION */}
+  <div className="flex items-center gap-3 flex-[1.5]">
+    
+    {/* Icon */}
+    <span className="text-yellow-500 text-xl sm:text-2xl">
+      {heroBadge.icon}
+    </span>
 
-                    {/* Divider */}
-                    <div className="w-px h-10 bg-gray-200" />
+    {/* Title */}
+    <p className="text-base sm:text-2xl font-semibold text-gray-900 leading-tight">
+      {heroBadge.label}
+    </p>
+  </div>
 
-                    {/* Guest Favourite */}
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-gray-900">
-                        Guest favourite
-                      </p>
-                    </div>
+  {/* DESCRIPTION */}
+  <div className="hidden md:block flex-1">
+    <p className="text-sm text-gray-600 leading-snug">
+      {heroBadge.description || "One of the most loved properties by guests"}
+    </p>
+  </div>
 
-                    {/* Divider */}
-                    <div className="w-px h-10 bg-gray-200" />
+  {/* RATING */}
+  <div className="flex flex-col items-center flex-1">
+    <p className="text-lg sm:text-xl font-semibold text-gray-900">
+      {property.rating ? Number(property.rating).toFixed(1) : "New"}
+    </p>
 
-                    {/* Reviews */}
-                    <div className="flex-1">
-                      <p className="text-2xl font-semibold text-gray-900">
-                        {property.reviewCount || 0}
-                      </p>
-                      <p className="text-sm text-gray-700">Reviews</p>
-                    </div>
-                  </div>
+    <div className="flex gap-[2px] mt-1">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <Star
+          key={s}
+          className={`w-3 h-3 ${
+            s <= Math.round(property.rating || 0)
+              ? "fill-black text-black"
+              : "text-gray-300"
+          }`}
+        />
+      ))}
+    </div>
+  </div>
+
+  {/* DIVIDER */}
+  <div className="hidden sm:block w-px h-8 bg-gray-200" />
+
+  {/* REVIEWS */}
+  <div className="flex flex-col items-center flex-1">
+    <p className="text-lg sm:text-xl font-semibold text-gray-900">
+      {property.reviewCount || 0}
+    </p>
+    <p className="text-xs text-gray-500">Reviews</p>
+  </div>
+
+</div>
+
                 </div>
 
               </div>
 
               {/* Property Highlights */}
-              <div className="mb-8">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-6 bg-gray-50 rounded-2xl">
-                  <div className="text-center">
-                    <div className="text-2xl mb-2">👥</div>
-                    <div className="text-sm font-medium text-gray-900">Up to {property.maxGuests} guests</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl mb-2">🛏️</div>
-                    <div className="text-sm font-medium text-gray-900">{property.bedrooms} bedroom{property.bedrooms > 1 ? 's' : ''}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl mb-2">🛌</div>
-                    <div className="text-sm font-medium text-gray-900">{property.beds} bed{property.beds > 1 ? 's' : ''}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl mb-2">🚿</div>
-                    <div className="text-sm font-medium text-gray-900">{property.bathrooms} bathroom{property.bathrooms > 1 ? 's' : ''}</div>
-                  </div>
-                </div>
-              </div>
+            <div className="mb-8 bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-xl border border-white/20 p-2 sm:p-6 mt-5">
+  <div className="flex flex-row items-center justify-between w-full gap-1 sm:gap-4">
+    
+    {/* Guests */}
+    <div className="flex-1 text-center">
+      <div className="text-lg md:text-2xl mb-1">👥</div>
+      <div className="text-[10px] sm:text-sm font-medium text-gray-900 leading-tight">
+        {property.maxGuests} guests
+      </div>
+    </div>
+
+    {/* Bedrooms */}
+    <div className="flex-1 text-center">
+      <div className="text-lg md:text-2xl mb-1">🛏️</div>
+      <div className="text-[10px] sm:text-sm font-medium text-gray-900 leading-tight">
+        {property.bedrooms} {property.bedrooms > 1 ? 'bedrooms' : 'bedroom' }
+      </div>
+    </div>
+
+    {/* Beds */}
+    <div className="flex-1 text-center">
+      <div className="text-lg md:text-2xl mb-1">🛌</div>
+      <div className="text-[10px] sm:text-sm font-medium text-gray-900 leading-tight">
+        {property.beds} {property.beds > 1 ? 'beds' : 'bed'}
+      </div>
+    </div>
+
+    {/* Bathrooms */}
+    <div className="flex-1 text-center">
+      <div className="text-lg md:text-2xl mb-1">🚿</div>
+      <div className="text-[10px] sm:text-sm font-medium text-gray-900 leading-tight">
+        {property.bathrooms} bath
+      </div>
+    </div>
+
+  </div>
+            </div>
+
+            
+               <div className="bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-xl border border-white/20 p-5 sm:p-8">
+            <HostCard host={property.host} />
+          </div>
+
 
               {/* Overview Section */}
 
@@ -1931,7 +2177,7 @@ export default function PropertyDetailsPage() {
                 {/* HEADER */}
 
                 <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg sm:rounded-xl flex items-center justify-center">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#4285f4] rounded-lg sm:rounded-xl flex items-center justify-center">
                     <Home className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
 
@@ -1979,12 +2225,15 @@ export default function PropertyDetailsPage() {
               </div>
 
 
+
+
+
               {/* Amenities Section */}
 
-              <div className="bg-white rounded-2xl shadow-md  p-5 md:p-8">
+              <div ref={amenitiesRef} className="bg-white rounded-2xl shadow-md  p-5 md:p-8">
                 {/* HEADER */}
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center">
+                  <div className="w-9 h-9 bg-[#4285f4] rounded-lg flex items-center justify-center">
                     <CheckCircle className="w-5 h-5 text-white" />
                   </div>
                   <h2 className="text-xl md:text-3xl font-semibold text-gray-900">
@@ -2183,13 +2432,21 @@ export default function PropertyDetailsPage() {
               />
 
             </div>
+            
 
             {/* Right Column - Booking Card */}
 
             <div className="hidden lg:col-span-1 lg:block">
+                 {insightBadges.length > 0 && (
+  <div className="space-y-3 mt-4 mb-4">
+    {insightBadges.map((badge, i) => (
+      <PricingBadge key={i} badge={badge} />
+    ))}
+  </div>
+)}
 
-
-              <div className="sticky top-24">
+              <div className="sticky top-2">
+                
                 <div className="bg-white border border-gray-200 rounded-2xl shadow-xl p-6">
                   {/* Price */}
                   <div className="mb-6">
@@ -2980,7 +3237,7 @@ export default function PropertyDetailsPage() {
                       </button>
                       <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl p-6 border border-purple-200">
                         <div className="flex items-center gap-3 mb-4">
-                          <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center">
+                          <div className="w-10 h-10 bg-[#4285f4] rounded-xl flex items-center justify-center">
                             <Clock className="w-5 h-5 text-white" />
                           </div>
                           <div>
@@ -3052,7 +3309,7 @@ export default function PropertyDetailsPage() {
                     <div className="mb-6">
                       <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl p-6 border border-emerald-200">
                         <div className="flex items-center gap-3 mb-4">
-                          <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl flex items-center justify-center">
+                          <div className="w-10 h-10 bg-[#4285f4] rounded-xl flex items-center justify-center">
                             <Receipt className="w-5 h-5 text-white" />
                           </div>
                           <div>
@@ -3083,7 +3340,7 @@ export default function PropertyDetailsPage() {
                         You cannot book your own property. This is a preview of how guests see your listing.
                       </p>
                       <Button
-                        className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-3 px-6 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                        className="bg-[#4285f4] hover:from-indigo-700 hover:to-purple-700 text-white py-3 px-6 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                         onClick={() => router.push(`/host/property/${id}`)}
                       >
                         <Home className="w-4 h-4 mr-2" />
@@ -3094,7 +3351,7 @@ export default function PropertyDetailsPage() {
                     <div className="space-y-4">
                       <Button
                         className={`w-full py-4 rounded-2xl font-bold text-lg shadow-xl transition-all duration-300 transform ${selectionStep === 'complete' && nights > 0
-                          ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white hover:shadow-2xl hover:scale-105'
+                          ? 'bg-gradient-to-r from-[#4285f4] to-[#4285f4] hover:from-emerald-600 hover:to-green-700 text-white hover:shadow-2xl hover:scale-105'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                           }`}
                         onClick={handleCompleteBooking}
@@ -3253,6 +3510,10 @@ export default function PropertyDetailsPage() {
               formatTimeHour={formatTimeHour}
               isHourlyProperty={!!(property?.hourlyBooking?.enabled)}
             />
+
+            <FloatingInsightBadge badge={property?.badges?.insights?.[0]} />
+
+            
             {showTimePrompt && (
               <div className="fixed inset-0 z-[100] bg-black/40 flex items-end">
                 <div className="bg-white w-full rounded-t-2xl p-5">
@@ -3339,12 +3600,55 @@ export default function PropertyDetailsPage() {
 
 
           </div>
-          <div className="mb-10 mt-10">
+{isOpen && (
+  <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
+    
+    {/* Overlay */}
+    <div
+      className="absolute inset-0 bg-black/40"
+      onClick={() => setIsOpen(false)}
+    />
+
+    {/* Modal */}
+    <div className="
+      relative bg-white shadow-2xl animate-fadeIn
+
+      /* 📱 MOBILE (full screen) */
+      w-full h-full rounded-none
+
+      /* 💻 DESKTOP */
+      md:w-[95%] md:max-w-3xl md:h-[90vh] md:rounded-3xl
+      md:flex md:flex-col
+    ">
+
+      {/* Close button */}
+      <button
+        onClick={() => setIsOpen(false)}
+        className="absolute top-4 right-4 z-10 text-gray-500 hover:text-black"
+      >
+        ✕
+      </button>
+
+      {/* 🔥 SCROLLABLE CONTENT */}
+      <div className="h-full overflow-y-auto p-5 sm:p-10">
+       
+       
+
+        {/* Reviews */}
+        <div className="mt-10">
+          <ReviewsSection property={property} />
+        </div>
+
+      </div>
+    </div>
+  </div>
+)}
+          <div className="mb-10 mt-10" ref={reviewsRef}>
             <ReviewsSection property={property} />
           </div>
           {/* Location Section with Map */}
 
-          <div className="mb-10">
+          <div className="mb-10" ref={locationRef}>
 
             <PropertyMap
               address={property.location?.address || 'Address not specified'}
@@ -3352,11 +3656,12 @@ export default function PropertyDetailsPage() {
               state={property.location?.state || 'State not specified'}
               country={property.location?.country || 'India'}
               coordinates={property.location?.coordinates}
+              price={property.pricing.basePrice}
             />
           </div>
 
           {/* Host Section */}
-          <div className="mb-20">
+          <div className="mb-20  bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-xl border border-white/20 p-5 sm:p-8">
             <HostCard host={property.host} />
           </div>
         </div>
@@ -3420,8 +3725,6 @@ export default function PropertyDetailsPage() {
             </div>
           </div>
         )}
-
-
 
 
       </main>

@@ -116,7 +116,7 @@ import HostDesktopLayout from "@/components/rooms/host-section/HostDesktopLayout
 export default function HostPage() {
   const params = useParams();
   const hostId = params.id as string;
-  const { host, loading, error, fetchHost } = useHostContext();
+  const { host, hostListings ,loading, error, fetchHost ,fetchHostListings} = useHostContext();
   const router = useRouter();
 
   useEffect(() => {
@@ -124,6 +124,13 @@ export default function HostPage() {
       fetchHost(hostId);
     }
   }, [hostId, host, loading, fetchHost]);
+
+  useEffect(() => {
+        if(hostId && !loading ){
+          fetchHostListings(hostId);
+          console.log("hostListings",hostListings);
+        }
+  },[fetchHostListings,hostId]); 
 
   if (loading) {
     return (
@@ -161,7 +168,7 @@ export default function HostPage() {
 
       {/* Desktop View - Full Page Layout */}
       <div className="hidden lg:block">
-        <HostDesktopLayout host={host} />
+        <HostDesktopLayout host={host} hostListings={hostListings}/>
       </div>
     </>
   );

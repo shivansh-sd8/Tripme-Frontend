@@ -15,6 +15,7 @@ interface StayCardProps {
   checkOut?: string;
   guests?: number;
   onCardClick?: (stay: Stay) => void;
+  varient?: "default" | "compact" | "featured";
 }
 
 const StayCard: React.FC<StayCardProps> = ({
@@ -27,7 +28,8 @@ const StayCard: React.FC<StayCardProps> = ({
   checkIn,
   checkOut,
   guests,
-  onCardClick
+  onCardClick,
+  varient = "default"
 }) => {
   const [currentImage, setCurrentImage] = React.useState(0);
   const [isHovered, setIsHovered] = React.useState(false);
@@ -129,7 +131,7 @@ const currency =
       {/* Vertical Layout - Airbnb Style */}
       <div className="w-full">
         {/* Image Section - Top */}
-        <div className="relative aspect-[4/3] w-full overflow-hidden">
+        <div className="relative  aspect-[4/3] w-full overflow-hidden">
           <Image
             // src={stay.images[currentImage]}
             src={imageSrc || "/placeholder.jpg"}
@@ -158,7 +160,7 @@ const currency =
           )}
           
           {/* Image Dots */}
-          {showArrows && (
+          {showArrows && varient != "featured" && (
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
               {stay.images.map((_, index) => (
                 <div
@@ -174,10 +176,10 @@ const currency =
           {/* Favorite Button */}
           <button
             onClick={handleFavorite}
-            className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all duration-200 hover:scale-110 shadow-lg"
+            className="absolute top-2 right-2 md:top-4 md:right-4 p-1 md:p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all duration-200 hover:scale-110 shadow-lg"
           >
             <Heart
-              size={18}
+              size={12}
               className={`transition-colors ${
                 isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-700 hover:text-red-500'
               }`}
@@ -193,42 +195,51 @@ const currency =
         </div>
 
         {/* Content Section - Bottom */}
-        <div className="p-4 space-y-2">
+        <div className="p-2 space-y-[2px] md:p-4 space-y-1 md:space-y-2">
           {/* Title & Rating */}
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start justify-between gap-1 md:gap-3">
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-gray-900 text-base leading-tight line-clamp-2 group-hover:text-gray-700 transition-colors">
+              <h3 className="font-bold text-gray-900 text-xs md:text-base leading-tight  line-clamp-1 h-[16px] group-hover:text-gray-700 transition-colors">
                 {stay.title}
               </h3>
+              { varient == "featured" &&( 
               <div className="flex items-center gap-1 mt-1">
-                <MapPin size={14} className="text-gray-400 flex-shrink-0" />
-                <p className="text-sm text-gray-500 truncate">
+                <MapPin size={14} className="text-[#4285f4] flex-shrink-0" />
+                <p className="text-xs md:text-sm text-gray-500 truncate">
                   {stay.location.city}, {stay.location.state}
                 </p>
               </div>
+)}
             </div>
-            {stay.rating > 0 && (
+            {/* {stay.rating > 0 && (
               <div className="flex items-center gap-1 bg-gray-50 rounded-full px-2 py-1 flex-shrink-0">
-                <Star size={14} className="fill-yellow-400 text-yellow-400" />
-                <span className="text-sm font-semibold text-gray-900">{stay.rating}</span>
+                <Star  className=" w-2 h-2 md:w-4 md:h-4 fill-yellow-400 text-yellow-400" />
+                <span className="text-[10px] md:text-sm font-semibold text-gray-900">{stay.rating}</span>
               </div>
-            )}
+            )} */}
           </div>
           
           {/* Property Details */}
-          <div className="text-sm text-gray-600">
+          <div className="text-[10px] md:text-sm text-gray-600">
             {stay.bedrooms > 0 && `${stay.bedrooms} bedroom${stay.bedrooms > 1 ? 's' : ''}`}
             {stay.bedrooms > 0 && stay.beds > 0 && ' · '}
-            {stay.beds > 0 && `${stay.beds} bed${stay.beds > 1 ? 's' : ''}`}
+            {/* {stay.beds > 0 && `${stay.beds} bed${stay.beds > 1 ? 's' : ''}`} */}
+             {stay.rating > 0 ? (
+        
+          <span>★{stay.rating}</span>
+      
+      ) : (
+        <span className="invisible">★ 0</span>
+      )}
           </div>
           
           {/* Price */}
 
          {priceAmount &&( <div className="flex items-baseline gap-1">
-            <span className="text-lg font-bold text-gray-900">
+            <span className="text-xs md:text-lg font-bold text-gray-900">
               {formatCurrency(stay.price.amount, stay.price.currency)}
             </span>
-            <span className="text-sm text-gray-600 font-medium">night</span>
+            <span className="text-xs md:text-sm text-gray-600 font-medium">night</span>
           </div> )}
         </div>
       </div>

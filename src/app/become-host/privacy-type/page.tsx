@@ -14,7 +14,7 @@ const privacyTypes = [
     icon: Home,
   },
   {
-    type: 'private' as PropertyType,
+    type: 'room' as PropertyType,
     label: 'A room',
     description: "Guests have their own room in a home, plus access to shared spaces.",
     icon: DoorOpen,

@@ -1,6 +1,6 @@
 "use client";
 import React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/core/store/auth-context';
 import { Loader2 } from 'lucide-react';
 
@@ -19,7 +19,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { user, isLoading, isAuthenticated, refreshUser } = useAuth();
   const router = useRouter();
-  
+  const pathname = usePathname();
+
   // Check if user is a host
   const isHost = user?.role === 'host';
 
@@ -56,8 +57,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           } catch (error) {
             console.error('Error refreshing user data:', error);
           }
-          // If refresh didn't work, redirect to unauthorized
-          router.push('/unauthorized');
+          // User is authenticated but not a host yet → guide them to become a host
+          // Preserve the current page so they can return after registering
+          const redirect = encodeURIComponent(pathname || '/');
+          router.push(`/become-host?redirect=${redirect}`);
         };
         checkAndRefresh();
         return;

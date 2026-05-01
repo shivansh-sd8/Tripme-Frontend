@@ -38,6 +38,7 @@ const HostServicesContent: React.FC = () => {
       const response = await apiClient.getMyServices();
       if (response.success && response.data) {
         const data = response.data as any;
+        console.log("services data", data);
         if (data.services) {
           setServices(data.services);
         } else {
@@ -650,6 +651,7 @@ const HostServicesContent: React.FC = () => {
         {/* 3. Action Logic - Mobile Optimized */}
         <div className="flex flex-col gap-2">
           {/* Main Action: Set Availability (Primary Task) */}
+          
           <Button
             onClick={() => router.push(`/host/service/${service._id}/availability`)}
             className="w-full bg-green-700 hover:bg-slate-800 text-black font-bold rounded-xl h-11 shadow-md active:scale-95 transition-all"

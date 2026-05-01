@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/core/store/auth-context';
 import {
   DollarSign,
@@ -21,6 +21,8 @@ import Card from '../ui/Card';
 
 const BecomeHostLanding: React.FC = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectAfter = searchParams.get('redirect'); // e.g. /host/service/new
   const { user, isAuthenticated } = useAuth();
   const [selectedCity, setSelectedCity] = useState('Mumbai');
   const [hostingDays, setHostingDays] = useState(15);
@@ -57,15 +59,18 @@ const BecomeHostLanding: React.FC = () => {
 
   const handleGetStarted = () => {
     if (!isAuthenticated) {
-      router.push('/auth/login?redirect=/hosting');
+      const loginRedirect = redirectAfter
+        ? `/auth/login?redirect=${encodeURIComponent(`/become-host?redirect=${redirectAfter}`)}`
+        : '/auth/login?redirect=/hosting';
+      router.push(loginRedirect);
       return;
     }
-    
-    // Redirect to hosting page which handles the flow:
-    // - New users see the intro page
-    // - Hosts with listings see their dashboard
-    // - Hosts without listings see intro to create first listing
-    router.push('/hosting');
+
+    // Pass along the redirect so /hosting can forward the user after onboarding
+    const dest = redirectAfter
+      ? `/hosting?redirect=${encodeURIComponent(redirectAfter)}`
+      : '/hosting';
+    router.push(dest);
   };
 
   const benefits = [
@@ -114,6 +119,20 @@ const BecomeHostLanding: React.FC = () => {
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-[#FFF5F5] via-white to-[#F5F5FF] pt-20 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          {/* Contextual banner when user was redirected from a host-only page */}
+          {redirectAfter && (
+            <div className="mb-8 mx-auto max-w-2xl flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
+              <span className="text-2xl">💡</span>
+              <div>
+                <p className="text-sm font-semibold text-amber-900">You need a host account</p>
+                <p className="text-sm text-amber-700 mt-0.5">
+                  To host services you first need to register as a host. Complete the steps below and
+                  you&apos;ll be taken straight to your destination.
+                </p>
+              </div>
+            </div>
+          )}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -233,11 +252,10 @@ const BecomeHostLanding: React.FC = () => {
                       <button
                         key={city}
                         onClick={() => setSelectedCity(city)}
-                        className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                          selectedCity === city
+                        className={`p-4 rounded-xl border-2 transition-all duration-200 ${selectedCity === city
                             ? 'border-[#FF385C] bg-[#FFF5F5] text-[#FF385C] shadow-md'
                             : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                        }`}
+                          }`}
                       >
                         <div className="text-center">
                           <div className="font-semibold text-sm">{city}</div>

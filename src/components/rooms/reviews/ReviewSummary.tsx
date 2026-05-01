@@ -117,15 +117,18 @@ import {
   Map,
   BadgeCheck,
   Tags,
+  Crown
 } from "lucide-react";
 
 import { ReviewSummary } from "@/shared/types";
 
 interface ReviewSummaryProps {
   summary: ReviewSummary;
+  badge: any;
 }
 
-export default function ReviewSummaryAirbnb({ summary }: ReviewSummaryProps) {
+
+export default function ReviewSummaryAirbnb({ summary,badge }: ReviewSummaryProps) {
   const categories = [
     { key: "cleanliness", label: "Cleanliness", icon: Sparkles },
     { key: "accuracy", label: "Accuracy", icon: BadgeCheck },
@@ -135,81 +138,117 @@ export default function ReviewSummaryAirbnb({ summary }: ReviewSummaryProps) {
     { key: "value", label: "Value", icon: Tags },
   ];
 
+  const heroBadge = badge;
+
   return (
     <section className="bg-white rounded-2xl border-white/20 shadow-sm p-8">
       {/* TOP SECTION */}
-      <div className="flex flex-col items-center text-center mb-10">
-        <div className="text-6xl font-semibold text-gray-900">
-          {summary.averageRating.toFixed(2)}
-        </div>
+     <div className="flex flex-col items-center text-center mb-8 sm:mb-10 px-4">
 
-        <h3 className="text-2xl font-semibold mt-4">Guest favourite</h3>
+  {/* Rating */}
+  <div className="text-3xl sm:text-4xl md:text-5xl font-semibold text-gray-900">
+    {Number(summary?.averageRating || 0).toFixed(2)}
+  </div>
 
-        <p className="text-gray-600 mt-2 max-w-lg">
-          This home is a guest favourite based on ratings, reviews and
-          reliability.
-        </p>
-      </div>
+  {/* Title + Icon */}
+  <h3 className="flex items-center justify-center gap-2 mt-3 sm:mt-4">
+    
+    <span className="text-yellow-500 text-lg sm:text-xl md:text-2xl">
+      {badge.icon}
+    </span>
+
+    <span className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 leading-tight">
+      {badge.label}
+    </span>
+
+  </h3>
+
+  {/* Description */}
+  <p className="text-sm sm:text-base text-gray-600 mt-3 max-w-xs sm:max-w-md leading-relaxed">
+    This home is a guest favourite based on ratings, reviews and reliability.
+  </p>
+
+</div>
 
       {/* MAIN CONTENT */}
-      <div className="grid grid-cols-1 lg:grid-cols-7 border-t pt-8 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-7 border-t pt-6 gap-6">
 
-        {/* LEFT — Overall rating bars */}
-        <div className="lg:col-span-2">
-          <h4 className="text-lg font-semibold mb-4">Overall rating</h4>
+  {/* LEFT — Overall rating bars */}
+  <div className="lg:col-span-2">
+    <h4 className="text-base sm:text-lg font-semibold mb-3">
+      Overall rating
+    </h4>
 
-          {[5, 4, 3, 2, 1].map((rating) => {
-            const count =
-              summary.ratingBreakdown[
-                rating as keyof typeof summary.ratingBreakdown
-              ];
+    {[5, 4, 3, 2, 1].map((rating) => {
+      const count =
+        summary.ratingBreakdown[
+          rating as keyof typeof summary.ratingBreakdown
+        ];
 
-            const percentage =
-              summary.totalReviews > 0
-                ? (count / summary.totalReviews) * 100
-                : 0;
+      const percentage =
+        summary.totalReviews > 0
+          ? (count / summary.totalReviews) * 100
+          : 0;
 
-            return (
-              <div key={rating} className="flex items-center gap-3 mb-2">
-                <span className="w-3 text-sm">{rating}</span>
+      return (
+        <div key={rating} className="flex items-center gap-2 mb-2">
+          
+          <span className="w-4 text-xs sm:text-sm text-gray-600">
+            {rating}
+          </span>
 
-                <div className="flex-1 bg-gray-200 h-1 rounded-full">
-                  <div
-                    className="bg-gray-900 h-1 rounded-full"
-                    style={{ width: `${percentage}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
+          <div className="flex-1 bg-gray-200 h-[3px] rounded-full">
+            <div
+              className="bg-gray-900 h-[3px] rounded-full"
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+
         </div>
+      );
+    })}
+  </div>
 
-        {/* RIGHT — Category scores */}
-        <div className="lg:col-span-5 grid grid-cols-2 md:grid-cols-3 gap-6">
-          {categories.map(({ key, label, icon: Icon }) => {
-            const rating =
-              summary.categoryAverages[
-                key as keyof typeof summary.categoryAverages
-              ];
+  {/* RIGHT — Category scores */}
+  <div className="lg:col-span-5 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+    
+    {categories.map(({ key, label, icon: Icon }) => {
+      const rating =
+        summary.categoryAverages[
+          key as keyof typeof summary.categoryAverages
+        ];
 
-            return (
-              <div
-                key={key}
-                className="flex flex-col justify-between border-l pl-6"
-              >
-                <div>
-                  <h5 className="text-sm text-gray-600">{label}</h5>
-                  <p className="text-2xl font-semibold text-gray-900">
-                    {rating.toFixed(1)}
-                  </p>
-                </div>
+      return (
+        <div
+          key={key}
+          className="
+            flex items-center justify-between 
+            lg:flex-col lg:items-start lg:justify-between 
+            border-b lg:border-b-0 lg:border-l 
+            pb-3 lg:pb-0 
+            lg:pl-4
+          "
+        >
+          {/* LEFT TEXT */}
+          <div>
+            <h5 className="text-xs sm:text-sm text-gray-500">
+              {label}
+            </h5>
 
-                <Icon className="w-6 h-6 text-gray-800 mt-4" />
-              </div>
-            );
-          })}
+            <p className="text-base sm:text-xl font-semibold text-gray-900">
+              {Number(rating || 0).toFixed(1)}
+            </p>
+          </div>
+
+          {/* ICON */}
+          <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" />
         </div>
-      </div>
+      );
+    })}
+  </div>
+</div>
     </section>
   );
 }
+
+

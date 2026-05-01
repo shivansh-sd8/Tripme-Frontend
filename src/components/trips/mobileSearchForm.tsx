@@ -3,7 +3,7 @@ import { ChevronLeft, X, Search } from "lucide-react";
 import React, { useState, useRef,useEffect,useCallback  } from "react";
 import { useSearchState } from '@/hooks/useSearchState';
 import { useRouter, useSearchParams } from 'next/navigation';
-
+import AsyncSelect from 'react-select/async';
 
 function CategoryTabs({ onClose, activeCategory, setActiveCategory }: { 
   onClose: () => void;
@@ -89,6 +89,81 @@ function Calendar({ onNext, dateRange, setDateRange }) {
    const today = new Date();
 today.setHours(0, 0, 0, 0);
 
+const customSelectStyles = {
+  control: (provided: any, state: any) => ({
+    ...provided,
+    background: 'transparent',
+    border: 'none',
+    boxShadow: 'none',
+    minHeight: 'unset',
+    height: '2.5rem',
+    fontSize: '1rem',
+    fontWeight: 500,
+    color: '#1e293b',
+    paddingLeft: 0,
+    '&:hover': {
+      border: 'none',
+    },
+    '&:focus-within': {
+      border: 'none',
+      boxShadow: 'none',
+    },
+  }),
+  valueContainer: (provided: any) => ({
+    ...provided,
+    padding: 0,
+    paddingLeft: 0,
+  }),
+  input: (provided: any) => ({
+    ...provided,
+    margin: 0,
+    padding: 0,
+  }),
+  placeholder: (provided: any) => ({
+    ...provided,
+    color: '#94a3b8',
+    fontWeight: 400,
+  }),
+  singleValue: (provided: any) => ({
+    ...provided,
+    color: '#1e293b',
+  }),
+  dropdownIndicator: (provided: any) => ({
+    ...provided,
+    color: '#6366f1',
+    paddingRight: 0,
+  }),
+  indicatorSeparator: () => ({ display: 'none' }),
+  menu: (provided: any) => ({
+    ...provided,
+    zIndex: 50,
+    borderRadius: '16px',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+    background: '#fff',
+    padding: '8px 0',
+    marginTop: 8,
+    border: '1px solid #e5e7eb',
+    animation: 'slideDown 0.2s ease-out',
+  }),
+  option: (provided: any, state: any) => ({
+    ...provided,
+    backgroundColor: state.isSelected
+      ? 'rgba(99,102,241,0.1)'
+      : '#fff',
+    color: state.isSelected ? '#6366f1' : '#1e293b',
+    padding: '12px 16px',
+    fontWeight: state.isSelected ? 600 : 500,
+    fontSize: '1rem',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    margin: '0 8px',
+    transition: 'all 0.15s ease',
+    '&:hover': {
+      backgroundColor: state.isSelected ? 'rgba(99,102,241,0.15)' : '#f3f4f6',
+    },
+  }),
+};
+
 
 
   return (
@@ -98,7 +173,7 @@ today.setHours(0, 0, 0, 0);
 
         {/* Tabs */}
         <div className="flex justify-center  items-center">
-          <button className="px-4 py-2 border border-gray-800 rounded-full text-sm font-medium text-gray-800">
+          <button className="px-4 py-2 border  rounded-full text-sm font-medium bg-[#4285f4] text-white">
             Dates
           </button>
           {/* <button className="px-4 py-2 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100">
@@ -170,10 +245,11 @@ today.setHours(0, 0, 0, 0);
                    isPast  ?
                "text-gray-300 cursor-not-allowed pointer-events-none" :
                   isStartOrEndDay
-                    ? "bg-gray-800 text-white font-bold"
-                    : inRange
-                    ? "bg-gray-200 text-gray-800"
-                    : "text-gray-600 hover:bg-gray-100"
+                    
+                     ? "bg-[#4285f4] text-white font-bold"
+                      : inRange
+                      ? "bg-[#ECF2FD] text-black"
+                      : "text-gray-900 hover:bg-gray-100"
                 }`}
               >
                 {day}
@@ -198,6 +274,81 @@ today.setHours(0, 0, 0, 0);
     </div>
   );
 }
+
+const customSelectStyles = {
+  control: (provided: any, state: any) => ({
+    ...provided,
+    background: 'transparent',
+    border: 'none',
+    boxShadow: 'none',
+    minHeight: 'unset',
+    height: '2.5rem',
+    fontSize: '1rem',
+    fontWeight: 500,
+    color: '#1e293b',
+    paddingLeft: 0,
+    '&:hover': {
+      border: 'none',
+    },
+    '&:focus-within': {
+      border: 'none',
+      boxShadow: 'none',
+    },
+  }),
+  valueContainer: (provided: any) => ({
+    ...provided,
+    padding: 0,
+    paddingLeft: 0,
+  }),
+  input: (provided: any) => ({
+    ...provided,
+    margin: 0,
+    padding: 0,
+  }),
+  placeholder: (provided: any) => ({
+    ...provided,
+    color: '#94a3b8',
+    fontWeight: 400,
+  }),
+  singleValue: (provided: any) => ({
+    ...provided,
+    color: '#1e293b',
+  }),
+  dropdownIndicator: (provided: any) => ({
+    ...provided,
+    color: '#6366f1',
+    paddingRight: 0,
+  }),
+  indicatorSeparator: () => ({ display: 'none' }),
+  menu: (provided: any) => ({
+    ...provided,
+    zIndex: 50,
+    borderRadius: '16px',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+    background: '#fff',
+    padding: '8px 0',
+    marginTop: 8,
+    border: '1px solid #e5e7eb',
+    animation: 'slideDown 0.2s ease-out',
+  }),
+  option: (provided: any, state: any) => ({
+    ...provided,
+    backgroundColor: state.isSelected
+      ? 'rgba(99,102,241,0.1)'
+      : '#fff',
+    color: state.isSelected ? '#6366f1' : '#1e293b',
+    padding: '12px 16px',
+    fontWeight: state.isSelected ? 600 : 500,
+    fontSize: '1rem',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    margin: '0 8px',
+    transition: 'all 0.15s ease',
+    '&:hover': {
+      backgroundColor: state.isSelected ? 'rgba(99,102,241,0.15)' : '#f3f4f6',
+    },
+  }),
+};
 
 export default function MobileSearchSheet({
   open,
@@ -234,7 +385,292 @@ export default function MobileSearchSheet({
   const [dragging, setDragging] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   
+
+
+  // Ensure Google Maps script is loaded
+function loadGoogleMapsScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // Check if already loaded
+    if (window.google && window.google.maps && window.google.maps.places) {
+      console.log('✅ Google Maps already loaded');
+      resolve();
+      return;
+    }
+
+    // Check if script is already being loaded
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (existingScript) {
+      console.log('⏳ Google Maps script already loading, waiting...');
+      existingScript.addEventListener('load', () => {
+        console.log('✅ Google Maps loaded (existing script)');
+        resolve();
+      });
+      existingScript.addEventListener('error', () => {
+        console.error('❌ Failed to load Google Maps (existing script)');
+        reject(new Error('Failed to load Google Maps'));
+      });
+      return;
+    }
+
+    // Load the script
+    console.log('🔄 Loading Google Maps script...');
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+
+    script.onload = () => {
+      console.log('✅ Google Maps loaded successfully');
+      resolve();
+    };
+
+    script.onerror = () => {
+      console.error('❌ Failed to load Google Maps script');
+      reject(new Error('Failed to load Google Maps'));
+    };
+
+    document.head.appendChild(script);
+  });
+}
+
+  async function fetchPlacesGoogle(inputValue: string): Promise<any[]> {
+  if (!inputValue || inputValue.length < 2) {
+    console.log('⚠️ Input too short:', inputValue);
+    return [];
+  }
+
+  try {
+    // Ensure Google Maps is loaded
+    await loadGoogleMapsScript();
+
+    return new Promise((resolve) => {
+      // Double check after loading
+      if (!window.google || !window.google.maps || !window.google.maps.places) {
+        console.error('❌ Google Maps JavaScript API not loaded after script load');
+        resolve([]);
+        return;
+      }
+
+      console.log('🔍 Fetching places for:', inputValue);
+
+      // Use AutocompleteService from Google Maps JavaScript API
+      const service = new window.google.maps.places.AutocompleteService();
+      
+      service.getPlacePredictions(
+        {
+          input: inputValue,
+          componentRestrictions: { country: 'in' },
+          types: ['geocode'] // Match the working PropertyForm - includes all address types
+        },
+        (predictions, status) => {
+          console.log('📍 Google Places API status:', status);
+          console.log('📍 Predictions:', predictions);
+
+          if (status !== window.google.maps.places.PlacesServiceStatus.OK) {
+            console.log('⚠️ Google Places API returned non-OK status:', status);
+            resolve([]);
+            return;
+          }
+
+          if (!predictions || predictions.length === 0) {
+            console.log('⚠️ No predictions returned');
+            resolve([]);
+            return;
+          }
+
+          // Map predictions to our format
+          const options = predictions.map((prediction: any) => ({
+            value: prediction.structured_formatting?.main_text || prediction.description,
+            label: prediction.description,
+            placeId: prediction.place_id,
+            type: prediction.types?.[0] || 'locality',
+            coordinates: null, // Will be fetched when user selects
+          }));
+
+          console.log('✅ Mapped options:', options.length, 'results');
+          resolve(options);
+        }
+      );
+    });
+  } catch (error) {
+    console.error('❌ Error in fetchPlacesGoogle:', error);
+    return [];
+  }
+}
+
+// Debounce utility
+function debounce<F extends (...args: any[]) => void>(func: F, wait: number) {
+  let timeout: ReturnType<typeof setTimeout>;
+  return (...args: Parameters<F>) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
+
+
+
+   // Debounced loadOptions for react-select/async
+    const debouncedLoadOptions = useRef(
+      debounce((inputValue: string, callback: (options: any[]) => void) => {
+        fetchPlacesGoogle(inputValue).then(callback);
+      }, 400)
+    ).current;
+  
+    // Detect user's current location
+    const detectCurrentLocation = async () => {
+      console.log('🚀 detectCurrentLocation function called!');
+      
+      if (!navigator.geolocation) {
+        console.log('❌ Geolocation not supported');
+        alert('Geolocation is not supported by this browser.');
+        return;
+      }
+  
+      console.log('🌍 Starting location detection...');
+      setIsDetectingLocation(true);
+  
+      try {
+        // Check if we have permission (if supported by browser)
+        if (navigator.permissions) {
+          try {
+            const permission = await navigator.permissions.query({ name: 'geolocation' });
+            
+            if (permission.state === 'denied') {
+              alert('📍 Location access is denied!\n\nTo use the "Nearby" feature:\n1. Click the location icon in your browser\'s address bar\n2. Select "Allow" for location access\n3. Refresh the page and try again');
+              setIsDetectingLocation(false);
+              return;
+            }
+          } catch (permissionError) {
+            console.log('Permissions API not fully supported, proceeding with geolocation request');
+          }
+        }
+  
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            resolve, 
+            (error) => {
+              console.error('Geolocation error:', error);
+              switch (error.code) {
+                case error.PERMISSION_DENIED:
+                  reject(new Error('Location access denied by user. Please allow location access and try again.'));
+                  break;
+                case error.POSITION_UNAVAILABLE:
+                  reject(new Error('Location information is unavailable. Please try again.'));
+                  break;
+                case error.TIMEOUT:
+                  reject(new Error('Location request timed out. Please try again.'));
+                  break;
+                default:
+                  reject(new Error('An unknown error occurred while retrieving location.'));
+                  break;
+              }
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 15000, // Increased timeout
+              maximumAge: 300000 // 5 minutes
+            }
+          );
+        });
+  
+        const { latitude, longitude } = position.coords;
+        
+        // Reverse geocode to get city name using Google Maps Geocoding API
+        const reverseGeocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}&result_type=locality|sublocality|administrative_area_level_2`;
+  
+        const response = await fetch(reverseGeocodeUrl);
+        const data = await response.json();
+  
+        console.log('Google Reverse geocoding response:', data);
+  
+        if (data.results && data.results.length > 0) {
+          const result = data.results[0];
+          console.log('Selected result:', result);
+          
+          // Extract city name from Google Maps address components
+          let cityName = 'Current Location';
+          
+          if (result.address_components) {
+            // Find locality (city name) from address components
+            const locality = result.address_components.find((component: any) => 
+              component.types.includes('locality')
+            );
+            
+            if (locality) {
+              cityName = locality.long_name;
+            } else {
+              // Fallback: try sublocality or administrative_area_level_2
+              const sublocality = result.address_components.find((component: any) => 
+                component.types.includes('sublocality') || 
+                component.types.includes('sublocality_level_1') ||
+                component.types.includes('administrative_area_level_2')
+              );
+              if (sublocality) {
+                cityName = sublocality.long_name;
+              } else {
+                // Last fallback: use formatted_address first part
+                const addressParts = result.formatted_address.split(', ');
+                if (addressParts.length > 0) {
+                  cityName = addressParts[0];
+                }
+              }
+            }
+          }
+          
+          console.log('Extracted city name:', cityName);
+          
+          // Ensure we have a valid city name
+          if (cityName && cityName !== 'Current Location' && cityName !== 'Nearby') {
+            setSelectedCity({
+              value: cityName,
+              label: cityName,
+              coordinates: [longitude, latitude],
+              type: 'current_location'
+            });
+            
+            console.log('✅ Location detected successfully:', cityName);
+          } else {
+            console.log('❌ Could not extract valid city name, using coordinates');
+            // Fallback: use coordinates as city name
+            const coordLabel = `Location (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`;
+            setSelectedCity({
+              value: coordLabel,
+              label: coordLabel,
+              coordinates: [longitude, latitude],
+              type: 'current_location'
+            });
+          }
+          
+          // Auto-focus on dates after location selection
+          setTimeout(() => {
+            setActiveField('checkin');
+          }, 100);
+        } else {
+          throw new Error('Could not determine location');
+        }
+      } catch (error) {
+        console.error('Error detecting location:', error);
+        
+        // Show specific error message based on the error type
+        if (error instanceof Error) {
+          if (error.message.includes('denied')) {
+            alert('📍 Location access denied!\n\nTo use the "Nearby" feature:\n1. Click the location icon in your browser\'s address bar\n2. Select "Allow" for location access\n3. Refresh the page and try again');
+          } else if (error.message.includes('timeout')) {
+            alert('⏱️ Location request timed out!\n\nPlease check your internet connection and try again.');
+          } else if (error.message.includes('unavailable')) {
+            alert('❌ Location unavailable!\n\nPlease ensure your device\'s location services are enabled and try again.');
+          } else {
+            alert(`❌ ${error.message}\n\nPlease try searching manually or check your browser settings.`);
+          }
+        } else {
+          alert('❌ Unable to detect your location. Please search manually.');
+        }
+      } finally {
+        setIsDetectingLocation(false);
+      }
+    };
 
   const onTouchStart = (e) => {
     startY.current = e.touches[0].clientY;
@@ -335,7 +771,7 @@ useEffect(() => {
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         className="w-full bg-white rounded-t-3xl flex flex-col overflow-hidden"
-        style={{ height: '95dvh' }}
+        style={{ height: '100dvh' }}
       >
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-2">
@@ -370,7 +806,7 @@ useEffect(() => {
               {activeStep === "where" ? (
                 <div className="space-y-4">
                   <h2 className="text-2xl font-bold text-gray-800">Where?</h2>
-                  <div className="relative">
+                  {/* <div className="relative">
                     <Search className="absolute left-3 top-3 text-gray-400" size={20} />
                     <input
                       type="text"
@@ -379,7 +815,47 @@ useEffect(() => {
                       onChange={(e) => setWhereSearch(e.target.value)}
                       className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-gray-800 text-gray-800"
                     />
-                  </div>
+                  </div> */}
+                  <div className="relative">
+  
+ <div className="flex items-center  bg-gray-100 rounded-xl px-2 py-2">
+  <Search className="text-[#4285F4] " size={20}    />
+  <AsyncSelect
+    cacheOptions
+    loadOptions={debouncedLoadOptions}
+    defaultOptions
+    value={null}
+    inputValue={whereSearch}
+    onInputChange={(value) => setWhereSearch(value)}
+    onChange={(option) => {
+      const opt = option as {
+        value: string;
+        label: string;
+        coordinates?: [number, number];
+        type?: string;
+        placeId?: string;
+      };
+
+      setSelectedCity({
+        value: opt.value,
+        label: opt.label,
+        coordinates: opt.coordinates,
+        type: opt.type,
+      });
+
+      setWhereSearch("");
+      setActiveStep("when");
+    }}
+    placeholder="Search destinations"
+      styles={{
+                    ...customSelectStyles,
+                    menuPortal: (base: any) => ({ ...base, zIndex: 60 })
+                  }}
+    className="w-full pl-2"
+    components={{ DropdownIndicator: () => null }}
+  />
+  </div>
+                 </div>
                   <div className="space-y-2">
                     {destinations.map((dest, idx) => (
                       <button
@@ -553,16 +1029,46 @@ useEffect(() => {
                       {activeStep === "where" ? (
                         <div className="space-y-4">
                           <h2 className="text-2xl font-bold text-gray-800">Where?</h2>
-                          <div className="relative">
-                            <Search className="absolute left-3 top-3 text-gray-400" size={20} />
-                            <input
-                              type="text"
-                              placeholder="Search services"
-                              value={whereSearch}
-                              onChange={(e) => setWhereSearch(e.target.value)}
-                              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-gray-800 text-gray-800"
-                            />
-                          </div>
+                           <div className="relative">
+  
+ <div className="flex items-center  bg-gray-100 rounded-xl px-2 py-2">
+  <Search className="text-[#4285F4] " size={20}    />
+  <AsyncSelect
+    cacheOptions
+    loadOptions={debouncedLoadOptions}
+    defaultOptions
+    value={null}
+    inputValue={whereSearch}
+    onInputChange={(value) => setWhereSearch(value)}
+    onChange={(option) => {
+      const opt = option as {
+        value: string;
+        label: string;
+        coordinates?: [number, number];
+        type?: string;
+        placeId?: string;
+      };
+
+      setSelectedCity({
+        value: opt.value,
+        label: opt.label,
+        coordinates: opt.coordinates,
+        type: opt.type,
+      });
+
+      setWhereSearch("");
+      setActiveStep("when");
+    }}
+    placeholder="Search destinations"
+      styles={{
+                    ...customSelectStyles,
+                    menuPortal: (base: any) => ({ ...base, zIndex: 60 })
+                  }}
+    className="w-full pl-2"
+    components={{ DropdownIndicator: () => null }}
+  />
+  </div>
+                 </div>
                           <div className="space-y-2">
                             {destinations.map((dest, idx) => (
                               <button
@@ -732,16 +1238,46 @@ useEffect(() => {
                           {activeStep === "where" ? (
                             <div className="space-y-4">
                               <h2 className="text-2xl font-bold text-gray-800">Where?</h2>
-                              <div className="relative">
-                                <Search className="absolute left-3 top-3 text-gray-400" size={20} />
-                                <input
-                                  type="text"
-                                  placeholder="Search Stories"
-                                  value={whereSearch}
-                                  onChange={(e) => setWhereSearch(e.target.value)}
-                                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-gray-800 text-gray-800"
-                                />
-                              </div>
+                               <div className="relative">
+  
+ <div className="flex items-center  bg-gray-100 rounded-xl px-2 py-2">
+  <Search className="text-[#4285F4] " size={20}    />
+  <AsyncSelect
+    cacheOptions
+    loadOptions={debouncedLoadOptions}
+    defaultOptions
+    value={null}
+    inputValue={whereSearch}
+    onInputChange={(value) => setWhereSearch(value)}
+    onChange={(option) => {
+      const opt = option as {
+        value: string;
+        label: string;
+        coordinates?: [number, number];
+        type?: string;
+        placeId?: string;
+      };
+
+      setSelectedCity({
+        value: opt.value,
+        label: opt.label,
+        coordinates: opt.coordinates,
+        type: opt.type,
+      });
+
+      setWhereSearch("");
+      setActiveStep("when");
+    }}
+    placeholder="Search destinations"
+      styles={{
+                    ...customSelectStyles,
+                    menuPortal: (base: any) => ({ ...base, zIndex: 60 })
+                  }}
+    className="w-full pl-2"
+    components={{ DropdownIndicator: () => null }}
+  />
+  </div>
+                 </div>
                               <div className="space-y-2">
                                 {destinations.map((dest, idx) => (
                                   <button
@@ -932,7 +1468,7 @@ useEffect(() => {
       setActiveStep("who");
     } else handleSearch();
   }}
-            className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-xl font-semibold transition"
+            className="bg-[#4285F4] hover:bg-[#3367D6] text-white px-6 py-3 rounded-xl font-semibold transition"
           >
             {activeStep === "who" ? "Search" : "Next"}
           </button>

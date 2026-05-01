@@ -332,7 +332,18 @@ const handleSelfieChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 };
 
   const handleNext = () => {
-    router.push('/host/property/new/review');
+    if (isGracePeriodExpired && !hasIdentityDoc) {
+  // Show error but allow navigation to review
+  setError('KYC is required to proceed');
+  return;
+}
+ if (isEditMode && id) {
+      router.push(`/host/property/${id}/review?mode=edit`);
+    } 
+    else{
+       router.push('/host/property/new/review');
+    }
+   
   };
 
   // Determine button label and action

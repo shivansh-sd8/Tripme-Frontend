@@ -1,7 +1,7 @@
-import AvailabilityManager from '@/components/host/AvailabilityManager';
+import ServiceSlotManager from '@/components/host/ServiceSlotManager';
 
-export default function ServiceAvailabilityPage({ params }: { params: { id: string } }) {
-  return <AvailabilityManager targetType="service" targetId={params.id} />;
+export default async function ServiceAvailabilityPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  return <ServiceSlotManager serviceId={id} />;
 }
-
-

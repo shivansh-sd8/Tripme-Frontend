@@ -15,7 +15,7 @@ const policyDetails = {
       '50% refund if you cancel less than 24 hours before check-in',
       'No refund after check-in'
     ],
-    color: 'from-green-500 to-emerald-500'
+    color: 'bg-[#4285f4]'
   },
   moderate: {
     title: 'Moderate',
@@ -25,7 +25,7 @@ const policyDetails = {
       '50% refund if you cancel between 5 days and 24 hours before check-in',
       'No refund if you cancel less than 24 hours before check-in'
     ],
-    color: 'from-blue-500 to-cyan-500'
+    color: 'bg-[#4285f4]'
   },
   strict: {
     title: 'Strict',
@@ -36,7 +36,7 @@ const policyDetails = {
       '25% refund if you cancel between 7 days and 48 hours before check-in',
       'No refund if you cancel less than 48 hours before check-in'
     ],
-    color: 'from-orange-500 to-red-500'
+    color: 'bg-[#4285f4]'
   },
   'super-strict': {
     title: 'Super Strict',
@@ -47,7 +47,7 @@ const policyDetails = {
       '25% refund if you cancel between 14 days and 7 days before check-in',
       'No refund if you cancel less than 7 days before check-in'
     ],
-    color: 'from-red-500 to-pink-500'
+    color: 'bg-[#4285f4]'
   }
 };
 

@@ -1,15 +1,22 @@
 "use client";
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-// Redirect to new Airbnb-style onboarding flow
+// Redirect to new Airbnb-style onboarding flow, preserving any redirect param via sessionStorage
 export default function Step1Page() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectAfter = searchParams.get('redirect');
 
   useEffect(() => {
-    // Redirect to the new onboarding flow
+    // Store the post-registration destination so step-5 can pick it up without chaining params through every URL
+    if (redirectAfter) {
+      sessionStorage.setItem('hostOnboardingRedirect', redirectAfter);
+    } else {
+      sessionStorage.removeItem('hostOnboardingRedirect');
+    }
     router.replace('/become-host/about-your-place');
-  }, [router]);
+  }, [router, redirectAfter]);
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center">
@@ -20,4 +27,3 @@ export default function Step1Page() {
     </div>
   );
 }
-

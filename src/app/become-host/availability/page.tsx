@@ -9,23 +9,23 @@ import { useOnboarding } from '@/core/context/OnboardingContext';
 export default function PricingPage() {
   const router = useRouter();
   const { data, updateData } = useOnboarding();
-  
+
   // Base pricing
   const [basePrice, setBasePrice] = useState(data.pricing?.basePrice || 2500);
   const [extraGuestPrice, setExtraGuestPrice] = useState(data.pricing?.extraGuestPrice || 500);
   const [cleaningFee, setCleaningFee] = useState(data.pricing?.cleaningFee || 0);
   const [securityDeposit, setSecurityDeposit] = useState(data.pricing?.securityDeposit || 0);
-  
+
   // Discounts
   const [weeklyDiscount, setWeeklyDiscount] = useState(data.pricing?.weeklyDiscount || 0);
   const [monthlyDiscount, setMonthlyDiscount] = useState(data.pricing?.monthlyDiscount || 0);
-  
+
   // Weekend premium
   const [weekendPremium, setWeekendPremium] = useState(data.pricing?.weekendPremium || 0);
-  
+
   // Similar listings map modal
   const [showSimilarListings, setShowSimilarListings] = useState(false);
-  
+
   // Mock similar listings data (in real app, fetch from API based on location)
   const similarListings = [
     { id: 1, price: 2664, lat: 23.0225, lng: 72.5714, booked: true },
@@ -39,7 +39,7 @@ export default function PricingPage() {
     { id: 9, price: 3860, lat: 23.0450, lng: 72.5900 },
     { id: 10, price: 2783, lat: 23.0050, lng: 72.5350 },
   ];
-  
+
   // Anytime check-in
   const [anytimeCheckInEnabled, setAnytimeCheckInEnabled] = useState(
     data.pricing?.anytimeCheckInEnabled || false
@@ -47,7 +47,7 @@ export default function PricingPage() {
   const [anytimeCheckInPrice, setAnytimeCheckInPrice] = useState(
     data.pricing?.anytimeCheckInPrice || Math.round((data.pricing?.basePrice || 2500) * 1.2)
   );
-  
+
   // Hourly extension
   const [hourlyExtensionEnabled, setHourlyExtensionEnabled] = useState(
     data.hourlyBooking?.enabled || false
@@ -71,7 +71,7 @@ export default function PricingPage() {
   ];
 
   const toggleSafetyItem = (item: string) => {
-    setSafetyItems(prev => 
+    setSafetyItems(prev =>
       prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]
     );
   };
@@ -79,7 +79,7 @@ export default function PricingPage() {
   const handleNext = () => {
     // Merge safety items with existing amenities
     const existingAmenities = data.amenities || [];
-    const nonSafetyAmenities = existingAmenities.filter((a: string) => 
+    const nonSafetyAmenities = existingAmenities.filter((a: string) =>
       !['smoke-alarm', 'carbon-monoxide-alarm', 'first-aid-kit', 'fire-extinguisher'].includes(a)
     );
     const updatedAmenities = [...nonSafetyAmenities, ...safetyItems];
@@ -139,7 +139,7 @@ export default function PricingPage() {
             >
               <Minus className="w-5 h-5" />
             </button>
-            
+
             <div className="text-center">
               <div className="flex items-center justify-center">
                 <span className="text-4xl font-semibold text-gray-900">₹</span>
@@ -152,7 +152,7 @@ export default function PricingPage() {
               </div>
               <div className="text-gray-500 mt-1">per night</div>
             </div>
-            
+
             <button
               onClick={() => setBasePrice(basePrice + 100)}
               className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-900 hover:bg-white transition-all"
@@ -160,7 +160,7 @@ export default function PricingPage() {
               <Plus className="w-5 h-5" />
             </button>
           </div>
-          
+
           {/* Compare Similar Listings Button */}
           <div className="text-center">
             <button
@@ -177,7 +177,7 @@ export default function PricingPage() {
         <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-1">Set a weekend price</h2>
           <p className="text-gray-500 text-sm mb-6">Add a premium for Fridays and Saturdays.</p>
-          
+
           <div className="text-center mb-6">
             <div className="text-5xl font-semibold text-gray-900">
               ₹{Math.round(basePrice * (1 + weekendPremium / 100)).toLocaleString()}
@@ -187,7 +187,7 @@ export default function PricingPage() {
               <ChevronDown className="w-4 h-4" />
             </button>
           </div>
-          
+
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
@@ -204,7 +204,7 @@ export default function PricingPage() {
                 <span className="text-lg font-semibold text-gray-900">%</span>
               </div>
             </div>
-            
+
             {/* Slider */}
             <div className="relative pt-2">
               <input
@@ -229,7 +229,7 @@ export default function PricingPage() {
             <Sparkles className="w-5 h-5" />
             Additional fees
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Extra Guest Price */}
             <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -327,6 +327,10 @@ export default function PricingPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Anytime check-in price (per night)
               </label>
+              <div className="block text-sm font-medium text-gray-700 mb-2">
+                This price will be applied to all bookings which are after 4 pm.
+              </div>
+
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setAnytimeCheckInPrice(Math.max(basePrice, anytimeCheckInPrice - 100))}
@@ -370,7 +374,7 @@ export default function PricingPage() {
               <p className="text-sm text-gray-600">Offer discounts for longer stays</p>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             {/* Weekly Discount */}
             <div className="bg-white rounded-xl p-4 border border-green-200">
@@ -390,7 +394,7 @@ export default function PricingPage() {
               </div>
               {weeklyDiscount > 0 && (
                 <p className="text-xs text-green-700 mt-2">
-                  ₹{Math.round(basePrice * 7 * (1 - weeklyDiscount/100)).toLocaleString()} for 7 nights
+                  ₹{Math.round(basePrice * 7 * (1 - weeklyDiscount / 100)).toLocaleString()} for 7 nights
                 </p>
               )}
             </div>
@@ -413,7 +417,7 @@ export default function PricingPage() {
               </div>
               {monthlyDiscount > 0 && (
                 <p className="text-xs text-green-700 mt-2">
-                  ₹{Math.round(basePrice * 28 * (1 - monthlyDiscount/100)).toLocaleString()} for 28 nights
+                  ₹{Math.round(basePrice * 28 * (1 - monthlyDiscount / 100)).toLocaleString()} for 28 nights
                 </p>
               )}
             </div>
@@ -520,25 +524,23 @@ export default function PricingPage() {
               <p className="text-sm text-gray-600">Select safety features available at your property</p>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-3">
             {safetyOptions.map((option) => {
               const Icon = option.icon;
               const isSelected = safetyItems.includes(option.id);
-              
+
               return (
                 <button
                   key={option.id}
                   onClick={() => toggleSafetyItem(option.id)}
-                  className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left ${
-                    isSelected
+                  className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left ${isSelected
                       ? 'border-red-500 bg-red-50'
                       : 'border-gray-200 bg-white hover:border-red-300'
-                  }`}
+                    }`}
                 >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                    isSelected ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600'
-                  }`}>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600'
+                    }`}>
                     <Icon className="w-4 h-4" />
                   </div>
                   <span className={`font-medium text-sm ${isSelected ? 'text-red-700' : 'text-gray-700'}`}>
@@ -560,7 +562,7 @@ export default function PricingPage() {
             <div>
               <p className="font-medium text-blue-900">Price tip</p>
               <p className="text-sm text-blue-700 mt-1">
-                Similar listings in your area are priced between ₹1,500 - ₹4,000 per night. 
+                Similar listings in your area are priced between ₹1,500 - ₹4,000 per night.
                 Your price of ₹{basePrice.toLocaleString()} is competitive for your property type.
               </p>
               <button
@@ -609,7 +611,7 @@ export default function PricingPage() {
                 <div className="flex-1 relative bg-gray-100">
                   {/* Simulated Map with Price Markers */}
                   <div className="absolute inset-0 bg-[url('https://maps.googleapis.com/maps/api/staticmap?center=23.0225,72.5714&zoom=12&size=800x600&maptype=roadmap&key=demo')] bg-cover bg-center opacity-30" />
-                  
+
                   {/* Price Markers */}
                   <div className="absolute inset-0 p-8">
                     <div className="relative w-full h-full">
@@ -628,22 +630,21 @@ export default function PricingPage() {
                           { top: '45%', left: '15%' },
                         ];
                         const pos = positions[index] || { top: '50%', left: '50%' };
-                        
+
                         return (
                           <div
                             key={listing.id}
-                            className={`absolute transform -translate-x-1/2 -translate-y-1/2 ${
-                              listing.booked 
-                                ? 'bg-red-500 text-white' 
+                            className={`absolute transform -translate-x-1/2 -translate-y-1/2 ${listing.booked
+                                ? 'bg-red-500 text-white'
                                 : 'bg-white text-gray-900 hover:scale-110'
-                            } px-2 py-1 rounded-full text-xs font-semibold shadow-lg cursor-pointer transition-transform border border-gray-200`}
+                              } px-2 py-1 rounded-full text-xs font-semibold shadow-lg cursor-pointer transition-transform border border-gray-200`}
                             style={{ top: pos.top, left: pos.left }}
                           >
                             ₹{listing.price.toLocaleString()}
                           </div>
                         );
                       })}
-                      
+
                       {/* Your listing marker */}
                       <div
                         className="absolute transform -translate-x-1/2 -translate-y-1/2 bg-purple-600 text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-lg border-2 border-white"
@@ -654,7 +655,7 @@ export default function PricingPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Map Controls */}
                   <div className="absolute bottom-4 left-4 flex flex-col gap-2">
                     <button className="w-8 h-8 bg-white rounded shadow flex items-center justify-center text-gray-700 hover:bg-gray-50">
@@ -673,7 +674,7 @@ export default function PricingPage() {
                     {data.structureType ? data.structureType.charAt(0).toUpperCase() + data.structureType.slice(1) : 'Entire home/flat'} · 0-2 bedrooms
                   </p>
                   <p className="text-sm text-gray-500 mb-6">
-                    {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} – {new Date(Date.now() + 365*24*60*60*1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} – {new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </p>
 
                   <div className="border-t pt-4">
