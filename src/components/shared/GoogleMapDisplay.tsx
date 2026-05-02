@@ -155,10 +155,21 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
     document.head.appendChild(script);
   }, []);
 
-  // Handle center changes without re-initializing the map (only for initial positioning)
+  const lastPropZoomRef = useRef(zoom);
+  const lastPropCenterRef = useRef(center);
+
+  // Handle center and zoom changes from props
   useEffect(() => {
     if (!mapInstanceRef.current || !window.google) return;
     
+    // 1. Handle Zoom change
+    if (zoom !== lastPropZoomRef.current) {
+      console.log('🗺️ Zoom prop changed, updating map zoom:', zoom);
+      mapInstanceRef.current.setZoom(zoom);
+      lastPropZoomRef.current = zoom;
+    }
+
+    // 2. Handle Center change
     const currentCenter = mapInstanceRef.current.getCenter();
     if (currentCenter) {
       const currentLat = currentCenter.lat();
@@ -166,20 +177,24 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
       const newLat = center[1];
       const newLng = center[0];
       
-      // Only pan if the center has changed significantly (> 100m)
-      const distance = Math.sqrt(
-        Math.pow(currentLng - newLng, 2) + Math.pow(currentLat - newLat, 2)
-      );
+      // Check if the center prop has changed from its previous value
+      const propChanged = center[0] !== lastPropCenterRef.current[0] || center[1] !== lastPropCenterRef.current[1];
       
-      // Only auto-pan if it's a significant change (like initial load or search change)
-      // Don't auto-pan for small changes to allow user to move the map freely
-      if (distance > 0.01) { // Increased threshold to 1km
-        console.log('🗺️ Smoothly panning map to new search location:', center);
-        // Use smooth panning for better user experience
-        mapInstanceRef.current.panTo({ lat: newLat, lng: newLng });
+      if (propChanged) {
+        // Only pan if it's a significant change relative to current map center
+        // to avoid interfering with user's fine-grained panning
+        const distance = Math.sqrt(
+          Math.pow(currentLng - newLng, 2) + Math.pow(currentLat - newLat, 2)
+        );
+        
+        if (distance > 0.005) { // ~500m threshold
+          console.log('🗺️ Panning map to new search location:', center);
+          mapInstanceRef.current.panTo({ lat: newLat, lng: newLng });
+        }
+        lastPropCenterRef.current = center;
       }
     }
-  }, [center]);
+  }, [center, zoom]);
 
   // Initialize map ONCE
   useEffect(() => {
@@ -298,13 +313,6 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
     }
   }, [isLoading]); // Only depend on isLoading - initialize map ONCE
 
-  // Update map center when center prop changes
-  useEffect(() => {
-    if (mapInstanceRef.current && window.google) {
-      mapInstanceRef.current.setCenter({ lat: center[1], lng: center[0] });
-      mapInstanceRef.current.setZoom(zoom);
-    }
-  }, [center, zoom]);
 
   // Add/update markers with throttling and duplicate prevention
   useEffect(() => {
