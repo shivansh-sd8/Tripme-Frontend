@@ -250,7 +250,7 @@ const currency =
           {/* Price */}
 
          {priceAmount &&( <div className="flex items-baseline gap-1">
-            <span className="text-xs md:text-lg font-bold text-gray-900">
+            <span className="text-xs md:text-lg font-bold text-[#4285f4]">
               {formatCurrency(stay.price.amount, stay.price.currency)}
             </span>
             <span className="text-xs md:text-sm text-gray-600 font-medium">night</span>

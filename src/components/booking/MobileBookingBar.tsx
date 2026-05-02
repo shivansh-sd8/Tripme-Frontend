@@ -148,8 +148,8 @@ export default function MobileBookingBar({
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-indigo-600" />
-                    <span className="text-sm font-medium text-indigo-800">Check-in Time</span>
+                    <Clock className="w-4 h-4 text-[#4285F4]" />
+                    <span className="text-sm font-medium text-blue-800">Check-in Time</span>
                   </div>
                   {/* Compact Stepper */}
                   <div className="flex items-center gap-1">
@@ -161,11 +161,11 @@ export default function MobileBookingBar({
                         const prev = timeOptions[(idx - 1 + timeOptions.length) % timeOptions.length];
                         setCheckInTimeStr(prev);
                       }}
-                      className="w-7 h-7 flex items-center justify-center rounded-full bg-white border border-indigo-300 text-indigo-600 font-bold text-base hover:bg-indigo-100 active:scale-95 transition-all"
+                      className="w-7 h-7 flex items-center justify-center rounded-full bg-white border border-blue-300 text-[#4285F4] font-bold text-base hover:bg-blue-100 active:scale-95 transition-all"
                     >
                       ‹
                     </button>
-                    <span className="text-sm font-bold text-indigo-700 min-w-[80px] text-center">
+                    <span className="text-sm font-bold text-blue-700 min-w-[80px] text-center">
                       {(() => {
                         const [h] = checkInTimeStr.split(":").map(Number);
                         return formatTimeHour ? formatTimeHour(h) : checkInTimeStr;
@@ -179,13 +179,13 @@ export default function MobileBookingBar({
                         const next = timeOptions[(idx + 1) % timeOptions.length];
                         setCheckInTimeStr(next);
                       }}
-                      className="w-7 h-7 flex items-center justify-center rounded-full bg-white border border-indigo-300 text-indigo-600 font-bold text-base hover:bg-indigo-100 active:scale-95 transition-all"
+                      className="w-7 h-7 flex items-center justify-center rounded-full bg-white border border-blue-300 text-[#4285F4] font-bold text-base hover:bg-blue-100 active:scale-95 transition-all"
                     >
                       ›
                     </button>
                   </div>
                 </div>
-                <p className="text-xs text-indigo-500 mt-1">
+                <p className="text-xs text-blue-500 mt-1">
                   Tap arrows to pick your check-in time
                 </p>
               </motion.div>

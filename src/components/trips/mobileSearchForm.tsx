@@ -870,13 +870,13 @@ useEffect(() => {
                             setActiveStep("when");
                           }
                         }}
-                        className="w-full text-left px-4 py-3 hover:bg-gray-100 rounded-lg transition"
+                        className="w-full text-left px-4 py-1 hover:bg-gray-100 rounded-lg transition"
                       >
                         <div className="flex items-start gap-3">
-                          <span className="text-2xl mt-1">{dest.icon}</span>
+                          <span className="text-xl mt-1">{dest.icon}</span>
                           <div>
-                            <div className="text-gray-800 font-semibold">{dest.name}</div>
-                            <div className="text-sm text-gray-500">{dest.desc}</div>
+                            <div className="text-gray-800 text-sm font-semibold">{dest.name}</div>
+                            <div className="text-xs text-gray-500">{dest.desc}</div>
                           </div>
                         </div>
                       </button>
@@ -934,8 +934,8 @@ useEffect(() => {
                     {/* Adults */}
                     <div className="flex justify-between items-center">
                       <div>
-                        <div className="text-gray-800 font-semibold">Adults</div>
-                        <div className="text-sm text-gray-500">Ages 13 or above</div>
+                        <div className="text-gray-800 text-sm font-semibold">Adults</div>
+                        <div className="text-xs text-gray-500">Ages 13 or above</div>
                       </div>
                       <div className="flex items-center gap-3">
                         <button
@@ -1083,10 +1083,10 @@ useEffect(() => {
                                 className="w-full text-left px-4 py-3 hover:bg-gray-100 rounded-lg transition"
                               >
                                 <div className="flex items-start gap-3">
-                                  <span className="text-2xl mt-1">{dest.icon}</span>
+                                  <span className="text-xl mt-1">{dest.icon}</span>
                                   <div>
-                                    <div className="text-gray-800 font-semibold">{dest.name}</div>
-                                    <div className="text-sm text-gray-500">{dest.desc}</div>
+                                    <div className="text-gray-800 text-sm font-semibold">{dest.name}</div>
+                                    <div className="text-xs text-gray-500">{dest.desc}</div>
                                   </div>
                                 </div>
                               </button>
@@ -1292,10 +1292,10 @@ useEffect(() => {
                                     className="w-full text-left px-4 py-3 hover:bg-gray-100 rounded-lg transition"
                                   >
                                     <div className="flex items-start gap-3">
-                                      <span className="text-2xl mt-1">{dest.icon}</span>
+                                      <span className="text-xl mt-1">{dest.icon}</span>
                                       <div>
-                                        <div className="text-gray-800 font-semibold">{dest.name}</div>
-                                        <div className="text-sm text-gray-500">{dest.desc}</div>
+                                        <div className="text-gray-800 text-sm font-semibold">{dest.name}</div>
+                                        <div className="text-xs text-gray-500">{dest.desc}</div>
                                       </div>
                                     </div>
                                   </button>

@@ -22,7 +22,6 @@ import {
   Plus,
   Home,
   Briefcase,
-  StretchHorizontalIcon,
   CheckCircle,
   AlertTriangle,
   RefreshCw,
@@ -59,6 +58,51 @@ const ProfileContent: React.FC = () => {
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
   const [resendError, setResendError] = useState<string | null>(null);
+
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [isBookingsLoading, setIsBookingsLoading] = useState(false);
+
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  const fetchBookings = async () => {
+    try {
+      setIsBookingsLoading(true);
+      const response = await apiClient.getBookings();
+      setBookings(response.data?.bookings || []);
+    } catch (err: any) {
+      console.error('Error fetching bookings:', err);
+    } finally {
+      setIsBookingsLoading(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'confirmed': return 'bg-green-100 text-green-700 border-green-200';
+      case 'pending': return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'cancelled': return 'bg-red-100 text-red-700 border-red-200';
+      case 'completed': return 'bg-blue-100 text-blue-700 border-blue-200';
+      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const formatPrice = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
 
   const handleResendVerification = async () => {
     if (!user?.email) return;
@@ -272,9 +316,353 @@ const ProfileContent: React.FC = () => {
     { id: 'bookings', label: 'My Bookings', icon: Calendar },
   ];
 
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'profile':
+        return (
+          <div className="space-y-6">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-gray-100">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Personal Information</h3>
+                  <p className="text-sm text-gray-500 mt-1">Update your profile details</p>
+                </div>
+                <button
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="bg-blue-50 text-[#4285f4] hover:bg-blue-100 px-4 py-2 rounded-xl text-sm font-bold transition-all"
+                >
+                  {isEditing ? 'Cancel' : 'Edit Profile'}
+                </button>
+              </div>
+
+              {/* Success/Error Messages */}
+              {success && (
+                <div className="mb-6 p-4 bg-green-50 border border-green-100 rounded-2xl text-green-700 text-sm font-medium">
+                  {success}
+                </div>
+              )}
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-700 text-sm font-medium">
+                  {error}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input
+                  label="Full Name"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  leftIcon={<User size={20} />}
+                  disabled={!isEditing}
+                />
+                <Input
+                  label="Email Address"
+                  type="email"
+                  value={formData.email}
+                  leftIcon={<Mail size={20} />}
+                  disabled={true}
+                  helperText={user.isVerified ? 'Email verified' : 'Email not verified'}
+                  className={user.isVerified ? 'bg-green-50/50' : 'bg-amber-50/50'}
+                />
+                <Input
+                  label="Phone Number"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  leftIcon={<Phone size={20} />}
+                  disabled={!isEditing}
+                />
+                <Input
+                  label="Address"
+                  value={formData.location}
+                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                  leftIcon={<MapPin size={20} />}
+                  disabled={!isEditing}
+                  placeholder="Enter your address"
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="City"
+                    value={formData.city}
+                    onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                    disabled={!isEditing}
+                  />
+                  <Input
+                    label="State"
+                    value={formData.state}
+                    onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                    disabled={!isEditing}
+                  />
+                </div>
+                <Input
+                  label="Country"
+                  value={formData.country}
+                  onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
+                  leftIcon={<MapPin size={20} />}
+                  disabled={!isEditing}
+                />
+              </div>
+
+              <div className="mt-6">
+                <label className="block text-sm font-bold text-gray-700 mb-2">Bio</label>
+                <textarea
+                  value={formData.bio}
+                  onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+                  disabled={!isEditing}
+                  rows={4}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all disabled:text-gray-500"
+                  placeholder="Tell us about yourself..."
+                />
+              </div>
+
+              {isEditing && (
+                <div className="flex gap-3 mt-8">
+                  <Button
+                    onClick={handleSave}
+                    disabled={isLoading}
+                    className="flex-1 sm:flex-none bg-[#4285F4] hover:bg-blue-600 text-white rounded-2xl"
+                  >
+                    {isLoading ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleCancel}
+                    disabled={isLoading}
+                    className="flex-1 sm:flex-none rounded-2xl"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Account Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 text-center">
+                <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Calendar size={20} />
+                </div>
+                <div className="text-xl font-bold text-gray-900">12</div>
+                <div className="text-xs text-gray-500 font-medium">Total Bookings</div>
+              </div>
+              <div className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 text-center">
+                <div className="w-10 h-10 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Star size={20} />
+                </div>
+                <div className="text-xl font-bold text-gray-900">4.8</div>
+                <div className="text-xs text-gray-500 font-medium">Avg Rating</div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'kyc':
+        return (
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-gray-100">
+            <div className="mb-6">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Identity Verification</h3>
+              <p className="text-sm text-gray-500 mt-1">Complete your KYC to become a host</p>
+            </div>
+
+            <div className="mb-8 p-6 bg-gray-50 rounded-2xl border border-gray-100">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-blue-50 text-[#4285F4] rounded-full flex items-center justify-center">
+                    <Shield size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-900">Verification Status</h4>
+                    <p className="text-xs text-gray-500">Current identity verification status</p>
+                  </div>
+                </div>
+                <div className="flex">
+                  {user.kyc?.status === 'verified' ? (
+                    <span className="bg-green-100 text-green-700 text-xs font-bold px-4 py-2 rounded-full flex items-center gap-2">
+                      <CheckCircle size={14} /> Verified
+                    </span>
+                  ) : (
+                    <span className="bg-gray-100 text-gray-500 text-xs font-bold px-4 py-2 rounded-full">
+                      {user.kyc?.status || 'Not Verified'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {user.kyc?.status === 'verified' ? (
+              <div className="text-center py-8">
+                <div className="w-20 h-20 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Shield size={40} />
+                </div>
+                <h4 className="text-xl font-bold text-gray-900 mb-2">Verified! 🎉</h4>
+                <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                  Your identity is confirmed. You can now manage your properties and bookings as a host.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button onClick={() => router.push('/become-host')} className="bg-[#4285F4] text-white rounded-2xl px-8">Become a Host</Button>
+                  <Button variant="outline" onClick={() => router.push('/host/dashboard')} className="rounded-2xl px-8">Host Dashboard</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="w-20 h-20 bg-blue-50 text-[#4285F4] rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Shield size={40} />
+                </div>
+                <h4 className="text-xl font-bold text-gray-900 mb-2">Verify Your Identity</h4>
+                <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                  Submit your identity documents to unlock hosting features and build trust.
+                </p>
+                <Button onClick={() => router.push('/user/kyc')} className="bg-[#4285F4] text-white rounded-2xl px-8 w-full sm:w-auto">
+                  Submit KYC Documents
+                </Button>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'security':
+        return (
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-gray-100">
+            <div className="mb-8">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Security Settings</h3>
+              <p className="text-sm text-gray-500 mt-1">Manage your account security and authentication</p>
+            </div>
+
+            <div className="space-y-4">
+              {[
+                { title: 'Change Password', desc: 'Update your account password', icon: Lock, action: 'Change' },
+                { title: 'Two-Factor Auth', desc: 'Add extra layer of security', icon: Shield, action: 'Enable' },
+                { title: 'Payment Methods', desc: 'Manage your payment options', icon: CreditCard, action: 'Manage' }
+              ].map((item, i) => (
+                <div key={i} className="flex items-center justify-between p-5 border border-gray-100 rounded-3xl hover:bg-gray-50 transition-all group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-gray-50 text-gray-400 group-hover:text-[#4285F4] group-hover:bg-blue-50 rounded-2xl flex items-center justify-center transition-all">
+                      <item.icon size={20} />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900">{item.title}</h4>
+                      <p className="text-xs text-gray-500">{item.desc}</p>
+                    </div>
+                  </div>
+                  <button className="text-[#4285F4] text-sm font-bold px-4 py-2 hover:bg-blue-50 rounded-xl transition-all">
+                    {item.action}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'notifications':
+        return (
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-gray-100">
+            <div className="mb-8">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Notifications</h3>
+              <p className="text-sm text-gray-500 mt-1">Choose how you want to be notified</p>
+            </div>
+
+            <div className="space-y-4">
+              {[
+                { title: 'Booking Updates', desc: 'Status of your requests and payments' },
+                { title: 'New Messages', desc: 'Chat alerts from hosts and support' },
+                { title: 'Price Alerts', desc: 'When items in your wishlist drop in price' },
+                { title: 'Promotional', desc: 'Special offers and travel tips' }
+              ].map((item, i) => (
+                <div key={i} className="flex items-center justify-between p-5 border border-gray-100 rounded-3xl">
+                  <div>
+                    <h4 className="font-bold text-gray-900">{item.title}</h4>
+                    <p className="text-xs text-gray-500">{item.desc}</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" defaultChecked={i < 2} />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#4285F4]"></div>
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'bookings':
+        return (
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-gray-100">
+            <div className="mb-6">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900">My Bookings</h3>
+              <p className="text-sm text-gray-500 mt-1">View and manage your reservations</p>
+            </div>
+
+            {isBookingsLoading ? (
+              <div className="py-12 flex flex-col items-center">
+                <div className="w-10 h-10 border-4 border-blue-100 border-t-[#4285F4] rounded-full animate-spin mb-4" />
+                <p className="text-sm text-gray-500">Loading your trips...</p>
+              </div>
+            ) : bookings.length > 0 ? (
+              <div className="space-y-4">
+                {bookings.map((booking) => {
+                  const isService = booking.bookingType === 'service';
+                  const title = isService ? booking.service?.title : booking.propertyId?.title;
+                  const image = isService ? booking.service?.media?.[0]?.url : booking.propertyId?.images?.[0];
+                  
+                  return (
+                    <div 
+                      key={booking._id} 
+                      onClick={() => router.push(`/bookings/${booking._id}`)}
+                      className="group flex flex-col sm:flex-row gap-4 p-4 border border-gray-100 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer"
+                    >
+                      <div className="w-full sm:w-24 h-24 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
+                        <img 
+                          src={image || '/logo.png'} 
+                          alt={title} 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <h4 className="font-bold text-gray-900 truncate">{title || 'Tripme Booking'}</h4>
+                          <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider border ${getStatusColor(booking.status)}`}>
+                            {booking.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2">
+                          <Calendar size={12} />
+                          <span>{formatDate(booking.checkIn)} - {formatDate(booking.checkOut)}</span>
+                        </div>
+                        <div className="flex items-center justify-between mt-auto">
+                          <div className="text-sm font-bold text-[#4285F4]">
+                            {formatPrice(booking.totalAmount)}
+                          </div>
+                          <div className="text-[10px] font-medium text-gray-400 bg-gray-50 px-2 py-0.5 rounded-md">
+                            ID: {booking._id.slice(-6).toUpperCase()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="w-20 h-20 bg-gray-50 text-gray-300 rounded-full flex items-center justify-center mb-4">
+                  <Calendar size={40} />
+                </div>
+                <h4 className="text-lg font-bold text-gray-900 mb-1">No bookings yet</h4>
+                <p className="text-sm text-gray-500 mb-8">Start exploring beautiful places in Bharat</p>
+                <Button onClick={() => router.push('/search')} className="bg-[#4285F4] text-white rounded-2xl px-8">
+                  Explore Rooms
+                </Button>
+              </div>
+            )}
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <div className="max-w-7xl mx-auto px-2 py-2 sm:px-4 sm:py-4">
+    <div className="min-h-screen bg-[#fafafa]">
+      <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8">
         {/* Email Verification Banner */}
         {!user.isVerified && !verifBannerDismissed && (
           <div className="mb-4 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 shadow-md">
@@ -323,154 +711,109 @@ const ProfileContent: React.FC = () => {
         )}
 
         {/* Mobile Profile Layout */}
-        <div className="block sm:hidden w-full min-h-screen pb-24 overflow-x-hidden">
-          {/* Profile Card */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-8 flex flex-col items-center mb-8 animate-fade-in relative overflow-hidden">
-            {/* Decorative background elements */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full -translate-y-16 translate-x-16"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-400/20 to-cyan-400/20 rounded-full translate-y-12 -translate-x-12"></div>
+        <div className="block sm:hidden w-full pb-24">
+          {/* Profile Header Card */}
+          <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-6 flex flex-col items-center mb-6 animate-fade-in relative overflow-hidden">
+            <div className="relative mb-4">
+              <div className="w-24 h-24 bg-gradient-to-br from-[#4285F4] to-blue-600 rounded-full flex items-center justify-center text-3xl font-bold text-white overflow-hidden shadow-xl ring-4 ring-blue-50">
+                {profileImage ? (
+                  <img src={profileImage} alt={user.name} className="w-full h-full object-cover" />
+                ) : (
+                  user.name?.[0]?.toUpperCase() || <User size={32} />
+                )}
+              </div>
+              <label className="absolute -bottom-1 -right-1 bg-white text-[#4285F4] p-2.5 rounded-full shadow-lg border border-blue-50 cursor-pointer">
+                {isUploadingImage ? (
+                  <div className="w-4 h-4 border-2 border-[#4285F4] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Camera size={16} />
+                )}
+                <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+              </label>
+            </div>
+            
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-gray-900">{user.name}</h2>
+              <p className="text-sm text-gray-500 mb-4">{user.email}</p>
+              
+              <div className="flex flex-wrap justify-center gap-2">
+                {user.role === 'host' && (
+                  <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">Host</span>
+                )}
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${user.kyc?.status === 'verified' ? 'bg-blue-100 text-[#4285F4]' : 'bg-gray-100 text-gray-500'}`}>
+                  {user.kyc?.status === 'verified' ? 'Verified' : 'Unverified'}
+                </span>
+              </div>
+            </div>
+          </div>
 
-            <div className="relative z-10">
-              <div className="relative">
-                <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center text-3xl font-bold text-white mb-4 overflow-hidden shadow-xl ring-4 ring-white/50">
-                  {profileImage ? (
-                    <img
-                      src={profileImage}
-                      alt={user.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    user.name?.[0]?.toUpperCase() || <User size={32} />
-                  )}
-                </div>
-                <label className="absolute -bottom-2 -right-2 bg-white text-purple-600 p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 cursor-pointer ring-2 ring-purple-100">
-                  {isUploadingImage ? (
-                    <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Camera size={18} />
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageSelect}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-gray-900 mb-1">{user.name}</div>
-                <div className="text-gray-600 text-lg mb-3 capitalize flex items-center justify-center gap-2">
-                  <div className="w-2 h-2 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full"></div>
-                  {user.role || 'Guest'}
-                </div>
-                {/* Badges Row */}
-                <div className="flex flex-wrap items-center justify-center gap-3 mt-3">
-                  {/* Host Role Badge */}
-                  {user.role === 'host' && (
-                    <span className="inline-flex items-center bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
-                      Host
-                    </span>
-                  )}
+          {/* Mobile Tab Navigation */}
+          <div className="flex overflow-x-auto pb-4 gap-2 no-scrollbar mb-6 -mx-4 px-4">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl whitespace-nowrap transition-all ${
+                    isActive 
+                      ? 'bg-[#4285F4] text-white shadow-lg shadow-blue-100' 
+                      : 'bg-white text-gray-600 border border-gray-100'
+                  }`}
+                >
+                  <Icon size={16} />
+                  <span className="text-sm font-bold">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
 
-                  {/* Identity Verification Status */}
-                  {user.kyc?.status === 'verified' ? (
-                    <span className="inline-flex items-center gap-2 bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 text-sm font-semibold px-4 py-2 rounded-full border border-green-200 shadow-sm">
-                      <Shield size={14} />
-                      Identity Verified
-                    </span>
-                  ) : user.kyc?.status === 'pending' ? (
-                    <span className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 text-sm font-semibold px-4 py-2 rounded-full border border-yellow-200 shadow-sm">
-                      <Shield size={14} />
-                      Verification Pending
-                    </span>
-                  ) : user.kyc?.status === 'rejected' ? (
-                    <span className="inline-flex items-center gap-2 bg-gradient-to-r from-red-100 to-rose-100 text-red-800 text-sm font-semibold px-4 py-2 rounded-full border border-red-200 shadow-sm">
-                      <Shield size={14} />
-                      Verification Rejected
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-2 bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 text-sm font-semibold px-4 py-2 rounded-full border border-gray-200 shadow-sm">
-                      <Shield size={14} />
-                      Not Verified
-                    </span>
-                  )}
+          {/* Shared Tab Content for Mobile */}
+          <div className="animate-fade-in">
+            {renderTabContent()}
+          </div>
+
+          {/* Mobile Specific Bottom Actions */}
+          <div className="mt-8 space-y-4">
+            {user.role === 'host' ? (
+              <button
+                onClick={() => router.push('/host/dashboard')}
+                className="w-full bg-green-500 text-white p-5 rounded-3xl flex items-center justify-between shadow-lg"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center"><Home size={20} /></div>
+                  <div className="text-left">
+                    <div className="font-bold">Host Dashboard</div>
+                    <div className="text-xs text-green-100">Manage your properties</div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </div>
-          {/* Quick Links */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 flex flex-col items-center relative group hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <span className="absolute top-3 right-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm">NEW</span>
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-2xl">🧳</span>
-              </div>
-              <span className="font-semibold text-gray-900 text-center">Past Trips</span>
-              <span className="text-xs text-gray-500 mt-1">View your travel history</span>
-            </div>
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 flex flex-col items-center relative group hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <span className="absolute top-3 right-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm">NEW</span>
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-2xl">🧑‍🤝‍🧑</span>
-              </div>
-              <span className="font-semibold text-gray-900 text-center">Connections</span>
-              <span className="text-xs text-gray-500 mt-1">Manage your network</span>
-            </div>
-          </div>
-          {/* Become a Host Card */}
-          {user?.role === 'host' ? (
-            <button
-              onClick={() => router.push('/host/dashboard')}
-              className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl shadow-xl p-6 flex items-center gap-4 mb-6 w-full text-left hover:shadow-2xl transition-all duration-300 hover:scale-105 group"
+                <Plus className="rotate-45" size={20} />
+              </button>
+            ) : (
+              <button
+                onClick={() => router.push('/become-host')}
+                className="w-full bg-[#4285F4] text-white p-5 rounded-3xl flex items-center justify-between shadow-lg"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center"><Plus size={20} /></div>
+                  <div className="text-left">
+                    <div className="font-bold">Become a Host</div>
+                    <div className="text-xs text-blue-100">Start earning today</div>
+                  </div>
+                </div>
+                <Plus className="rotate-45" size={20} />
+              </button>
+            )}
+            
+            <button 
+              onClick={handleLogout}
+              className="w-full py-4 text-red-500 font-bold flex items-center justify-center gap-2"
             >
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                <span className="text-2xl">🏡</span>
-              </div>
-              <div>
-                <div className="font-bold text-lg">Host Dashboard</div>
-                <div className="text-green-100 text-sm">Manage your properties and bookings</div>
-              </div>
-            </button>
-          ) : (
-            <button
-              onClick={() => router.push('/become-host/')}
-              className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-2xl shadow-xl p-6 flex items-center gap-4 mb-6 w-full text-left hover:shadow-2xl transition-all duration-300 hover:scale-105 group"
-            >
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                <span className="text-2xl">🏡</span>
-              </div>
-              <div>
-                <div className="font-bold text-lg">Become a Host</div>
-                <div className="text-purple-100 text-sm">Start earning by hosting your space</div>
-              </div>
-            </button>
-          )}
-          {/* Settings/Actions List */}
-          <div className="bg-white rounded-2xl shadow-md divide-y divide-gray-100 mb-20">
-            <button className="w-full flex items-center gap-3 px-5 py-4 text-gray-800 font-medium text-base hover:bg-gray-50 transition-all">
-              <Settings size={20} className="text-indigo-400" />
-              Account settings
-            </button>
-            <button className="w-full flex items-center gap-3 px-5 py-4 text-gray-800 font-medium text-base hover:bg-gray-50 transition-all">
-              <User size={20} className="text-indigo-400" />
-              View profile
-            </button>
-            <button className="w-full flex items-center gap-3 px-5 py-4 text-gray-800 font-medium text-base hover:bg-gray-50 transition-all">
-              <Lock size={20} className="text-indigo-400" />
-              Privacy
-            </button>
-            <button className="w-full flex items-center gap-3 px-5 py-4 text-gray-800 font-medium text-base hover:bg-gray-50 transition-all">
-              <Shield size={20} className="text-indigo-400" />
-              Get help
+              <LogOut size={20} />
+              Sign Out
             </button>
           </div>
-          {/* Floating Switch to Hosting Button (if host) */}
-          {user.role === 'host' && (
-            <button className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-black text-white px-5 py-2 rounded-xl shadow-xl text-base font-semibold flex items-center gap-2 animate-fade-in z-50 max-w-xs w-full border border-white/80 justify-center text-center">
-              <span className="inline-block rotate-90"><StretchHorizontalIcon /></span>
-              Switch to hosting
-            </button>
-          )}
         </div>
       </div>
       {/* Desktop view (unchanged) */}
@@ -604,388 +947,10 @@ const ProfileContent: React.FC = () => {
             </Card>
           </div>
 
-          {/* Main Content */}
+          {/* Desktop Content Area */}
           <div className="lg:col-span-3">
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-6 relative overflow-hidden">
-              {/* Decorative background elements */}
-              <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-blue-400/5 to-purple-400/5 rounded-full -translate-y-20 translate-x-20"></div>
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-indigo-400/5 to-pink-400/5 rounded-full translate-y-16 -translate-x-16"></div>
-              {/* Profile Tab */}
-              {activeTab === 'profile' && (
-                <div className="space-y-6">
-                  <Card>
-                    <div className="flex items-center justify-between mb-6">
-                      <div>
-                        <h3 className="text-2xl font-semibold text-gray-900">Personal Information</h3>
-                        <p className="text-gray-600 mt-1">Update your profile details</p>
-                      </div>
-                      <Button
-                        variant={isEditing ? "outline" : "ghost"}
-                        size="sm"
-                        onClick={() => setIsEditing(!isEditing)}
-                        className="bg-[#4285f4] hover:bg-[#3367D6] text-white"
-                      >
-                        {isEditing ? (
-                          <>
-                            <Edit size={16} className="mr-2" />
-                            Cancel
-                          </>
-                        ) : (
-                          <>
-                            <Edit size={16} className="mr-2" />
-                            Edit Profile
-                          </>
-                        )}
-                      </Button>
-                    </div>
-
-                    {/* Success/Error Messages */}
-                    {success && (
-                      <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
-                        <p className="text-green-800 font-medium">{success}</p>
-                      </div>
-                    )}
-
-                    {error && (
-                      <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-                        <p className="text-red-800 font-medium">{error}</p>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <Input
-                        label="Full Name"
-                        value={formData.name}
-                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        leftIcon={<User size={20} />}
-                        disabled={!isEditing}
-                      />
-
-                      <Input
-                        label="Email Address"
-                        type="email"
-                        value={formData.email}
-                        leftIcon={<Mail size={20} />}
-                        disabled={true}
-                        helperText={user.isVerified ? 'Email verified' : 'Email not verified — check your inbox'}
-                        className={user.isVerified ? 'bg-green-50/50' : 'bg-amber-50/50'}
-                      />
-
-                      <Input
-                        label="Phone Number"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                        leftIcon={<Phone size={20} />}
-                        disabled={!isEditing}
-                      />
-
-                      <Input
-                        label="Address"
-                        value={formData.location}
-                        onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                        leftIcon={<MapPin size={20} />}
-                        disabled={!isEditing}
-                        placeholder="Enter your address"
-                      />
-
-                      <Input
-                        label="City"
-                        value={formData.city}
-                        onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                        leftIcon={<MapPin size={20} />}
-                        disabled={!isEditing}
-                        placeholder="Enter your city"
-                      />
-
-                      <Input
-                        label="State/Province"
-                        value={formData.state}
-                        onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                        leftIcon={<MapPin size={20} />}
-                        disabled={!isEditing}
-                        placeholder="Enter your state or province"
-                      />
-
-                      <Input
-                        label="Country"
-                        value={formData.country}
-                        onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
-                        leftIcon={<MapPin size={20} />}
-                        disabled={!isEditing}
-                        placeholder="Enter your country"
-                      />
-                    </div>
-
-                    <div className="mt-6">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Bio
-                      </label>
-                      <textarea
-                        value={formData.bio}
-                        onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
-                        disabled={!isEditing}
-                        rows={4}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
-                        placeholder="Tell us about yourself..."
-                      />
-                    </div>
-
-                    {isEditing && (
-                      <div className="flex gap-3 mt-6">
-                        <Button
-                          onClick={handleSave}
-                          disabled={isLoading}
-                          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-                        >
-                          {isLoading ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                              Saving...
-                            </>
-                          ) : (
-                            <>
-                              <Save size={16} className="mr-2" />
-                              Save Changes
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={handleCancel}
-                          disabled={isLoading}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    )}
-                  </Card>
-
-                  {/* Account Stats */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Card className="text-center p-6">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Calendar size={24} className="text-white" />
-                      </div>
-                      <h4 className="text-2xl font-bold text-gray-900 mb-1">12</h4>
-                      <p className="text-gray-600">Total Bookings</p>
-                    </Card>
-
-                    <Card className="text-center p-6">
-                      <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Star size={24} className="text-white" />
-                      </div>
-                      <h4 className="text-2xl font-bold text-gray-900 mb-1">4.8</h4>
-                      <p className="text-gray-600">Average Rating</p>
-                    </Card>
-
-
-                  </div>
-                </div>
-              )}
-
-              {/* Security Tab */}
-              {activeTab === 'security' && (
-                <Card>
-                  <div className="mb-6">
-                    <h3 className="text-2xl font-semibold text-gray-900">Security Settings</h3>
-                    <p className="text-gray-600 mt-1">Manage your account security</p>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center">
-                          <Lock size={20} className="text-white" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900">Change Password</h4>
-                          <p className="text-sm text-gray-600">Update your account password</p>
-                        </div>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        Change
-                      </Button>
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center">
-                          <Shield size={20} className="text-white" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900">Two-Factor Authentication</h4>
-                          <p className="text-sm text-gray-600">Add an extra layer of security</p>
-                        </div>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        Enable
-                      </Button>
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                          <CreditCard size={20} className="text-white" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900">Payment Methods</h4>
-                          <p className="text-sm text-gray-600">Manage your payment options</p>
-                        </div>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        Manage
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              )}
-
-              {/* Notifications Tab */}
-              {activeTab === 'notifications' && (
-                <Card>
-                  <div className="mb-6">
-                    <h3 className="text-2xl font-semibold text-gray-900">Notification Preferences</h3>
-                    <p className="text-gray-600 mt-1">Choose what notifications you receive</p>
-                  </div>
-
-                  <div className="space-y-4">
-                    {[
-                      { title: 'Booking Updates', desc: 'Get notified about booking confirmations and changes' },
-                      { title: 'New Messages', desc: 'Receive notifications for new messages from hosts' },
-                      { title: 'Price Drops', desc: 'Get alerts when prices drop for your favorite items' },
-                      { title: 'Travel Recommendations', desc: 'Receive personalized travel suggestions' },
-                      { title: 'Promotional Offers', desc: 'Get notified about special deals and promotions' }
-                    ].map((item, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 border border-gray-200 rounded-xl">
-                        <div>
-                          <h4 className="font-semibold text-gray-900">{item.title}</h4>
-                          <p className="text-sm text-gray-600">{item.desc}</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" defaultChecked={index < 3} />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
-
-              {/* KYC Tab */}
-              {activeTab === 'kyc' && (
-                <Card>
-                  <div className="mb-6">
-                    <h3 className="text-2xl font-semibold text-gray-900">Identity Verification</h3>
-                    <p className="text-gray-600 mt-1">Complete your KYC to become a host</p>
-                  </div>
-
-                  {/* KYC Status Display */}
-                  <div className="mb-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center">
-                          <Shield size={20} className="text-white" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900">Verification Status</h4>
-                          <p className="text-sm text-gray-600">Current identity verification status</p>
-                        </div>
-                      </div>
-                      <div>
-                        {user.kyc?.status === 'verified' ? (
-                          <span className="inline-flex items-center gap-2 bg-green-100 text-green-800 text-sm font-medium px-4 py-2 rounded-full">
-                            <Shield size={16} />
-                            Identity Verified
-                          </span>
-                        ) : user.kyc?.status === 'pending' ? (
-                          <span className="inline-flex items-center gap-2 bg-yellow-100 text-yellow-800 text-sm font-medium px-4 py-2 rounded-full">
-                            <Shield size={16} />
-                            Verification Pending
-                          </span>
-                        ) : user.kyc?.status === 'rejected' ? (
-                          <span className="inline-flex items-center gap-2 bg-red-100 text-red-800 text-sm font-medium px-4 py-2 rounded-full">
-                            <Shield size={16} />
-                            Verification Rejected
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-2 bg-gray-100 text-gray-800 text-sm font-medium px-4 py-2 rounded-full">
-                            <Shield size={16} />
-                            Not Verified
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {user.kyc?.status === 'verified' ? (
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Shield size={32} className="text-green-600" />
-                      </div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-2">Identity Verified! 🎉</h4>
-                      <p className="text-gray-600 mb-6">
-                        Your identity has been successfully verified. You can now become a host and start earning!
-                      </p>
-                      <div className="flex gap-3 justify-center">
-                        <Button
-                          onClick={() => router.push('/become-host')}
-                          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                        >
-                          Become a Host
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => router.push('/host/dashboard')}
-                          className="border-green-200 text-green-700 hover:bg-green-50"
-                        >
-                          Host Dashboard
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Shield size={32} className="text-purple-600" />
-                      </div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-2">Verify Your Identity</h4>
-                      <p className="text-gray-600 mb-6">
-                        Submit your identity verification documents to become a host and start earning
-                      </p>
-                      <Button
-                        onClick={() => router.push('/user/kyc')}
-                        className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-                      >
-                        Submit KYC Documents
-                      </Button>
-                    </div>
-                  )}
-                </Card>
-              )}
-
-              {/* Bookings Tab */}
-              {activeTab === 'bookings' && (
-                <Card>
-                  <div className="mb-6">
-                    <h3 className="text-2xl font-semibold text-gray-900">My Bookings</h3>
-                    <p className="text-gray-600 mt-1">View and manage your travel bookings</p>
-                  </div>
-
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Calendar size={32} className="text-purple-600" />
-                    </div>
-                    <h4 className="text-lg font-semibold text-gray-900 mb-2">No bookings yet</h4>
-                    <p className="text-gray-600 mb-6">Start exploring amazing destinations and book your next adventure!</p>
-                    <Button
-                      onClick={() => router.push('/trips')}
-                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-                    >
-                      Explore Destinations
-                    </Button>
-                  </div>
-                </Card>
-              )}
+            <div className="animate-fade-in">
+              {renderTabContent()}
             </div>
           </div>
         </div>

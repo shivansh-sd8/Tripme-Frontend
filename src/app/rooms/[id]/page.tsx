@@ -81,6 +81,9 @@ import {
   Users as UsersIcon,
   Zap,
   Lock,
+  
+  Sparkles,
+  BedDouble,
   Wifi as WifiIcon,
   Car as CarIcon,
   Coffee as CoffeeIcon,
@@ -1681,34 +1684,35 @@ const FloatingInsightBadge = ({ badge }) => {
   };
 
   const getAmenityIcon = (amenity: string) => {
+    const iconClass = "w-5 h-5 sm:w-6 sm:h-6 text-[#4285f4]";
     const iconMap: Record<string, any> = {
-      'wifi': <WifiIcon className="w-5 h-5 text-[#174EA6]"  />,
-      'tv': <Tv className="w-5 h-5 text-[#174EA6]" />,
-      'kitchen': <ChefHat className="w-5 h-5 text-[#174EA6]" />,
-      'washer': <Droplets className="w-5 h-5 text-[#174EA6]" />,
-      'dryer': <Droplets className="w-5 h-5 text-[#174EA6]" />,
-      'ac': <Snowflake className="w-5 h-5 text-[#174EA6]" />,
-      'heating': <Flame className="w-5 h-5 text-[#174EA6]" />,
-      'workspace': <Monitor className="w-5 h-5 text-[#174EA6]" />,
-      'pool': <PoolIcon className="w-5 h-5 text-[#174EA6]" />,
-      'parking': <CarIcon className="w-5 h-5 text-[#174EA6]" />,
-      'gym': <GymIcon className="w-5 h-5 text-[#174EA6]" />,
-      'breakfast': <CoffeeIcon className="w-5 h-5 text-[#174EA6]" />,
-      'smoke-alarm': <Bell className="w-5 h-5 text-[#174EA6]" />,
-      'first-aid-kit': <Stethoscope className="w-5 h-5 text-[#174EA6]" />,
-      'fire-extinguisher': <Flame className="w-5 h-5 text-[#174EA6]" />,
-      'essentials': <Package className="w-5 h-5 text-[#174EA6]" />,
-      'mountain-view': <ViewIcon className="w-5 h-5 text-[#174EA6]" />,
-      'city-view': <Building2 className="w-5 h-5 text-[#174EA6]" />,
-      'garden': <Trees className="w-5 h-5 text-[#174EA6]" />,
-      'balcony': <Home className="w-5 h-5 text-[#174EA6]" />,
-      'terrace': <Home className="w-5 h-5 text-[#174EA6]" />,
-      'fireplace': <FireplaceIcon className="w-5 h-5 text-[#174EA6]" />,
-      'pet-friendly': <PetIcon className="w-5 h-5 text-[#174EA6]" />,
-      'smoking-allowed': <SmokingIcon className="w-5 h-5 text-[#174EA6]" />,
-      'long-term-stays': <ClockIcon className="w-5 h-5 text-[#174EA6]" />
+      'wifi': <WifiIcon className={iconClass} />,
+      'tv': <Tv className={iconClass} />,
+      'kitchen': <ChefHat className={iconClass} />,
+      'washer': <Droplets className={iconClass} />,
+      'dryer': <Droplets className={iconClass} />,
+      'ac': <Snowflake className={iconClass} />,
+      'heating': <Flame className={iconClass} />,
+      'workspace': <Monitor className={iconClass} />,
+      'pool': <PoolIcon className={iconClass} />,
+      'parking': <CarIcon className={iconClass} />,
+      'gym': <GymIcon className={iconClass} />,
+      'breakfast': <CoffeeIcon className={iconClass} />,
+      'smoke-alarm': <Bell className={iconClass} />,
+      'first-aid-kit': <Stethoscope className={iconClass} />,
+      'fire-extinguisher': <Flame className={iconClass} />,
+      'essentials': <Package className={iconClass} />,
+      'mountain-view': <ViewIcon className={iconClass} />,
+      'city-view': <Building2 className={iconClass} />,
+      'garden': <Trees className={iconClass} />,
+      'balcony': <Home className={iconClass} />,
+      'terrace': <Home className={iconClass} />,
+      'fireplace': <FireplaceIcon className={iconClass} />,
+      'pet-friendly': <PetIcon className={iconClass} />,
+      'smoking-allowed': <SmokingIcon className={iconClass} />,
+      'long-term-stays': <ClockIcon className={iconClass} />
     };
-    return iconMap[amenity] || <CheckCircle className="w-5 h-5 text-[#174EA6]" />;
+    return iconMap[amenity] || <CheckCircle className={iconClass} />;
   };
 
   const calculateTotalNights = () => {
@@ -2130,7 +2134,9 @@ const FloatingInsightBadge = ({ badge }) => {
     
     {/* Guests */}
     <div className="flex-1 text-center">
-      <div className="text-lg md:text-2xl mb-1">👥</div>
+      <div className="flex justify-center mb-1">
+        <Users className="w-5 h-5 sm:w-8 sm:h-8 text-[#4285f4]" />
+      </div>
       <div className="text-[10px] sm:text-sm font-medium text-gray-900 leading-tight">
         {property.maxGuests} guests
       </div>
@@ -2138,7 +2144,9 @@ const FloatingInsightBadge = ({ badge }) => {
 
     {/* Bedrooms */}
     <div className="flex-1 text-center">
-      <div className="text-lg md:text-2xl mb-1">🛏️</div>
+      <div className="flex justify-center mb-1">
+        <BedDouble className="w-5 h-5 sm:w-8 sm:h-8 text-[#4285f4]" />
+      </div>
       <div className="text-[10px] sm:text-sm font-medium text-gray-900 leading-tight">
         {property.bedrooms} {property.bedrooms > 1 ? 'bedrooms' : 'bedroom' }
       </div>
@@ -2146,7 +2154,9 @@ const FloatingInsightBadge = ({ badge }) => {
 
     {/* Beds */}
     <div className="flex-1 text-center">
-      <div className="text-lg md:text-2xl mb-1">🛌</div>
+      <div className="flex justify-center mb-1">
+        <Bed className="w-5 h-5 sm:w-8 sm:h-8 text-[#4285f4]" />
+      </div>
       <div className="text-[10px] sm:text-sm font-medium text-gray-900 leading-tight">
         {property.beds} {property.beds > 1 ? 'beds' : 'bed'}
       </div>
@@ -2154,7 +2164,9 @@ const FloatingInsightBadge = ({ badge }) => {
 
     {/* Bathrooms */}
     <div className="flex-1 text-center">
-      <div className="text-lg md:text-2xl mb-1">🚿</div>
+      <div className="flex justify-center mb-1">
+        <Bath className="w-5 h-5 sm:w-8 sm:h-8 text-[#4285f4]" />
+      </div>
       <div className="text-[10px] sm:text-sm font-medium text-gray-900 leading-tight">
         {property.bathrooms} bath
       </div>
@@ -2177,8 +2189,8 @@ const FloatingInsightBadge = ({ badge }) => {
                 {/* HEADER */}
 
                 <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#4285f4] rounded-lg sm:rounded-xl flex items-center justify-center">
-                    <Home className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10  rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <Home className="w-5 h-5 sm:w-5 sm:h-5 text-[#4285f4]"  />
                   </div>
 
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
@@ -2232,9 +2244,9 @@ const FloatingInsightBadge = ({ badge }) => {
 
               <div ref={amenitiesRef} className="bg-white rounded-2xl shadow-md  p-5 md:p-8">
                 {/* HEADER */}
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="w-9 h-9 bg-[#4285f4] rounded-lg flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-white" />
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center shrink-0">
+                    <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-[#4285f4]" />
                   </div>
                   <h2 className="text-xl md:text-3xl font-semibold text-gray-900">
                     What this place offers
@@ -2248,7 +2260,7 @@ const FloatingInsightBadge = ({ badge }) => {
                   )?.map((amenity: string) => (
                     <div
                       key={amenity}
-                      className="flex items-center gap-2 p-2 rounded-lg"
+                      className="flex items-center gap-3"
                     >
                       {getAmenityIcon(amenity)}
                       <span className="text-sm md:text-base text-gray-700 capitalize">
@@ -3227,7 +3239,7 @@ const FloatingInsightBadge = ({ badge }) => {
                       <button
                         onClick={() => setShowExtras((prev) => !prev)}
                         className="lg:hidden w-full flex items-center justify-between px-4 py-3 mb-3
-                                          bg-purple-50 border border-purple-200 rounded-xl font-semibold"
+                                          bg-blue-50 border border-blue-200 rounded-xl font-semibold"
                       >
                         <span>Add extra hours</span>
                         <ChevronDown
@@ -3235,10 +3247,10 @@ const FloatingInsightBadge = ({ badge }) => {
                             }`}
                         />
                       </button>
-                      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl p-6 border border-purple-200">
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="w-10 h-10 bg-[#4285f4] rounded-xl flex items-center justify-center">
-                            <Clock className="w-5 h-5 text-white" />
+                      <div className="bg-white rounded-3xl p-6 border border-gray-100 mb-8">
+                        <div className="flex items-center gap-4 mb-6">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
+                            <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-[#4285f4]" />
                           </div>
                           <div>
                             <h3 className="text-lg font-bold text-gray-900">Extend Your Stay</h3>
@@ -3255,8 +3267,8 @@ const FloatingInsightBadge = ({ badge }) => {
                             <div
                               key={option.hours}
                               className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${hourlyExtension === option.hours
-                                ? 'border-purple-500 bg-purple-100 shadow-lg scale-105'
-                                : 'border-gray-200 hover:border-purple-300 hover:shadow-md'
+                                ? 'border-[#4285F4] bg-blue-100 shadow-lg scale-105'
+                                : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
                                 }`}
                               onClick={() => setHourlyExtension(hourlyExtension === option.hours ? null : option.hours)}
                             >
@@ -3272,7 +3284,7 @@ const FloatingInsightBadge = ({ badge }) => {
                         </div>
 
                         {hourlyExtension && (
-                          <div className="mt-4 p-4 bg-white rounded-xl border border-purple-200">
+                          <div className="mt-4 p-4 bg-white rounded-xl border border-blue-200">
                             <div className="flex items-center justify-between">
                               <div>
                                 <div className="font-semibold text-gray-900">{hourlyExtension} hours selected</div>
@@ -3307,10 +3319,10 @@ const FloatingInsightBadge = ({ badge }) => {
                   {/* Pricing Breakdown - Modern Design */}
                   {!isOwnProperty && nights > 0 && (
                     <div className="mb-6">
-                      <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl p-6 border border-emerald-200">
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="w-10 h-10 bg-[#4285f4] rounded-xl flex items-center justify-center">
-                            <Receipt className="w-5 h-5 text-white" />
+                    <div className="bg-white rounded-3xl p-6 border border-gray-100 mb-8">
+                        <div className="flex items-center gap-4 mb-6">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
+                            <Receipt className="w-6 h-6 sm:w-8 sm:h-8 text-[#4285f4]" />
                           </div>
                           <div>
                             <h3 className="text-lg font-bold text-gray-900">Price Breakdown</h3>
@@ -3340,7 +3352,7 @@ const FloatingInsightBadge = ({ badge }) => {
                         You cannot book your own property. This is a preview of how guests see your listing.
                       </p>
                       <Button
-                        className="bg-[#4285f4] hover:from-indigo-700 hover:to-purple-700 text-white py-3 px-6 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                        className="bg-[#4285f4] hover:bg-[#1A73E8] text-white py-3 px-6 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                         onClick={() => router.push(`/host/property/${id}`)}
                       >
                         <Home className="w-4 h-4 mr-2" />

@@ -331,7 +331,7 @@ const Header = ({ searchExpanded: externalSearchExpanded,
 
                       {/* Search Button */}
                       <button className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white p-1.5 rounded-full transition-all duration-200 ml-2">
-                        <Search className="w-4 h-4" />
+                        <Search className="w-4 h-4"  />
                       </button>
                     </div>
                   </div>
@@ -885,7 +885,7 @@ const Header = ({ searchExpanded: externalSearchExpanded,
       text-left
     "
             >
-              <Search className="w-4 h-4 text-gray-500 flex-shrink-0" />
+              <Search className="w-4 h-4 text-[#4285F4] flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 {searchValues && (searchValues.location || searchValues.checkIn) ? (
                   <div className="flex flex-col">
@@ -1084,7 +1084,7 @@ const Header = ({ searchExpanded: externalSearchExpanded,
           text-left
         "
                 >
-                  <Search className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                  <Search className="w-4 h-4 text-[#4285F4] flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     {searchValues && (searchValues.location || searchValues.checkIn) ? (
                       <div className="flex flex-col">

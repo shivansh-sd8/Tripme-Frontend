@@ -6,12 +6,14 @@ import { useScrollDirection } from '@/hooks/userScrollDirection';
 import { useUI } from "@/core/store/uiContext";
 import { usePathname } from 'next/navigation';
 import { apiClient } from '@/infrastructure/api/clients/api-client';
+import { useAuth } from '@/core/store/auth-context';
 
 export default function Footer() {
   const [currentYear, setCurrentYear] = useState('');
   const [hideMobileNav, setHideMobileNav] = useState(false);
   const scrollDirection = useScrollDirection();
   const { hideBottomNav } = useUI();
+  const { isAuthenticated } = useAuth();
   const pathname = usePathname();
   const isHomePage = pathname === '/';
    const [email, setEmail] = useState('');
@@ -94,8 +96,8 @@ export default function Footer() {
   }
 };
 
-  const navColor = "#4285F4";
-  const activeNavColor = "#174ea6"; // Darker version of #4285F4
+  const navColor = "#717171"; // Neutral gray for inactive
+  const activeNavColor = "#4285F4"; // Brand blue for active
 
   const getNavLinkClass = (path: string) => {
     const isActive = path === '/' ? pathname === '/' : pathname.startsWith(path);
@@ -128,29 +130,38 @@ export default function Footer() {
         `}
       >
         <Link href="/" className={getNavLinkClass('/')}>
-          <Home size={24} style={getIconStyle('/')} strokeWidth={pathname === '/' ? 2.5 : 2} />
-          <span className="text-[10px] mt-1" style={getTextStyle('/')}>Home</span>
+          <Home size={20} style={getIconStyle('/')} strokeWidth={pathname === '/' ? 2.5 : 2} />
+          <span className="text-[10px] mt-1 " style={getTextStyle('/')}>Home</span>
         </Link>
         
         <Link href="/search" className={getNavLinkClass('/search')}>
-          <Search size={24} style={getIconStyle('/search')} strokeWidth={pathname.startsWith('/search') ? 2.5 : 2} />
+          <Search size={20} style={getIconStyle('/search')} strokeWidth={pathname.startsWith('/search') ? 2.5 : 2} />
           <span className="text-[10px] mt-1" style={getTextStyle('/search')}>Rooms</span>
         </Link>
         
         <Link href="/services" className={getNavLinkClass('/services')}>
-          <Settings size={24} style={getIconStyle('/services')} strokeWidth={pathname.startsWith('/services') ? 2.5 : 2} />
+          <Settings size={20} style={getIconStyle('/services')} strokeWidth={pathname.startsWith('/services') ? 2.5 : 2} />
           <span className="text-[10px] mt-1" style={getTextStyle('/services')}>Services</span>
         </Link>
 
-        <Link href="/wishlist" className={getNavLinkClass('/wishlist')}>
-          <Heart size={24} style={getIconStyle('/wishlist')} strokeWidth={pathname.startsWith('/wishlist') ? 2.5 : 2} />
-          <span className="text-[10px] mt-1" style={getTextStyle('/wishlist')}>Wishlist</span>
-        </Link>
+        {isAuthenticated ? (
+          <>
+            <Link href="/wishlist" className={getNavLinkClass('/wishlist')}>
+              <Heart size={20} style={getIconStyle('/wishlist')} strokeWidth={pathname.startsWith('/wishlist') ? 2.5 : 2} />
+              <span className="text-[10px] mt-1" style={getTextStyle('/wishlist')}>Wishlist</span>
+            </Link>
 
-        <Link href="/user/profile" className={getNavLinkClass('/user/profile')}>
-          <User size={24} style={getIconStyle('/user/profile')} strokeWidth={pathname.startsWith('/user/profile') ? 2.5 : 2} />
-          <span className="text-[10px] mt-1" style={getTextStyle('/user/profile')}>Profile</span>
-        </Link>
+            <Link href="/user/profile" className={getNavLinkClass('/user/profile')}>
+              <User size={20} style={getIconStyle('/user/profile')} strokeWidth={pathname.startsWith('/user/profile') ? 2.5 : 2} />
+              <span className="text-[10px] mt-1" style={getTextStyle('/user/profile')}>Profile</span>
+            </Link>
+          </>
+        ) : (
+          <Link href="/auth/login" className={getNavLinkClass('/auth/login')}>
+            <User size={20} style={getIconStyle('/auth/login')} strokeWidth={pathname.startsWith('/auth/login') ? 2.5 : 2} />
+            <span className="text-[10px] mt-1" style={getTextStyle('/auth/login')}>Login</span>
+          </Link>
+        )}
       </nav>
       {/* Desktop Footer (now also visible on mobile) */}
       {/* Desktop Footer (visible on mobile only on Home Page) */}
@@ -205,7 +216,7 @@ export default function Footer() {
                 <span className="mr-2">🏞️</span>
                 Popular Destinations
               </h3>
-              <ul className="space-y-2">
+              <ul className="space-y-2 text-xs md:text-base">
                 {['Goa', 'Rajasthan', 'Kerala', 'Himachal Pradesh', 'Uttarakhand', 'Kashmir'].map((destination) => (
                   <li key={destination}>
                     <Link 
@@ -225,7 +236,7 @@ export default function Footer() {
                 <span className="mr-2">🛟</span>
                 Support
               </h3>
-              <ul className="space-y-2">
+              <ul className="space-y-2 text-xs md:text-base">
                 <li>
                   <Link href="/contact" className="text-gray-600 hover:text-purple-600 transition-colors duration-200 flex items-center group">
                     <span className="group-hover:translate-x-1 transition-transform duration-200">Contact Us</span>
@@ -265,7 +276,7 @@ export default function Footer() {
                 <span className="mr-2">📧</span>
                 Stay Connected
               </h3>
-              <p className="text-gray-600 mb-4 text-sm">
+              <p className="text-gray-600 mb-4 text-xs md:text-sm">
                 Get travel inspiration and exclusive deals delivered to your inbox.
               </p>
               <div className="space-y-3">
@@ -283,7 +294,7 @@ export default function Footer() {
               <button 
                 type="submit"
                 disabled={isSubscribing}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-r-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-[#4285F4] text-white px-4 py-2 rounded-r-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubscribing ? (
                   <span className="animate-spin">⏳</span>
