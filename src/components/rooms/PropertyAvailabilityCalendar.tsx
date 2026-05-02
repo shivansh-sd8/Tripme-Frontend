@@ -644,8 +644,8 @@ ${isCurrentMonth && !isPastDate && !isCheckIn && !isCheckOut && !isInRange
       bg-transparent
       p-2 md:p-6">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 bg-[#4285f4] rounded-xl flex items-center justify-center">
-          <CalendarIcon className="w-5 h-5 text-white" />
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center">
+          <CalendarIcon className="w-5 h-5 text-[#4285f4] " />
         </div>
         <div>
           <h3 className="text-xl font-bold text-gray-900">Availability Calendar</h3>

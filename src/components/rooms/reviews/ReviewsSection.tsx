@@ -132,8 +132,8 @@ const loadReviews = async () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#4285f4] rounded-xl flex items-center justify-center">
-              <Star className="w-4 h-4 text-white" />
+            <div className="w-9 h-9  rounded-xl flex items-center justify-center">
+              <Star className="w-5 h-5 text-[#4285f4]" />
             </div>
             <h2 className="text-xl sm:text-3xl font-bold text-gray-900">
               Reviews

@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import OnboardingLayout from '@/components/host/OnboardingLayout';
 import { useOnboarding } from '@/core/context/OnboardingContext';
+import { apiClient } from '@/infrastructure/api/clients/api-client';
+import { useEffect, useState } from 'react';
 
 export default function PriceSummaryPage() {
   const router = useRouter();
@@ -28,14 +30,34 @@ export default function PriceSummaryPage() {
   const anytimeCheckInPrice = data.pricing?.anytimeCheckInPrice || 0;
   const hourlyExtensionEnabled = data.hourlyBooking?.enabled || false;
   const hourlyRates = data.hourlyBooking?.hourlyRates || { sixHours: 0.30, twelveHours: 0.60, eighteenHours: 0.90 };
-
-  // Platform fee calculation (example: 3% host fee)
-  const platformFeePercent = 3;
+ 
+  // ── Platform Fee Calculation (Dynamic) ──────────────────────
+  const [platformFeePercent, setPlatformFeePercent] = useState(3);
+  const [gstRate, setGstRate] = useState(0.18);
+ 
+  useEffect(() => {
+    const fetchRates = async () => {
+      try {
+        const response = await apiClient.getPlatformFeeRate();
+        if (response.success && response.data) {
+          // Convert rate (e.g. 0.03) to percentage (3)
+          setPlatformFeePercent(response.data.rate * 100);
+          if (response.data.gstRate) {
+            setGstRate(response.data.gstRate);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch platform fee rate:", error);
+      }
+    };
+    fetchRates();
+  }, []);
+ 
   const platformFee = Math.round(basePrice * platformFeePercent / 100);
   const hostEarnings = basePrice - platformFee;
-
-  // GST calculation (18% on platform fee)
-  const gstOnPlatformFee = Math.round(platformFee * 0.18);
+ 
+  // GST calculation (configurable rate on platform fee)
+  const gstOnPlatformFee = Math.round(platformFee * gstRate);
 
   const handleNext = () => {
     router.push('/become-host/house-rules');
@@ -94,7 +116,7 @@ export default function PriceSummaryPage() {
               <span className="font-semibold">-₹{platformFee.toLocaleString()}</span>
             </div>
             <div className="flex justify-between items-center text-red-600 text-sm">
-              <span className="pl-6">GST on platform fee (18%)</span>
+              <span className="pl-6">GST on platform fee ({Math.round(gstRate * 100)}%)</span>
               <span>-₹{gstOnPlatformFee.toLocaleString()}</span>
             </div>
             <div className="border-t pt-3 flex justify-between items-center">

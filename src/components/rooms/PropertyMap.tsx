@@ -411,29 +411,29 @@ new PriceMarker({ lat: currentCoords.lat, lng: currentCoords.lng }).setMap(map);
 
   return (
     <div className="w-full">
-      <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-2">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-20 h-10 bg-[#4285f4] rounded-xl flex items-center justify-center">
-              <MapPin className="w-5 h-5 text-white" />
+      <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 flex items-center justify-center shrink-0">
+              <MapPin className="w-8 h-8 text-[#4285f4]" />
             </div>
-            {/* <div>
-              <h3 className="text-lg font-bold text-gray-900">Property Location</h3>
-              <p className="text-sm text-gray-600">{address}, {city}, {state}</p>
-            </div> */}
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Property Location</h3>
+              <p className="text-sm text-gray-500">Get directions or view on map</p>
+            </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <div className="flex flex-col xs:flex-row gap-3 w-full sm:w-auto">
             <button
               onClick={getDirections}
-              className="w-full sm:w-auto flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 bg-[#4285f4] text-white rounded-xl hover:bg-blue-600 transition-all shadow-md shadow-blue-100 text-sm font-bold"
             >
-              <Navigation className="w-4 h-4" />
+              <Navigation className="w-4 h-4 fill-white" />
               Directions
             </button>
             <button
               onClick={openInMaps}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 bg-gray-50 text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-100 transition-all text-sm font-bold"
             >
               <ExternalLink className="w-4 h-4" />
               Open in Maps

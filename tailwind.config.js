@@ -12,9 +12,13 @@ module.exports = {
       //   'body': ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
       // },
 
-       fontFamily: {
-        sans: ['var(--font-montserrat)', 'Montserrat', 'system-ui', 'sans-serif'],
+      //  fontFamily: {
+      //   sans: ['var(--font-montserrat)', 'Montserrat', 'system-ui', 'sans-serif'],
+      // },
+      fontFamily: {
+        sans: ['var(--font-jost)', 'Inter', 'system-ui', 'sans-serif'],
       },
+      
       fontSize: {
         h1: ['36px', { lineHeight: '44px', fontWeight: '600' }],
         h2: ['28px', { lineHeight: '36px', fontWeight: '600' }],
@@ -22,11 +26,22 @@ module.exports = {
         body: ['16px', { lineHeight: '26px', fontWeight: '400' }],
         small: ['14px', { lineHeight: '22px', fontWeight: '400' }],
       },
+      
       colors: {
         primary: {
-          DEFAULT: '#FF6B00',
-          light: '#FF8A33',
-          dark: '#CC5500',
+          50: '#E8F0FE',
+          100: '#D2E3FC',
+          200: '#AECBFA',
+          300: '#8AB4F8',
+          400: '#669DF6',
+          500: '#4285F4',
+          600: '#1A73E8',
+          700: '#1967D2',
+          800: '#185ABC',
+          900: '#174EA6',
+          DEFAULT: '#4285F4',
+          active: '#4285F4',
+          inactive: '#717171',
         },
 
         text: {

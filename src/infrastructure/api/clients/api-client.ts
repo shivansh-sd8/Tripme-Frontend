@@ -576,6 +576,11 @@ class ApiClient {
     });
   }
 
+  // Pricing endpoints
+  async getPlatformFeeRate(): Promise<ApiResponse<{ rate: number, ratePercentage: string, gstRate: number }>> {
+    return this.request('/pricing/platform-fee-rate');
+  }
+
   // Pre-validate booking BEFORE showing Razorpay UI
   // Call this first — if it fails, don't open payment at all
   async preValidateBooking(bookingData: {
@@ -991,6 +996,36 @@ class ApiClient {
     return this.request(`/admin/payments/${paymentId}/payout`, {
       method: 'POST',
       body: JSON.stringify({ amount }),
+    });
+  }
+
+  // ── Admin Payout Management ──────────────────────────────────────
+  async getAdminPayouts(params?: any): Promise<ApiResponse<any>> {
+    const queryParams = params ? `?${new URLSearchParams(params).toString()}` : '';
+    return this.request(`/payouts/admin/all${queryParams}`);
+  }
+
+  async getAdminPayoutStats(): Promise<ApiResponse<any>> {
+    return this.request('/payouts/admin/stats');
+  }
+
+  async confirmPayoutDone(payoutId: string, data: {
+    razorpayPayoutId?: string;
+    utrNumber?: string;
+    transactionId?: string;
+    adminNotes?: string;
+    processedDate?: string;
+  }): Promise<ApiResponse<any>> {
+    return this.request(`/payouts/admin/${payoutId}/confirm`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async reverseAdminPayout(payoutId: string, reason: string, notes?: string): Promise<ApiResponse<any>> {
+    return this.request(`/payouts/admin/${payoutId}/reverse`, {
+      method: 'POST',
+      body: JSON.stringify({ reason, notes }),
     });
   }
 

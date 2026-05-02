@@ -81,6 +81,31 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
     setCurrentImageIndex(0);
   }, [selectedProperty]);
 
+  // Sync internal selectedProperty with markers prop
+  useEffect(() => {
+    const highlightedMarker = markers.find(m => m.isHighlighted);
+    if (highlightedMarker) {
+      // Only update if it's a different property
+      if (selectedProperty?._id !== highlightedMarker.id) {
+        setSelectedProperty(highlightedMarker.property);
+        
+        // When selection comes from props, we might need a default card position 
+        // if we don't have one yet (e.g. clicking a listing instead of a marker)
+        if (!cardPosition && mapRef.current) {
+          const mapRect = mapRef.current.getBoundingClientRect();
+          setCardPosition({
+            x: mapRect.width / 2 - 160,
+            y: mapRect.height * 0.2
+          });
+        }
+      }
+    } else if (selectedProperty) {
+      // If no marker is highlighted, clear the internal selectedProperty
+      setSelectedProperty(null);
+      setCardPosition(null);
+    }
+  }, [markers]);
+
   // Handle View Details button click
   const handleViewDetails = () => {
     if (selectedProperty?._id) {
@@ -130,10 +155,21 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
     document.head.appendChild(script);
   }, []);
 
-  // Handle center changes without re-initializing the map (only for initial positioning)
+  const lastPropZoomRef = useRef(zoom);
+  const lastPropCenterRef = useRef(center);
+
+  // Handle center and zoom changes from props
   useEffect(() => {
     if (!mapInstanceRef.current || !window.google) return;
     
+    // 1. Handle Zoom change
+    if (zoom !== lastPropZoomRef.current) {
+      console.log('🗺️ Zoom prop changed, updating map zoom:', zoom);
+      mapInstanceRef.current.setZoom(zoom);
+      lastPropZoomRef.current = zoom;
+    }
+
+    // 2. Handle Center change
     const currentCenter = mapInstanceRef.current.getCenter();
     if (currentCenter) {
       const currentLat = currentCenter.lat();
@@ -141,20 +177,24 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
       const newLat = center[1];
       const newLng = center[0];
       
-      // Only pan if the center has changed significantly (> 100m)
-      const distance = Math.sqrt(
-        Math.pow(currentLng - newLng, 2) + Math.pow(currentLat - newLat, 2)
-      );
+      // Check if the center prop has changed from its previous value
+      const propChanged = center[0] !== lastPropCenterRef.current[0] || center[1] !== lastPropCenterRef.current[1];
       
-      // Only auto-pan if it's a significant change (like initial load or search change)
-      // Don't auto-pan for small changes to allow user to move the map freely
-      if (distance > 0.01) { // Increased threshold to 1km
-        console.log('🗺️ Smoothly panning map to new search location:', center);
-        // Use smooth panning for better user experience
-        mapInstanceRef.current.panTo({ lat: newLat, lng: newLng });
+      if (propChanged) {
+        // Only pan if it's a significant change relative to current map center
+        // to avoid interfering with user's fine-grained panning
+        const distance = Math.sqrt(
+          Math.pow(currentLng - newLng, 2) + Math.pow(currentLat - newLat, 2)
+        );
+        
+        if (distance > 0.005) { // ~500m threshold
+          console.log('🗺️ Panning map to new search location:', center);
+          mapInstanceRef.current.panTo({ lat: newLat, lng: newLng });
+        }
+        lastPropCenterRef.current = center;
       }
     }
-  }, [center]);
+  }, [center, zoom]);
 
   // Initialize map ONCE
   useEffect(() => {
@@ -205,6 +245,8 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
       // Add debug map click listener
       map.addListener('click', (e: any) => {
         console.log('🗺️ MAP CLICKED!', e);
+        setSelectedProperty(null);
+        setCardPosition(null);
       });
 
       // Add bounds_changed listener for viewport-based filtering (only once)
@@ -271,13 +313,6 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
     }
   }, [isLoading]); // Only depend on isLoading - initialize map ONCE
 
-  // Update map center when center prop changes
-  useEffect(() => {
-    if (mapInstanceRef.current && window.google) {
-      mapInstanceRef.current.setCenter({ lat: center[1], lng: center[0] });
-      mapInstanceRef.current.setZoom(zoom);
-    }
-  }, [center, zoom]);
 
   // Add/update markers with throttling and duplicate prevention
   useEffect(() => {
@@ -291,7 +326,8 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
       const markersString = JSON.stringify(markers.map(m => ({
         id: m.id,
         pos: m.position,
-        highlighted: m.isHighlighted
+        highlighted: m.isHighlighted,
+        isSelected: m.id === selectedProperty?._id
       })));
       
       if (markersString === lastMarkersRef.current) {
@@ -323,6 +359,11 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
         // Create custom SVG icon for price tag
         const priceText = markerData.price ? `₹${markerData.price}` : '₹N/A';
         
+        const isSelected = markerData.isHighlighted;
+        const bgColor = isSelected ? '#4285f4' : 'white';
+        const textColor = isSelected ? 'white' : '#1f2937';
+        const strokeColor = isSelected ? '#4285f4' : '#e5e7eb';
+        
         const markerIcon = {
           url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
             <svg width="80" height="36" viewBox="0 0 80 36" xmlns="http://www.w3.org/2000/svg">
@@ -332,10 +373,10 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
                 </filter>
               </defs>
               <g filter="url(#shadow)">
-                <rect x="3" y="3" width="74" height="26" rx="13" fill="white" stroke="#e5e7eb" stroke-width="2"/>
-                <text x="40" y="20" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#1f2937">${priceText}</text>
-                <polygon points="36,29 40,35 44,29" fill="white"/>
-                <polygon points="35,29 40,36 45,29" fill="#e5e7eb"/>
+                <rect x="3" y="3" width="74" height="26" rx="13" fill="${bgColor}" stroke="${strokeColor}" stroke-width="2"/>
+                <text x="40" y="20" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="${textColor}">${priceText}</text>
+                <polygon points="36,29 40,35 44,29" fill="${bgColor}"/>
+                <polygon points="35,29 40,36 45,29" fill="${strokeColor}"/>
               </g>
             </svg>
           `)}`,
@@ -487,7 +528,7 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
             left: `${cardPosition.x}px`,
             top: `${cardPosition.y}px`,
             width: '320px',
-            zIndex: 9999
+            zIndex: 40
           }}
           onClick={handleViewDetails}
         >

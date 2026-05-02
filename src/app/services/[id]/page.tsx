@@ -83,7 +83,7 @@ function getSlotsForDate(
   return availableSlots
     .filter(slot => {
       const slotDate = new Date(slot.startTime);
-      const isAvail = slot.status === 'available' || (slot.isAvailable === true && slot.status !== 'unavailable' && slot.status !== 'on-hold');
+      const isAvail = slot.status === 'available' || (slot.isAvailable === true && slot.status !== 'unavailable' && slot.status !== 'on-hold' && slot.status !== 'booked');
       return format(slotDate, 'yyyy-MM-dd') === dateStr && isAvail;
     })
     .map(slot => ({
