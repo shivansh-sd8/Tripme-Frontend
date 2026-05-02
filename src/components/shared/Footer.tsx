@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Home, Briefcase, User, Heart, Settings ,XIcon, Instagram, Facebook  ,Twitter ,Youtube, Search} from 'lucide-react';
 import { useScrollDirection } from '@/hooks/userScrollDirection';
 import { useUI } from "@/core/store/uiContext";
+import { usePathname } from 'next/navigation';
 import { apiClient } from '@/infrastructure/api/clients/api-client';
 
 export default function Footer() {
@@ -11,6 +12,8 @@ export default function Footer() {
   const [hideMobileNav, setHideMobileNav] = useState(false);
   const scrollDirection = useScrollDirection();
   const { hideBottomNav } = useUI();
+  const pathname = usePathname();
+  const isHomePage = pathname === '/';
    const [email, setEmail] = useState('');
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [subscriptionMessage, setSubscriptionMessage] = useState('');
@@ -91,42 +94,69 @@ export default function Footer() {
   }
 };
 
+  const navColor = "#4285F4";
+  const activeNavColor = "#174ea6"; // Darker version of #4285F4
+
+  const getNavLinkClass = (path: string) => {
+    const isActive = path === '/' ? pathname === '/' : pathname.startsWith(path);
+    return `flex flex-col items-center flex-1 py-2 transition-all duration-300 ${
+      isActive ? 'scale-110' : 'opacity-80 hover:opacity-100'
+    }`;
+  };
+
+  const getIconStyle = (path: string) => {
+    const isActive = path === '/' ? pathname === '/' : pathname.startsWith(path);
+    return { color: isActive ? activeNavColor : navColor };
+  };
+
+  const getTextStyle = (path: string) => {
+    const isActive = path === '/' ? pathname === '/' : pathname.startsWith(path);
+    return { color: isActive ? activeNavColor : navColor, fontWeight: isActive ? '800' : '600' };
+  };
+
   return (
     <>
       {/* Mobile Bottom Bar */}
       <nav
-  className={`
-    fixed bottom-0 left-0 right-0 z-50
-    bg-white border-t border-gray-200 shadow-2xl rounded-t-2xl
-    flex justify-between items-center px-2 py-1 sm:hidden
-    transition-transform duration-300 ease-out
-    
-    ${hideMobileNav || hideBottomNav ? 'hidden' : ''}
+        className={`
+          fixed bottom-0 left-0 right-0 z-50
+          bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] rounded-t-[2rem]
+          flex justify-between items-center px-4 py-1 md:hidden
+          transition-transform duration-300 ease-out
+          ${hideMobileNav || hideBottomNav ? 'hidden' : ''}
+          ${scrollDirection === 'down' ? 'translate-y-full' : 'translate-y-0'}
+        `}
+      >
+        <Link href="/" className={getNavLinkClass('/')}>
+          <Home size={24} style={getIconStyle('/')} strokeWidth={pathname === '/' ? 2.5 : 2} />
+          <span className="text-[10px] mt-1" style={getTextStyle('/')}>Home</span>
+        </Link>
+        
+        <Link href="/search" className={getNavLinkClass('/search')}>
+          <Search size={24} style={getIconStyle('/search')} strokeWidth={pathname.startsWith('/search') ? 2.5 : 2} />
+          <span className="text-[10px] mt-1" style={getTextStyle('/search')}>Rooms</span>
+        </Link>
+        
+        <Link href="/services" className={getNavLinkClass('/services')}>
+          <Settings size={24} style={getIconStyle('/services')} strokeWidth={pathname.startsWith('/services') ? 2.5 : 2} />
+          <span className="text-[10px] mt-1" style={getTextStyle('/services')}>Services</span>
+        </Link>
 
-    ${scrollDirection === 'down' ? 'translate-y-full' : 'translate-y-0'}
-  `}
-  // ${hideMobileNav ? 'hidden' : ''}
->
-        <Link href="/" className="flex flex-col items-center flex-1 py-2 text-gray-700 hover:text-indigo-600 transition-all">
-          <Home size={26} />
-          <span className="text-xs mt-1 font-semibold">Home</span>
-        </Link>
-        <Link href="/search" className="flex flex-col items-center flex-1 py-2 text-gray-700 hover:text-indigo-600 transition-all">
-          <Search size={26} />
-          <span className="text-xs mt-1 font-semibold">Rooms</span>
-        </Link>
-        <Link href="/services" className="flex flex-col items-center flex-1 py-2 text-gray-700 hover:text-indigo-600 transition-all">
-          <Settings size={26} />
-          <span className="text-xs mt-1 font-semibold">Services</span>
+        <Link href="/wishlist" className={getNavLinkClass('/wishlist')}>
+          <Heart size={24} style={getIconStyle('/wishlist')} strokeWidth={pathname.startsWith('/wishlist') ? 2.5 : 2} />
+          <span className="text-[10px] mt-1" style={getTextStyle('/wishlist')}>Wishlist</span>
         </Link>
 
-        <Link href="/user/profile" className="flex flex-col items-center flex-1 py-2 text-gray-700 hover:text-indigo-600 transition-all">
-          <User size={26} />
-          <span className="text-xs mt-1 font-semibold">Profile</span>
+        <Link href="/user/profile" className={getNavLinkClass('/user/profile')}>
+          <User size={24} style={getIconStyle('/user/profile')} strokeWidth={pathname.startsWith('/user/profile') ? 2.5 : 2} />
+          <span className="text-[10px] mt-1" style={getTextStyle('/user/profile')}>Profile</span>
         </Link>
       </nav>
-      {/* Desktop Footer (unchanged, hidden on mobile) */}
-      <footer className="relative w-full bg-white border-t border-gray-200 mt-auto overflow-hidden hidden sm:block">
+      {/* Desktop Footer (now also visible on mobile) */}
+      {/* Desktop Footer (visible on mobile only on Home Page) */}
+      <footer className={`relative w-full bg-white border-t border-gray-200 mt-auto overflow-hidden ${
+        isHomePage ? 'pb-24 block' : 'hidden sm:block'
+      }`}>
         {/* Decorative background pattern */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-4 left-8 text-6xl">🏛️</div>
@@ -178,9 +208,12 @@ export default function Footer() {
               <ul className="space-y-2">
                 {['Goa', 'Rajasthan', 'Kerala', 'Himachal Pradesh', 'Uttarakhand', 'Kashmir'].map((destination) => (
                   <li key={destination}>
-                    <a href="#" className="text-gray-600 hover:text-purple-600 transition-colors duration-200 flex items-center group">
+                    <Link 
+                      href={`/search?city=${encodeURIComponent(destination)}`} 
+                      className="text-gray-600 hover:text-purple-600 transition-colors duration-200 flex items-center group"
+                    >
                       <span className="group-hover:translate-x-1 transition-transform duration-200">{destination}</span>
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>

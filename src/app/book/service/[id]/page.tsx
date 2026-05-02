@@ -474,6 +474,68 @@ export default function ServiceBookingPage() {
   const [contactInfo, setContactInfo] = useState({ name: "", phone: "", email: "" });
   const [showDetails, setShowDetails] = useState(false);
 
+  // ── Location Gate State ──────────────────────────────────────
+  const [locationStep, setLocationStep] = useState<'idle' | 'detecting' | 'confirmed' | 'unavailable' | 'manual'>('idle');
+  const [userCity, setUserCity] = useState('');
+  const [manualCity, setManualCity] = useState('');
+  const [locationError, setLocationError] = useState('');
+
+  const serviceCity = (service?.location?.city || '').toLowerCase().trim();
+
+  const cityMatches = (city: string) =>
+    serviceCity && city.toLowerCase().trim().includes(serviceCity) ||
+    serviceCity && serviceCity.includes(city.toLowerCase().trim()) ||
+    city.toLowerCase().trim() === serviceCity;
+
+  const detectLocation = async () => {
+    setLocationStep('detecting');
+    setLocationError('');
+    if (!navigator.geolocation) {
+      setLocationStep('manual');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          // Use OpenStreetMap Nominatim (free, no API key needed)
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+            { headers: { 'Accept-Language': 'en' } }
+          );
+          const data = await res.json();
+          const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || '';
+          if (!city) { setLocationStep('manual'); return; }
+          setUserCity(city);
+          setManualCity(city);
+          if (cityMatches(city)) {
+            setLocationStep('confirmed');
+          } else {
+            setLocationStep('unavailable');
+          }
+        } catch {
+          setLocationStep('manual');
+        }
+      },
+      () => setLocationStep('manual')
+    );
+  };
+
+  const handleManualCity = () => {
+    const city = manualCity.trim();
+    if (!city) return;
+    setUserCity(city);
+    if (cityMatches(city)) {
+      setLocationStep('confirmed');
+      setLocationError('');
+    } else {
+      setLocationStep('unavailable');
+      setLocationError(`This service is available in ${service?.location?.city || 'its city'} only. We cannot proceed with the booking.`);
+    }
+  };
+
+  const locationConfirmed = locationStep === 'confirmed';
+
   /* Populate contact from logged-in user */
   useEffect(() => {
     if (user) setContactInfo({ name: user.name || "", phone: user.phone || "", email: user.email || "" });
@@ -527,7 +589,7 @@ export default function ServiceBookingPage() {
     }
   };
 
-  const canBook = isAuthenticated && !!checkIn && !!checkOut;
+  const canBook = isAuthenticated && !!checkIn && !!checkOut && locationConfirmed;
 
   /* ── Render ── */
   if (loading || isLoading) {
@@ -643,11 +705,111 @@ export default function ServiceBookingPage() {
                   </div>
                 </div>
 
-                {/* Step 3: Review + Pay */}
+                {/* Step 3: Location Check (Airbnb-style) */}
+                <div className={`border rounded-2xl overflow-hidden transition-all ${
+                  locationStep === 'confirmed' ? 'border-green-200 bg-green-50' :
+                  locationStep === 'unavailable' ? 'border-red-200' : 'border-gray-200'
+                }`}>
+                  <div className="p-5 border-b border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
+                        locationStep === 'confirmed' ? 'bg-green-600' :
+                        locationStep === 'unavailable' ? 'bg-red-500' : 'bg-purple-600'
+                      }`}>
+                        {locationStep === 'confirmed' ? '✓' : locationStep === 'unavailable' ? '✗' : '3'}
+                      </div>
+                      <span className="font-bold text-gray-800">Where are you located?</span>
+                    </div>
+                  </div>
+                  <div className="p-5 space-y-3">
+                    {locationStep === 'idle' && (
+                      <>
+                        <p className="text-sm text-gray-600 leading-relaxed">
+                          This service is available in <span className="font-semibold text-purple-700">{service.location?.city}</span>.
+                          Please confirm your location to proceed with payment.
+                        </p>
+                        <button
+                          onClick={detectLocation}
+                          className="w-full py-3 flex items-center justify-center gap-2 border-2 border-purple-500 text-purple-700 font-semibold rounded-xl hover:bg-purple-50 transition"
+                        >
+                          <MapPin size={16} /> Use my current location
+                        </button>
+                        <button
+                          onClick={() => setLocationStep('manual')}
+                          className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-700 underline"
+                        >
+                          Enter city manually
+                        </button>
+                      </>
+                    )}
+
+                    {locationStep === 'detecting' && (
+                      <div className="flex items-center gap-3 py-2 text-purple-700">
+                        <Loader2 size={20} className="animate-spin" />
+                        <span className="text-sm font-medium">Detecting your location…</span>
+                      </div>
+                    )}
+
+                    {locationStep === 'manual' && (
+                      <>
+                        <p className="text-sm text-gray-600">Enter your city to check availability:</p>
+                        <div className="flex gap-2">
+                          <div className="flex-1 flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-100 transition">
+                            <MapPin size={14} className="text-gray-400 shrink-0" />
+                            <input
+                              type="text"
+                              value={manualCity}
+                              onChange={e => setManualCity(e.target.value)}
+                              onKeyDown={e => e.key === 'Enter' && handleManualCity()}
+                              placeholder={`e.g. ${service.location?.city || 'Mumbai'}`}
+                              className="flex-1 text-sm outline-none bg-transparent"
+                            />
+                          </div>
+                          <button
+                            onClick={handleManualCity}
+                            className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition"
+                          >
+                            Check
+                          </button>
+                        </div>
+                      </>
+                    )}
+
+                    {locationStep === 'confirmed' && (
+                      <div className="flex items-center gap-2 text-green-700 text-sm font-medium">
+                        <CheckCircle2 size={18} className="shrink-0" />
+                        <span>Great! This service is available in <strong>{userCity}</strong>. You can proceed to payment.</span>
+                      </div>
+                    )}
+
+                    {locationStep === 'unavailable' && (
+                      <>
+                        <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-xl">
+                          <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-semibold text-red-700">Service not available in your location</p>
+                            <p className="text-xs text-red-600 mt-0.5">
+                              This service is offered in <strong>{service.location?.city}</strong> only, but you appear to be in <strong>{userCity}</strong>.
+                              Payment cannot be processed for this booking.
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => { setLocationStep('manual'); setManualCity(''); }}
+                          className="text-sm text-purple-600 underline hover:text-purple-800"
+                        >
+                          Try a different city
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Step 4: Review + Pay */}
                 <div className="border border-gray-200 rounded-2xl overflow-hidden">
                   <div className="p-5 border-b border-gray-100">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">3</div>
+                      <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">4</div>
                       <span className="font-bold text-gray-800">Review your request</span>
                     </div>
                   </div>
@@ -667,6 +829,12 @@ export default function ServiceBookingPage() {
                       <span className="text-gray-500">Cancellation</span>
                       <span className="font-semibold capitalize">{service.cancellationPolicy || "Moderate"}</span>
                     </div>
+                    {locationConfirmed && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Your Location</span>
+                        <span className="font-semibold text-green-700">✓ {userCity}</span>
+                      </div>
+                    )}
 
                     {bookingError && (
                       <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
@@ -682,6 +850,13 @@ export default function ServiceBookingPage() {
                         Your payment is protected under our guest guarantee.
                       </p>
                     </div>
+
+                    {!locationConfirmed && (
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700 flex items-center gap-2">
+                        <AlertCircle size={16} className="shrink-0" />
+                        Please confirm your location in Step 3 before proceeding to payment.
+                      </div>
+                    )}
 
                     <button
                       onClick={() => setShowPayment(true)}

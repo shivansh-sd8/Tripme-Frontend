@@ -4,6 +4,7 @@ import React, { useState, useRef,useEffect,useCallback  } from "react";
 import { useSearchState } from '@/hooks/useSearchState';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AsyncSelect from 'react-select/async';
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyB9JgH59f8fK3xzaBfFB6T19u4qGEUeLOM';
 
 function CategoryTabs({ onClose, activeCategory, setActiveCategory }: { 
   onClose: () => void;
@@ -645,7 +646,7 @@ function debounce<F extends (...args: any[]) => void>(func: F, wait: number) {
           
           // Auto-focus on dates after location selection
           setTimeout(() => {
-            setActiveField('checkin');
+            setActiveStep('when');
           }, 100);
         } else {
           throw new Error('Could not determine location');
@@ -861,11 +862,13 @@ useEffect(() => {
                       <button
                         key={idx}
                         onClick={() => {
-                          setSelectedCity({ value: dest.name, label: dest.name });
-                         
-                         setWhereSearch(dest.name);
-                           
-                          setActiveStep("when");
+                          if (dest.name === 'Nearby') {
+                            detectCurrentLocation();
+                          } else {
+                            setSelectedCity({ value: dest.name, label: dest.name });
+                            setWhereSearch(dest.name);
+                            setActiveStep("when");
+                          }
                         }}
                         className="w-full text-left px-4 py-3 hover:bg-gray-100 rounded-lg transition"
                       >

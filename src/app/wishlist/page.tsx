@@ -1,5 +1,6 @@
 "use client";
 import Header from "@/components/shared/Header";
+import Footer from "@/components/shared/Footer";
 import { useEffect, useState, useRef } from "react";
 import { apiClient } from "@/infrastructure/api/clients/api-client";
 import StayCard from "@/components/trips/StayCard";
@@ -59,17 +60,17 @@ const handleFavorite = async (stayId: string) => {
 
 
     return (
-         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 pb-24">
               <Header hideSearch ={true} />
 
-              <div className="max-w-7xl mt-10 mx-auto p-6">
+              <div className="max-w-7xl mt-24 md:mt-32 mx-auto p-6">
   <h1 className="text-2xl font-semibold mb-6">Wishlists</h1>
 
   {wishlists.map(wl => (
     <div key={wl._id} className="mb-10">
       <h2 className="text-xl font-medium mb-4">{wl.name}</h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {wl.items.map((item: any) => (
       
 
@@ -88,6 +89,8 @@ const handleFavorite = async (stayId: string) => {
 </div>
 
 
+
+              <Footer />
               </div>
     );
 }

@@ -189,11 +189,11 @@ const currency =
           {/* Favorite Button */}
           <button
             onClick={handleFavorite}
-            className="absolute top-2 right-2 md:top-4 md:right-4 p-3 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all duration-200 hover:scale-110 shadow-lg z-50 pointer-events-auto"
+            className="absolute top-2 right-2 md:top-4 md:right-4 p-1 md:p-3 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all duration-200 hover:scale-110 shadow-lg z-30 pointer-events-auto"
             aria-label="Add to favorites"
           >
             <Heart
-              size={20}
+              size={18}
               className={`transition-colors ${
                 isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-700 hover:text-red-500'
               }`}

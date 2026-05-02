@@ -81,6 +81,31 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
     setCurrentImageIndex(0);
   }, [selectedProperty]);
 
+  // Sync internal selectedProperty with markers prop
+  useEffect(() => {
+    const highlightedMarker = markers.find(m => m.isHighlighted);
+    if (highlightedMarker) {
+      // Only update if it's a different property
+      if (selectedProperty?._id !== highlightedMarker.id) {
+        setSelectedProperty(highlightedMarker.property);
+        
+        // When selection comes from props, we might need a default card position 
+        // if we don't have one yet (e.g. clicking a listing instead of a marker)
+        if (!cardPosition && mapRef.current) {
+          const mapRect = mapRef.current.getBoundingClientRect();
+          setCardPosition({
+            x: mapRect.width / 2 - 160,
+            y: mapRect.height * 0.2
+          });
+        }
+      }
+    } else if (selectedProperty) {
+      // If no marker is highlighted, clear the internal selectedProperty
+      setSelectedProperty(null);
+      setCardPosition(null);
+    }
+  }, [markers]);
+
   // Handle View Details button click
   const handleViewDetails = () => {
     if (selectedProperty?._id) {
@@ -326,7 +351,7 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
         // Create custom SVG icon for price tag
         const priceText = markerData.price ? `₹${markerData.price}` : '₹N/A';
         
-        const isSelected = markerData.id === selectedProperty?._id || markerData.isHighlighted;
+        const isSelected = markerData.isHighlighted;
         const bgColor = isSelected ? '#4285f4' : 'white';
         const textColor = isSelected ? 'white' : '#1f2937';
         const strokeColor = isSelected ? '#4285f4' : '#e5e7eb';
@@ -452,7 +477,7 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
         markersRef.current.push(marker);
       });
     }, 300); // Throttle marker updates by 300ms
-  }, [markerPosition, markers, isLoading, selectedProperty]);
+  }, [markerPosition, markers, isLoading]);
 
   if (isLoading) {
     return (
@@ -495,7 +520,7 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({
             left: `${cardPosition.x}px`,
             top: `${cardPosition.y}px`,
             width: '320px',
-            zIndex: 9999
+            zIndex: 40
           }}
           onClick={handleViewDetails}
         >

@@ -1028,7 +1028,7 @@ const PropertyImageCarousel = ({ images, onFavorite, isFavorite, onClick }: {
         className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all shadow-md z-10"
       >
         <svg 
-          className={`w-5 h-5 ${isFavorite ? 'fill-pink-500 stroke-pink-500' : 'stroke-gray-700'}`}
+          className={`w-5 h-5 ${isFavorite ? 'fill-red-500 stroke-red-500' : 'stroke-gray-700'}`}
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
@@ -1602,11 +1602,11 @@ function SearchPageContent() {
       title: property.title,
       price: property.pricing?.basePrice,
       image: property.images?.[0]?.url,
-      isHighlighted: hoveredPropertyId === property._id,
+      isHighlighted: selectedProperty ? (selectedProperty._id === property._id) : (hoveredPropertyId === property._id),
       onClick: () => handlePropertyClick(property._id),
       property: property
     }));
-  }, [allProperties, hoveredPropertyId, handlePropertyClick]);
+  }, [allProperties, hoveredPropertyId, handlePropertyClick, selectedProperty]);
 
   const stayListings = useMemo(() => {
     return listings.map(convertPropertyToStay);
@@ -1650,6 +1650,12 @@ function SearchPageContent() {
         onSearchToggle={setSearchExpanded}
         visibleFilter={true}
         onFilterClick={() => setFilterOpen(true)}
+        searchValues={{
+          location: city || undefined,
+          checkIn: checkIn || undefined,
+          checkOut: checkOut || undefined,
+          guests: guests ? parseInt(guests, 10) : undefined
+        }}
       />
 
       <FilterModal 
@@ -1670,7 +1676,7 @@ function SearchPageContent() {
                   {listings.length > 0 ? `Over ${listings.length} homes` : 'No homes found'}
                 </h1>
                 <div className="flex items-center gap-1">
-                  <svg className="w-4 h-4 text-pink-500" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
                   </svg>
                   <span className="text-sm text-gray-600">Prices include all fees</span>
@@ -1756,7 +1762,7 @@ function SearchPageContent() {
 
           <div className="absolute top-20 left-0 right-0 z-10 flex justify-center pointer-events-none">
             <div className="bg-white rounded-full px-4 py-2 shadow-lg flex items-center gap-2">
-              <svg className="w-4 h-4 text-pink-500" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
               </svg>
               <span className="text-sm font-medium text-gray-700">Prices include all fees</span>
@@ -1790,7 +1796,7 @@ function SearchPageContent() {
                   <div>
                     <div className="flex justify-between items-start">
                       <h3 className="font-bold text-gray-900 line-clamp-1 text-sm">{selectedProperty.title}</h3>
-                      <button className="text-gray-400 hover:text-pink-500 transition-colors">
+                      <button className="text-gray-400 hover:text-red-500 transition-colors">
                         <Heart className="w-5 h-5" />
                       </button>
                     </div>
@@ -1821,7 +1827,7 @@ function SearchPageContent() {
                         if (checkOut) params.set('checkOut', checkOut);
                         router.push(`/rooms/${selectedProperty._id || selectedProperty.id}?${params.toString()}`);
                       }}
-                      className="text-xs font-bold text-pink-600 hover:text-pink-700 underline underline-offset-2"
+                      className="text-xs font-bold text-red-600 hover:text-red-700 underline underline-offset-2"
                     >
                       View Details
                     </button>
@@ -1934,7 +1940,7 @@ function SearchPageContent() {
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
             <h3 className="text-lg font-semibold mb-4">Create new list</h3>
             <input
-              className="border border-gray-300 w-full p-3 rounded-lg mb-4 focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all"
+              className="border border-gray-300 w-full p-3 rounded-lg mb-4 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
               placeholder="My dream stays"
               value={wishlistName}
               onChange={e => setWishlistName(e.target.value)}
@@ -1947,7 +1953,7 @@ function SearchPageContent() {
                 Cancel
               </button>
               <button
-                className="bg-pink-500 hover:bg-pink-600 text-white px-6 py-2 rounded-lg font-medium transition-all active:scale-95 disabled:opacity-50"
+                className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-medium transition-all active:scale-95 disabled:opacity-50"
                 onClick={createWishlistAndSave}
                 disabled={!wishlistName.trim()}
               >

@@ -448,14 +448,14 @@ const HostBookingsPage: React.FC = () => {
     </Button>
   </Card>
 ) : (
-  <div className="space-y-4 md:space-y-6">
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
     {filteredBookings.map((booking) => (
       <Card 
         key={booking._id}
-        className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-2xl overflow-hidden active:scale-[0.98] transition-all"
+        className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-2xl overflow-hidden active:scale-[0.98] transition-all h-full flex flex-col"
       >
-        <div className="p-4 md:p-6">
-          <div className="flex flex-col gap-4">
+        <div className="p-4 md:p-6 flex-1 flex flex-col">
+          <div className="flex flex-col gap-4 flex-1">
             
             {/* 1. Header: Image + Title + Status Badge */}
             <div className="flex gap-4">

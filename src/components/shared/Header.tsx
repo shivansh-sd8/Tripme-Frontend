@@ -49,6 +49,12 @@ interface HeaderProps {
   hideSearch?: boolean;
   visibleFilter?: boolean;
   onFilterClick?: () => void;
+  searchValues?: {
+    location?: string;
+    checkIn?: string;
+    checkOut?: string;
+    guests?: number;
+  };
   visibleWishlist?: boolean;
   visibleShare?: boolean;
   onShareClick?: () => void;
@@ -84,7 +90,8 @@ const Header = ({ searchExpanded: externalSearchExpanded,
   onCheckAvailability,
   onHandleBooking,
   rating,
-  isOwenProperty = false
+  isOwenProperty = false,
+  searchValues
 
 }: HeaderProps = {}) => {
 
@@ -214,7 +221,7 @@ const Header = ({ searchExpanded: externalSearchExpanded,
 
   return (
     <>
-      <header className={`w-full z-50 fixed top-0 left-0 right-0
+      <header className={`w-full z-[100] fixed top-0 left-0 right-0
                        transition-all duration-300"
                        ${hideHeader ? "hidden" : ""}
                         ${scrolled && !searchExpanded
@@ -241,7 +248,7 @@ const Header = ({ searchExpanded: externalSearchExpanded,
               </div>
             </Link>
 
-            {shouldShowFullHeader ? <div className="hidden lg:flex items-center gap-12 transition-all duration-500 ease-in-out">
+            {shouldShowFullHeader && !hideSearch ? <div className="hidden lg:flex items-center gap-12 transition-all duration-500 ease-in-out">
               <button
                 onClick={() => {
                   setActiveCategory('homes');
@@ -252,7 +259,7 @@ const Header = ({ searchExpanded: externalSearchExpanded,
                   : 'text-gray-700 hover:text-[#4285F4]'
                   }`}
               >
-                <span className='text-2xl group-hover:scale-110 transition-transform duration-200'>🏠</span>
+                <span className='text-3xl group-hover:scale-110 transition-transform duration-200'>🏠</span>
                 {/* <Home size={22} className="group-hover:scale-110 transition-transform duration-200" /> */}
                 <span className="font-medium text-base">Homes</span>
               </button>
@@ -846,7 +853,7 @@ const Header = ({ searchExpanded: externalSearchExpanded,
               </div>
             </div>)}
 
-          {shouldShowFullHeader && !hideHeader && (<div className="hidden lg:flex justify-center w-full pb-3">
+          {shouldShowFullHeader && !hideHeader && !hideSearch && (<div className="hidden lg:flex justify-center w-full pb-3">
             <div className="w-full max-w-4xl">
               <AirbnbSearchForm
                 variant="compact"
@@ -860,8 +867,9 @@ const Header = ({ searchExpanded: externalSearchExpanded,
           {/* mobile search form */}
           <div
   className={cn(
-    "md:hidden px-4 pb-3 mt-5 transition-transform duration-300",
-    scrolled ? "scale-[0.96]" : "scale-100"
+    "md:hidden px-4  mt-5 transition-transform duration-300",
+    scrolled ? "scale-[0.96]" : "scale-100",
+    hideSearch && "hidden"
   )}
 >
             <button
@@ -877,10 +885,27 @@ const Header = ({ searchExpanded: externalSearchExpanded,
       text-left
     "
             >
-              <Search className="w-4 h-4 text-gray-500" />
-              <span className="text-gray-700 font-medium">
-                Start your search
-              </span>
+              <Search className="w-4 h-4 text-gray-500 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                {searchValues && (searchValues.location || searchValues.checkIn) ? (
+                  <div className="flex flex-col">
+                    <span className="text-gray-900 font-semibold text-sm truncate">
+                      {searchValues.location || "Anywhere"}
+                    </span>
+                    <span className="text-gray-500 text-xs font-medium truncate">
+                      {searchValues.checkIn && searchValues.checkOut 
+                        ? `${new Date(searchValues.checkIn).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} - ${new Date(searchValues.checkOut).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}`
+                        : "Any week"}
+                      {" · "}
+                      {searchValues.guests ? `${searchValues.guests} guests` : "Add guests"}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-gray-700 font-medium text-sm">
+                    Start your search
+                  </span>
+                )}
+              </div>
             </button>
 
             {/* Tabs */}
@@ -940,7 +965,7 @@ const Header = ({ searchExpanded: externalSearchExpanded,
     // 🔥 dynamic spacing
     scrolled
       ? "top-[56px] py-1 "
-      : "top-[72px] py-3 "
+      : "top-[72px] py-3"
   )}
 >
   {categories.map((cat) => {
@@ -963,7 +988,7 @@ const Header = ({ searchExpanded: externalSearchExpanded,
   {/* ICON with smooth fade + collapse */}
   <div
     className={cn(
-      "transition-all duration-300 ease-in-out transform ",
+      "text-3xl transition-all duration-300 ease-in-out transform ",
 
       scrolled
         ? "opacity-0 scale-75 h-0 overflow-hidden"
@@ -976,7 +1001,7 @@ const Header = ({ searchExpanded: externalSearchExpanded,
   {/* LABEL */}
   <span
     className={cn(
-      "font-medium tracking-wide transition-all duration-300",
+      "font-medium tracking-wide transition-all duration-300 mt-4 pb-2",
       scrolled ? "text-sm" : "text-xs",
       isActive ? "text-[#4285F4]" : "text-gray-500"
     )}
@@ -987,7 +1012,7 @@ const Header = ({ searchExpanded: externalSearchExpanded,
   {/* ACTIVE LINE */}
   <span
     className={cn(
-      "absolute left-0 right-0 bottom-0 h-[2px] rounded-t-full transition-all duration-300",
+      "absolute left-0 right-0 bottom-0 h-[3px] rounded-t-full transition-all duration-300",
       isActive ? "bg-[#4285F4] opacity-100" : "opacity-0"
     )}
   />
@@ -1059,10 +1084,27 @@ const Header = ({ searchExpanded: externalSearchExpanded,
           text-left
         "
                 >
-                  <Search className="w-4 h-4 text-gray-500" />
-                  <span className="text-gray-700 font-medium truncate">
-                    Start your search
-                  </span>
+                  <Search className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    {searchValues && (searchValues.location || searchValues.checkIn) ? (
+                      <div className="flex flex-col">
+                        <span className="text-gray-900 font-semibold text-sm truncate">
+                          {searchValues.location || "Anywhere"}
+                        </span>
+                        <span className="text-gray-500 text-xs font-medium truncate">
+                          {searchValues.checkIn && searchValues.checkOut
+                            ? `${new Date(searchValues.checkIn).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} - ${new Date(searchValues.checkOut).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}`
+                            : "Any week"}
+                          {" · "}
+                          {searchValues.guests ? `${searchValues.guests} guests` : "Add guests"}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-700 font-medium text-sm">
+                        Start your search
+                      </span>
+                    )}
+                  </div>
                 </button>
 
                 {visibleFilter && (
